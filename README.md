@@ -1,2 +1,2 @@
-# Open Furmul
+# Open Formul
 Aplikasi formulasi pakan ternak presisi

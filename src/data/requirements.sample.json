@@ -1,0 +1,16 @@
+[
+  {
+    "id": "broiler-starter",
+    "name": "Broiler Starter (0–21 hari)",
+    "species": "broiler",
+    "basis": "as_fed",
+    "constraints": [
+      { "nutrientId": "cp", "min": 21, "max": 23 },
+      { "nutrientId": "me_poultry", "min": 2950, "max": 3150 },
+      { "nutrientId": "cf", "max": 5 },
+      { "nutrientId": "ca", "min": 0.9, "max": 1.1 },
+      { "nutrientId": "p", "min": 0.6 }
+    ],
+    "source": "Indikatif, diadaptasi dari NRC (1994) dan SNI pakan broiler starter — perlu validasi ahli"
+  }
+]

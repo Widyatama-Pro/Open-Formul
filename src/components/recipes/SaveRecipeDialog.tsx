@@ -1,0 +1,61 @@
+import { useState } from "react";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { SheetDialog } from "../ui/SheetDialog";
+
+export interface SaveRecipeDialogProps {
+  readonly open: boolean;
+  readonly defaultName: string;
+  readonly onClose: () => void;
+  readonly onSave: (name: string, notes?: string) => void;
+}
+
+export function SaveRecipeDialog({ open, defaultName, onClose, onSave }: SaveRecipeDialogProps) {
+  const [name, setName] = useState(defaultName);
+  const [notes, setNotes] = useState("");
+
+  const handleConfirm = () => {
+    const trimmed = name.trim() || defaultName;
+    onSave(trimmed, notes.trim() || undefined);
+    setNotes("");
+    onClose();
+  };
+
+  return (
+    <SheetDialog
+      open={open}
+      onClose={onClose}
+      title="Simpan Proyek Formulasi"
+      subtitle="Menyimpan bahan aktif, harga custom, batasan, dan hasil saat ini."
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Batal
+          </Button>
+          <Button variant="primary" onClick={handleConfirm}>
+            Simpan Proyek
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-3.5 text-xs">
+        <div>
+          <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
+            Nama Resep
+          </label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div>
+          <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
+            Catatan Lapangan (Opsional)
+          </label>
+          <Input
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Mis. Harga jagung kiriman minggu ke-2…"
+          />
+        </div>
+      </div>
+    </SheetDialog>
+  );
+}

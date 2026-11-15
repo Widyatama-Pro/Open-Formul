@@ -1,0 +1,62 @@
+# Arsitektur Open Formul
+
+## Prinsip
+
+1. **Client-side only** — tidak ada backend; solver berjalan di browser.
+2. **Offline-first** — semua aset di-cache Service Worker, data di IndexedDB.
+3. **Domain murni** — `src/solver` dan `src/utils` bebas React sehingga mudah diuji.
+
+## Alur Data
+
+```mermaid
+flowchart TD
+  A["UI: Grid Bahan Pakan (components)"] --> C["Hooks: useIngredients / useRequirements"]
+  B["UI: Target Nutrien min/max"] --> C
+  C --> D["useFormulation (debounce + requestId)"]
+  D --> E["Normalisasi basis As-Fed/BK (utils)"]
+  E --> F["precheck: deteksi infeasible cepat"]
+  F -->|lolos| G["buildModel: matriks LP"]
+  F -->|gagal| K
+  G --> H["toLpString: format CPLEX LP"]
+  H --> I["Web Worker: HiGHS WASM solve()"]
+  I --> J["parseResult + verifikasi"]
+  J --> K["FormulationResult"]
+  K --> L["UI: Komposisi, biaya, status nutrien"]
+  C <--> M[("IndexedDB")]
+```
+
+## Urutan Eksekusi Solve
+
+```mermaid
+sequenceDiagram
+  participant UI
+  participant Hook as usePrototypeStore
+  participant Client as solverClient
+  participant W as highs.worker
+  UI->>Hook: input berubah
+  Hook->>Hook: debounce 120 ms (tiket monotonic)
+  Hook->>Client: solveFormulation(ingredients, req, config)
+  Client->>W: postMessage(lpString, id)
+  W->>W: HiGHS simplex (presolve off) + ranging
+  W-->>Client: LpSolveOutput(id)
+  Client-->>Hook: FormulationResult (verifikasi 1e-6)
+  Hook->>Hook: abaikan bila tiket usang
+  Hook-->>UI: render hasil
+```
+
+## Modul
+
+| Folder           | Tanggung jawab                                                                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/types`      | Tipe domain kanonik                                                                                                                           |
+| `src/data`       | Sampel bahan JSON, dataset kerja (`mock-state`), 14 bahan Indonesia (`hartadi-feeds`), & 6 profil Kearl 1982 (`kearl-requirements`)           |
+| `src/solver`     | `precheck`, `buildModel`, `toLpString`, `parseResult`, `solveFormulation`, `highs.worker`, `solverClient`                                     |
+| `src/storage`    | `db` (IndexedDB `idb` `open-formul-db` v1), `recipeTransfer` (`.feed.json`), `exportCsvXlsx` (CSV BOM & OOXML `.xlsx`), `exportPdf` (PDF 1.4) |
+| `src/utils`      | `basis` (As-Fed ↔ BK), `equations`, `validators`, `ingredientCsvImport`, `tsvPaste`, `download`, `locale-number`, `cn`                        |
+| `src/hooks`      | `usePrototypeStore` (orkestrasi solve live, hidrasi & persistensi IDB, non-destructive `loadRecipe`), `usePwaStatus`                          |
+| `src/components` | UI presentasional (Layered Glassmorphism & Soft Neumorphism, Light/Dark, offline font via `@fontsource-variable/*`)                           |
+
+## Offline & PWA (Fase 4)
+
+- `vite-plugin-pwa` (`mode: "generateSW"`, `registerType: "autoUpdate"`) dengan `maximumFileSizeToCacheInBytes: 6 * 1024 * 1024` untuk _precache_ aset statis serta `highs-*.wasm`.
+- IndexedDB via `idb` (`open-formul-db` v1) dengan 5 object store: `ingredients`, `requirements`, `recipes`, `active_session`, dan `preferences` (beserta fallback memori aman jika IndexedDB diblokir/tidak tersedia).

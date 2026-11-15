@@ -1,0 +1,15 @@
+[
+  { "id": "cp", "name": "Protein Kasar", "nameEn": "Crude Protein", "unit": "%" },
+  {
+    "id": "me_poultry",
+    "name": "Energi Metabolis Unggas",
+    "nameEn": "Poultry ME",
+    "unit": "kcal/kg"
+  },
+  { "id": "cf", "name": "Serat Kasar", "nameEn": "Crude Fiber", "unit": "%" },
+  { "id": "ee", "name": "Lemak Kasar", "nameEn": "Ether Extract", "unit": "%" },
+  { "id": "ca", "name": "Kalsium", "nameEn": "Calcium", "unit": "%" },
+  { "id": "p", "name": "Fosfor Total", "nameEn": "Total Phosphorus", "unit": "%" },
+  { "id": "lys", "name": "Lisin", "nameEn": "Lysine", "unit": "%" },
+  { "id": "met", "name": "Metionin", "nameEn": "Methionine", "unit": "%" }
+]

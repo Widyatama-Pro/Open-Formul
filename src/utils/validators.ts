@@ -1,0 +1,660 @@
+import type {
+  Basis,
+  Bounds,
+  FormulationConfig,
+  Ingredient,
+  IngredientCategory,
+  IngredientGroupConstraint,
+  NutrientConstraint,
+  OptimizationMode,
+  RatioConstraint,
+  Recipe,
+  Requirement,
+  UserPreferences,
+  ZeroInclusionRule,
+} from "../types";
+
+export type ValidationResult<T> =
+  | { readonly ok: true; readonly data: T }
+  | { readonly ok: false; readonly errors: readonly string[] };
+
+const VALID_CATEGORIES = new Set<IngredientCategory>([
+  "energy",
+  "protein",
+  "mineral",
+  "premix",
+  "forage",
+  "additive",
+  "enzyme",
+]);
+
+const VALID_BASES = new Set<Basis>(["as_fed", "dry_matter"]);
+const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+export function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  if (Object.prototype.toString.call(value) !== "[object Object]") {
+    return false;
+  }
+  const proto = Object.getPrototypeOf(value) as unknown;
+  return proto === null || proto === Object.prototype || Object.getPrototypeOf(proto) === null;
+}
+
+function stripControlCharacters(raw: string, allowNewlines: boolean): string {
+  let out = "";
+  for (let i = 0; i < raw.length; i += 1) {
+    const code = raw.charCodeAt(i);
+    const isLineBreak = code === 10 || code === 13;
+    if ((code <= 31 || code === 127) && !(allowNewlines && isLineBreak)) {
+      continue;
+    }
+    out += raw[i]!;
+  }
+  return out;
+}
+
+export function sanitizeText(
+  value: unknown,
+  options?: { maxLength?: number; allowNewlines?: boolean },
+): string {
+  if (typeof value !== "string") return "";
+  const cleaned = stripControlCharacters(value, options?.allowNewlines === true).trim();
+  const limit = options?.maxLength ?? 500;
+  return cleaned.length > limit ? cleaned.slice(0, limit) : cleaned;
+}
+
+export function parseFiniteNumber(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+  return value;
+}
+
+function validateCategory(value: unknown): IngredientCategory | null {
+  if (typeof value !== "string") return null;
+  return VALID_CATEGORIES.has(value as IngredientCategory) ? (value as IngredientCategory) : null;
+}
+
+function validateBasis(value: unknown): Basis | null {
+  if (typeof value !== "string") return null;
+  return VALID_BASES.has(value as Basis) ? (value as Basis) : null;
+}
+
+function parseOptionalBounds(raw: unknown, label: string, errors: string[]): Bounds | undefined {
+  if (raw === undefined) return undefined;
+  if (!isPlainObject(raw)) {
+    errors.push(`${label} harus berupa objek.`);
+    return undefined;
+  }
+  let minVal: number | undefined;
+  let maxVal: number | undefined;
+
+  if (raw.min !== undefined) {
+    const parsedMin = parseFiniteNumber(raw.min);
+    if (parsedMin === null || parsedMin < 0 || parsedMin > 100) {
+      errors.push(`${label}.min harus angka pada rentang 0–100.`);
+    } else {
+      minVal = parsedMin;
+    }
+  }
+  if (raw.max !== undefined) {
+    const parsedMax = parseFiniteNumber(raw.max);
+    if (parsedMax === null || parsedMax < 0 || parsedMax > 100) {
+      errors.push(`${label}.max harus angka pada rentang 0–100.`);
+    } else {
+      maxVal = parsedMax;
+    }
+  }
+  if (minVal !== undefined && maxVal !== undefined && minVal > maxVal) {
+    errors.push(`${label}.min (${minVal}) tidak boleh lebih besar dari max (${maxVal}).`);
+  }
+
+  return {
+    ...(minVal !== undefined ? { min: minVal } : {}),
+    ...(maxVal !== undefined ? { max: maxVal } : {}),
+  };
+}
+
+function parseZeroInclusion(
+  raw: unknown,
+  label: string,
+  errors: string[],
+): ZeroInclusionRule | undefined {
+  if (raw === undefined) return undefined;
+  if (!isPlainObject(raw) || typeof raw.enforceNonZero !== "boolean") {
+    errors.push(`${label}.enforceNonZero harus boolean.`);
+    return undefined;
+  }
+  let minIfSelected: number | undefined;
+  if (raw.minIfSelected !== undefined) {
+    const parsed = parseFiniteNumber(raw.minIfSelected);
+    if (parsed === null || parsed < 0 || parsed > 100) {
+      errors.push(`${label}.minIfSelected harus angka 0–100.`);
+    } else {
+      minIfSelected = parsed;
+    }
+  }
+  return {
+    enforceNonZero: raw.enforceNonZero,
+    ...(minIfSelected !== undefined ? { minIfSelected } : {}),
+  };
+}
+
+export function validateIngredient(
+  raw: unknown,
+  contextLabel = "Bahan",
+): ValidationResult<Ingredient> {
+  if (!isPlainObject(raw)) {
+    return { ok: false, errors: [`${contextLabel} harus berupa objek JSON.`] };
+  }
+
+  const errors: string[] = [];
+  const id = sanitizeText(raw.id, { maxLength: 100 });
+  if (!id || FORBIDDEN_KEYS.has(id)) {
+    errors.push(`${contextLabel}: id wajib terisi string yang valid.`);
+  }
+
+  const name = sanitizeText(raw.name, { maxLength: 160 });
+  if (!name) {
+    errors.push(`${contextLabel}: nama bahan wajib terisi.`);
+  }
+
+  const nameEn = sanitizeText(raw.nameEn, { maxLength: 160 });
+  const category = validateCategory(raw.category);
+  if (!category) {
+    errors.push(`${contextLabel}: kategori tidak valid.`);
+  }
+
+  const pricePerKg = parseFiniteNumber(raw.pricePerKg);
+  if (pricePerKg === null || pricePerKg < 0) {
+    errors.push(`${contextLabel}: pricePerKg harus angka >= 0.`);
+  }
+
+  let priceOverride: number | undefined;
+  if (raw.priceOverride !== undefined) {
+    const parsedOverride = parseFiniteNumber(raw.priceOverride);
+    if (parsedOverride === null || parsedOverride < 0) {
+      errors.push(`${contextLabel}: priceOverride harus angka >= 0.`);
+    } else {
+      priceOverride = parsedOverride;
+    }
+  }
+
+  const dryMatter = parseFiniteNumber(raw.dryMatter);
+  if (dryMatter === null || dryMatter <= 0 || dryMatter > 100) {
+    errors.push(`${contextLabel}: dryMatter (BK %) harus > 0 dan <= 100.`);
+  }
+
+  const basis = validateBasis(raw.basis);
+  if (!basis) {
+    errors.push(`${contextLabel}: basis harus 'as_fed' atau 'dry_matter'.`);
+  }
+
+  let isActive: boolean | undefined;
+  if (raw.isActive !== undefined) {
+    if (typeof raw.isActive !== "boolean") {
+      errors.push(`${contextLabel}: isActive harus boolean.`);
+    } else {
+      isActive = raw.isActive;
+    }
+  }
+
+  const nutrients: Record<string, number | null> = {};
+  if (!isPlainObject(raw.nutrients)) {
+    errors.push(`${contextLabel}: nutrients harus berupa peta nilai nutrien.`);
+  } else {
+    for (const [k, v] of Object.entries(raw.nutrients)) {
+      const cleanKey = sanitizeText(k, { maxLength: 60 });
+      if (!cleanKey || FORBIDDEN_KEYS.has(cleanKey)) continue;
+      if (v === null) {
+        nutrients[cleanKey] = null;
+      } else {
+        const num = parseFiniteNumber(v);
+        if (num === null || num < 0) {
+          errors.push(
+            `${contextLabel}: nilai nutrien '${cleanKey}' tidak valid (< 0 atau bukan angka).`,
+          );
+        } else {
+          nutrients[cleanKey] = num;
+        }
+      }
+    }
+  }
+
+  let stdDev: Record<string, number> | undefined;
+  if (raw.stdDev !== undefined) {
+    if (!isPlainObject(raw.stdDev)) {
+      errors.push(`${contextLabel}: stdDev harus berupa objek.`);
+    } else {
+      stdDev = {};
+      for (const [k, v] of Object.entries(raw.stdDev)) {
+        if (FORBIDDEN_KEYS.has(k)) continue;
+        const num = parseFiniteNumber(v);
+        if (num === null || num < 0) {
+          errors.push(`${contextLabel}: stdDev['${k}'] tidak valid.`);
+        } else {
+          stdDev[k] = num;
+        }
+      }
+    }
+  }
+
+  const inclusion = parseOptionalBounds(raw.inclusion, `${contextLabel}.inclusion`, errors);
+  const zeroInclusionRule = parseZeroInclusion(
+    raw.zeroInclusionRule,
+    `${contextLabel}.zeroInclusionRule`,
+    errors,
+  );
+
+  const groupId = sanitizeText(raw.groupId, { maxLength: 100 });
+  let phytateP: number | undefined;
+  if (raw.phytateP !== undefined) {
+    const parsed = parseFiniteNumber(raw.phytateP);
+    if (parsed === null || parsed < 0 || parsed > 100) {
+      errors.push(`${contextLabel}: phytateP harus pada rentang 0–100.`);
+    } else {
+      phytateP = parsed;
+    }
+  }
+
+  const source = sanitizeText(raw.source, { maxLength: 400 }) || "Impor JSON";
+
+  if (errors.length > 0 || !category || pricePerKg === null || dryMatter === null || !basis) {
+    return { ok: false, errors };
+  }
+
+  const validated: Ingredient = {
+    id,
+    name,
+    category,
+    pricePerKg,
+    dryMatter,
+    basis,
+    nutrients,
+    source,
+    ...(nameEn ? { nameEn } : {}),
+    ...(priceOverride !== undefined ? { priceOverride } : {}),
+    ...(isActive !== undefined ? { isActive } : {}),
+    ...(stdDev ? { stdDev } : {}),
+    ...(inclusion ? { inclusion } : {}),
+    ...(zeroInclusionRule ? { zeroInclusionRule } : {}),
+    ...(groupId ? { groupId } : {}),
+    ...(phytateP !== undefined ? { phytateP } : {}),
+  };
+
+  return { ok: true, data: validated };
+}
+
+export function validateIngredientPackJson(raw: unknown): ValidationResult<readonly Ingredient[]> {
+  if (!Array.isArray(raw)) {
+    return { ok: false, errors: ["File pack bahan harus berupa array JSON bahan pakan."] };
+  }
+  if (raw.length === 0) {
+    return { ok: false, errors: ["Array bahan pakan kosong."] };
+  }
+  if (raw.length > 500) {
+    return { ok: false, errors: ["Jumlah bahan dalam satu impor dibatasi maksimal 500 entri."] };
+  }
+  const errors: string[] = [];
+  const items: Ingredient[] = [];
+  raw.forEach((entry, idx) => {
+    const res = validateIngredient(entry, `Bahan #${idx + 1}`);
+    if (!res.ok) {
+      errors.push(...res.errors);
+    } else {
+      items.push(res.data);
+    }
+  });
+  return errors.length > 0 ? { ok: false, errors } : { ok: true, data: items };
+}
+
+export function validateRequirement(
+  raw: unknown,
+  contextLabel = "Standar Kebutuhan",
+): ValidationResult<Requirement> {
+  if (!isPlainObject(raw)) {
+    return { ok: false, errors: [`${contextLabel} harus berupa objek JSON.`] };
+  }
+  const errors: string[] = [];
+  const id = sanitizeText(raw.id, { maxLength: 100 });
+  const name = sanitizeText(raw.name, { maxLength: 160 });
+  const nameEn = sanitizeText(raw.nameEn, { maxLength: 160 });
+  const species = sanitizeText(raw.species, { maxLength: 60 });
+  const phase = sanitizeText(raw.phase, { maxLength: 100 });
+  const basis = validateBasis(raw.basis);
+  const source = sanitizeText(raw.source, { maxLength: 400 });
+
+  if (!id || FORBIDDEN_KEYS.has(id)) errors.push(`${contextLabel}: id tidak valid.`);
+  if (!name) errors.push(`${contextLabel}: nama wajib terisi.`);
+  if (!species) errors.push(`${contextLabel}: species wajib terisi.`);
+  if (!basis) errors.push(`${contextLabel}: basis harus 'as_fed' atau 'dry_matter'.`);
+
+  const constraints: NutrientConstraint[] = [];
+  if (!Array.isArray(raw.constraints)) {
+    errors.push(`${contextLabel}: constraints harus berupa array.`);
+  } else {
+    raw.constraints.forEach((cRaw, idx) => {
+      if (!isPlainObject(cRaw)) {
+        errors.push(`${contextLabel}.constraints[${idx}] harus berupa objek.`);
+        return;
+      }
+      const nutrientId = sanitizeText(cRaw.nutrientId, { maxLength: 60 });
+      if (!nutrientId || FORBIDDEN_KEYS.has(nutrientId)) {
+        errors.push(`${contextLabel}.constraints[${idx}].nutrientId tidak valid.`);
+        return;
+      }
+      let minVal: number | undefined;
+      let maxVal: number | undefined;
+      let idealTarget: number | undefined;
+      if (cRaw.min !== undefined) {
+        const parsed = parseFiniteNumber(cRaw.min);
+        if (parsed === null || parsed < 0) {
+          errors.push(`${contextLabel}.constraints[${idx}].min tidak valid.`);
+        } else {
+          minVal = parsed;
+        }
+      }
+      if (cRaw.max !== undefined) {
+        const parsed = parseFiniteNumber(cRaw.max);
+        if (parsed === null || parsed < 0) {
+          errors.push(`${contextLabel}.constraints[${idx}].max tidak valid.`);
+        } else {
+          maxVal = parsed;
+        }
+      }
+      if (cRaw.idealTarget !== undefined) {
+        const parsed = parseFiniteNumber(cRaw.idealTarget);
+        if (parsed === null || parsed < 0) {
+          errors.push(`${contextLabel}.constraints[${idx}].idealTarget tidak valid.`);
+        } else {
+          idealTarget = parsed;
+        }
+      }
+      if (minVal !== undefined && maxVal !== undefined && minVal > maxVal) {
+        errors.push(`${contextLabel}.constraints[${idx}]: min (${minVal}) > max (${maxVal}).`);
+      }
+
+      constraints.push({
+        nutrientId,
+        ...(minVal !== undefined ? { min: minVal } : {}),
+        ...(maxVal !== undefined ? { max: maxVal } : {}),
+        ...(idealTarget !== undefined ? { idealTarget } : {}),
+        ...(typeof cRaw.isAdvance === "boolean" ? { isAdvance: cRaw.isAdvance } : {}),
+        ...(typeof cRaw.enabled === "boolean" ? { enabled: cRaw.enabled } : {}),
+      });
+    });
+  }
+
+  let ratios: RatioConstraint[] | undefined;
+  if (raw.ratios !== undefined) {
+    if (!Array.isArray(raw.ratios)) {
+      errors.push(`${contextLabel}.ratios harus berupa array.`);
+    } else {
+      ratios = [];
+      raw.ratios.forEach((rRaw, idx) => {
+        if (!isPlainObject(rRaw)) {
+          errors.push(`${contextLabel}.ratios[${idx}] harus berupa objek.`);
+          return;
+        }
+        const numerator = sanitizeText(rRaw.numerator, { maxLength: 60 });
+        const denominator = sanitizeText(rRaw.denominator, { maxLength: 60 });
+        if (!numerator || !denominator) {
+          errors.push(`${contextLabel}.ratios[${idx}] numerator/denominator wajib terisi.`);
+          return;
+        }
+        const rId = sanitizeText(rRaw.id, { maxLength: 60 });
+        const rLabel = sanitizeText(rRaw.label, { maxLength: 120 });
+        let rMin: number | undefined;
+        let rMax: number | undefined;
+        if (rRaw.min !== undefined) {
+          const parsed = parseFiniteNumber(rRaw.min);
+          if (parsed === null || parsed < 0)
+            errors.push(`${contextLabel}.ratios[${idx}].min tidak valid.`);
+          else rMin = parsed;
+        }
+        if (rRaw.max !== undefined) {
+          const parsed = parseFiniteNumber(rRaw.max);
+          if (parsed === null || parsed < 0)
+            errors.push(`${contextLabel}.ratios[${idx}].max tidak valid.`);
+          else rMax = parsed;
+        }
+        if (rMin !== undefined && rMax !== undefined && rMin > rMax) {
+          errors.push(`${contextLabel}.ratios[${idx}]: min > max.`);
+        }
+        ratios?.push({
+          numerator,
+          denominator,
+          ...(rId ? { id: rId } : {}),
+          ...(rLabel ? { label: rLabel } : {}),
+          ...(rMin !== undefined ? { min: rMin } : {}),
+          ...(rMax !== undefined ? { max: rMax } : {}),
+        });
+      });
+    }
+  }
+
+  let ingredientGroups: IngredientGroupConstraint[] | undefined;
+  if (raw.ingredientGroups !== undefined) {
+    if (!Array.isArray(raw.ingredientGroups)) {
+      errors.push(`${contextLabel}.ingredientGroups harus berupa array.`);
+    } else {
+      ingredientGroups = [];
+      raw.ingredientGroups.forEach((gRaw, idx) => {
+        if (!isPlainObject(gRaw)) {
+          errors.push(`${contextLabel}.ingredientGroups[${idx}] harus berupa objek.`);
+          return;
+        }
+        const gId = sanitizeText(gRaw.id, { maxLength: 80 });
+        const gName = sanitizeText(gRaw.name, { maxLength: 120 });
+        const ids = Array.isArray(gRaw.ingredientIds)
+          ? gRaw.ingredientIds.map((item) => sanitizeText(item, { maxLength: 100 })).filter(Boolean)
+          : [];
+        if (!gId || !gName) {
+          errors.push(`${contextLabel}.ingredientGroups[${idx}] id dan name wajib terisi.`);
+          return;
+        }
+        const bounds = parseOptionalBounds(
+          {
+            ...(gRaw.min !== undefined ? { min: gRaw.min } : {}),
+            ...(gRaw.max !== undefined ? { max: gRaw.max } : {}),
+          },
+          `${contextLabel}.ingredientGroups[${idx}]`,
+          errors,
+        );
+        ingredientGroups?.push({
+          id: gId,
+          name: gName,
+          ingredientIds: ids,
+          ...(bounds?.min !== undefined ? { min: bounds.min } : {}),
+          ...(bounds?.max !== undefined ? { max: bounds.max } : {}),
+        });
+      });
+    }
+  }
+
+  if (errors.length > 0 || !basis) {
+    return { ok: false, errors };
+  }
+
+  return {
+    ok: true,
+    data: {
+      id,
+      name,
+      species,
+      basis,
+      constraints,
+      ...(nameEn ? { nameEn } : {}),
+      ...(phase ? { phase } : {}),
+      ...(ratios ? { ratios } : {}),
+      ...(ingredientGroups ? { ingredientGroups } : {}),
+      ...(source ? { source } : {}),
+    },
+  };
+}
+
+export function validateFormulationConfig(raw: unknown): ValidationResult<FormulationConfig> {
+  if (!isPlainObject(raw)) {
+    return { ok: false, errors: ["Konfigurasi formulasi harus berupa objek JSON."] };
+  }
+  const errors: string[] = [];
+  const modeNum = parseFiniteNumber(raw.optimizationMode);
+  const optimizationMode: OptimizationMode =
+    modeNum === 1 || modeNum === 2 || modeNum === 3 || modeNum === 4 || modeNum === 5 ? modeNum : 3;
+  if (modeNum !== optimizationMode) {
+    errors.push("optimizationMode harus antara 1 sampai 5.");
+  }
+
+  const activeBasis = validateBasis(raw.activeBasis) ?? "as_fed";
+  if (!validateBasis(raw.activeBasis)) {
+    errors.push("activeBasis harus 'as_fed' atau 'dry_matter'.");
+  }
+
+  const batchSizeKg = parseFiniteNumber(raw.batchSizeKg);
+  if (batchSizeKg === null || batchSizeKg <= 0 || batchSizeKg > 1_000_000) {
+    errors.push("batchSizeKg harus angka > 0.");
+  }
+
+  const zeroRule = parseZeroInclusion(
+    raw.globalZeroInclusion,
+    "config.globalZeroInclusion",
+    errors,
+  ) ?? {
+    enforceNonZero: false,
+    minIfSelected: 1,
+  };
+
+  let manualLocks: Record<string, number> | undefined;
+  if (raw.manualLocks !== undefined) {
+    if (!isPlainObject(raw.manualLocks)) {
+      errors.push("manualLocks harus berupa objek.");
+    } else {
+      manualLocks = {};
+      for (const [k, v] of Object.entries(raw.manualLocks)) {
+        if (FORBIDDEN_KEYS.has(k)) continue;
+        const parsed = parseFiniteNumber(v);
+        if (parsed === null || parsed < 0 || parsed > 100) {
+          errors.push(`manualLocks['${k}'] harus angka 0–100.`);
+        } else {
+          manualLocks[k] = parsed;
+        }
+      }
+    }
+  }
+
+  if (errors.length > 0 || batchSizeKg === null) {
+    return { ok: false, errors };
+  }
+
+  return {
+    ok: true,
+    data: {
+      optimizationMode,
+      activeBasis,
+      batchSizeKg,
+      enableAdvanceNutrients: Boolean(raw.enableAdvanceNutrients),
+      enableDigestibleBasis: Boolean(raw.enableDigestibleBasis),
+      enableElasticFallback: raw.enableElasticFallback !== false,
+      globalZeroInclusion: zeroRule,
+      ...(manualLocks ? { manualLocks } : {}),
+    },
+  };
+}
+
+export function validateUserPreferences(raw: unknown): ValidationResult<UserPreferences> {
+  if (!isPlainObject(raw)) {
+    return { ok: false, errors: ["Preferensi harus berupa objek."] };
+  }
+  const language = raw.language === "en" ? "en" : "id";
+  const theme = raw.theme === "dark" ? "dark" : "light";
+  const defaultBasis = validateBasis(raw.defaultBasis) ?? "as_fed";
+  const batch = parseFiniteNumber(raw.defaultBatchKg);
+  const zeroPct = parseFiniteNumber(raw.zeroInclusionDefaultPct);
+  return {
+    ok: true,
+    data: {
+      language,
+      theme,
+      defaultBasis,
+      defaultBatchKg: batch !== null && batch > 0 ? batch : 100,
+      zeroInclusionDefaultPct: zeroPct !== null && zeroPct >= 0 && zeroPct <= 50 ? zeroPct : 1,
+    },
+  };
+}
+
+export function validateFeedJson(raw: unknown): ValidationResult<Recipe> {
+  if (!isPlainObject(raw)) {
+    return { ok: false, errors: ["Format berkas .feed.json harus berupa objek JSON."] };
+  }
+
+  if (raw.schemaVersion !== 1) {
+    return {
+      ok: false,
+      errors: [
+        `Versi skema .feed.json tidak didukung (${String(raw.schemaVersion)}). Hanya schemaVersion: 1 yang didukung.`,
+      ],
+    };
+  }
+
+  const errors: string[] = [];
+  const id = sanitizeText(raw.id, { maxLength: 100 });
+  const name = sanitizeText(raw.name, { maxLength: 180 });
+  const notes = sanitizeText(raw.notes, { maxLength: 1000, allowNewlines: true });
+  const createdAt = sanitizeText(raw.createdAt, { maxLength: 60 }) || new Date().toISOString();
+  const updatedAt = sanitizeText(raw.updatedAt, { maxLength: 60 }) || createdAt;
+
+  if (!id || FORBIDDEN_KEYS.has(id)) errors.push("Recipe id tidak valid.");
+  if (!name) errors.push("Nama resep wajib terisi.");
+
+  if (!Array.isArray(raw.ingredients) || raw.ingredients.length === 0) {
+    errors.push("Resep wajib memiliki minimal 1 bahan pakan.");
+  }
+
+  const ingredients: Ingredient[] = [];
+  if (Array.isArray(raw.ingredients)) {
+    if (raw.ingredients.length > 500) {
+      errors.push("Jumlah bahan pada satu resep melebihi batas maksimal (500).");
+    } else {
+      raw.ingredients.forEach((item, idx) => {
+        const res = validateIngredient(item, `Bahan resep #${idx + 1}`);
+        if (!res.ok) errors.push(...res.errors);
+        else ingredients.push(res.data);
+      });
+    }
+  }
+
+  const reqCheck = validateRequirement(raw.requirement, "Standar Kebutuhan Resep");
+  if (!reqCheck.ok) {
+    errors.push(...reqCheck.errors);
+  }
+
+  let config: FormulationConfig | undefined;
+  if (raw.config !== undefined) {
+    const cfgCheck = validateFormulationConfig(raw.config);
+    if (!cfgCheck.ok) errors.push(...cfgCheck.errors);
+    else config = cfgCheck.data;
+  }
+
+  if (errors.length > 0 || !reqCheck.ok) {
+    return { ok: false, errors };
+  }
+
+  // Untuk keamanan dan konsistensi matematis, `result` diimpor ulang hanya jika eksplisit null/valid;
+  // solver selalu menghitung ulang live dari bahan + standar sesaat setelah dibuka.
+  const recipe: Recipe = {
+    schemaVersion: 1,
+    id,
+    name,
+    ingredients,
+    requirement: reqCheck.data,
+    result: null,
+    createdAt,
+    updatedAt,
+    ...(notes ? { notes } : {}),
+    ...(config ? { config } : {}),
+  };
+
+  return { ok: true, data: recipe };
+}

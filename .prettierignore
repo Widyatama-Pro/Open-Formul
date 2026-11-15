@@ -1,0 +1,12 @@
+dist
+coverage
+node_modules
+package-lock.json
+.agent
+.gemini
+.omc
+.obsidian
+graphify-out
+project-brief
+*.base
+*.canvas

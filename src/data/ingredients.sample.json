@@ -1,0 +1,89 @@
+[
+  {
+    "id": "corn-ground",
+    "name": "Jagung Giling",
+    "nameEn": "Ground Corn",
+    "category": "energy",
+    "pricePerKg": 5500,
+    "dryMatter": 89,
+    "basis": "as_fed",
+    "nutrients": {
+      "cp": 8.5,
+      "me_poultry": 3350,
+      "cf": 2.2,
+      "ee": 3.8,
+      "ca": 0.02,
+      "p": 0.28,
+      "lys": 0.26,
+      "met": 0.18
+    },
+    "inclusion": { "max": 70 },
+    "source": "NRC (1994) Nutrient Requirements of Poultry, 9th rev. ed. — nilai indikatif"
+  },
+  {
+    "id": "sbm-44",
+    "name": "Bungkil Kedelai",
+    "nameEn": "Soybean Meal 44%",
+    "category": "protein",
+    "pricePerKg": 8200,
+    "dryMatter": 89,
+    "basis": "as_fed",
+    "nutrients": {
+      "cp": 44,
+      "me_poultry": 2230,
+      "cf": 7,
+      "ee": 0.8,
+      "ca": 0.29,
+      "p": 0.65,
+      "lys": 2.69,
+      "met": 0.62
+    },
+    "inclusion": { "max": 40 },
+    "source": "NRC (1994) Nutrient Requirements of Poultry, 9th rev. ed. — nilai indikatif"
+  },
+  {
+    "id": "rice-bran",
+    "name": "Dedak Padi",
+    "nameEn": "Rice Bran",
+    "category": "energy",
+    "pricePerKg": 3000,
+    "dryMatter": 91,
+    "basis": "as_fed",
+    "nutrients": {
+      "cp": 12.9,
+      "me_poultry": 2100,
+      "cf": 11.4,
+      "ee": 13,
+      "ca": 0.07,
+      "p": 1.5,
+      "lys": 0.57,
+      "met": 0.26
+    },
+    "inclusion": { "max": 20 },
+    "source": "NRC (1994) Nutrient Requirements of Poultry, 9th rev. ed. — nilai indikatif"
+  },
+  {
+    "id": "limestone",
+    "name": "Tepung Kapur (CaCO3)",
+    "nameEn": "Limestone",
+    "category": "mineral",
+    "pricePerKg": 1200,
+    "dryMatter": 99,
+    "basis": "as_fed",
+    "nutrients": { "ca": 38 },
+    "inclusion": { "max": 3 },
+    "source": "NRC (1994) — nilai indikatif"
+  },
+  {
+    "id": "premix-vitmin",
+    "name": "Premix Vitamin-Mineral",
+    "nameEn": "Vitamin-Mineral Premix",
+    "category": "premix",
+    "pricePerKg": 35000,
+    "dryMatter": 95,
+    "basis": "as_fed",
+    "nutrients": {},
+    "inclusion": { "min": 0.5, "max": 0.5 },
+    "source": "Rekomendasi produsen premix (inklusi tetap 0,5%) — placeholder"
+  }
+]

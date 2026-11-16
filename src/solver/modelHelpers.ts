@@ -84,16 +84,18 @@ export function resolveActiveConstraints(
   requirement: Requirement,
   config: FormulationConfig,
 ): readonly NutrientConstraint[] {
+  const customIds = new Set((config.customNutrients ?? []).map((n) => n.id));
   return requirement.constraints.filter((c) => {
     const isBasic = BASIC_NUTRIENT_IDS.has(c.nutrientId);
-    const isAdvance = !isBasic;
+    const isCustom = customIds.has(c.nutrientId) || (!isBasic && c.isAdvance === false);
+    const isAdvance = !isBasic && !isCustom;
     if (isAdvance && !config.enableAdvanceNutrients) {
       return false;
     }
     if (DIGESTIBLE_NUTRIENT_IDS.has(c.nutrientId) && !config.enableDigestibleBasis) {
       return false;
     }
-    const enabled = c.enabled ?? isBasic;
+    const enabled = c.enabled ?? (isBasic || isCustom);
     if (!enabled) {
       return false;
     }

@@ -28,7 +28,9 @@ import type {
   FormulationConfig,
   FormulationResult,
   Ingredient,
+  Nutrient,
   NutrientConstraint,
+  NutrientUnit,
   OptimizationMode,
   Recipe,
   Requirement,
@@ -91,6 +93,7 @@ export interface PrototypeStore {
   readonly setRoute: (route: AppRoute) => void;
   readonly ingredients: readonly Ingredient[];
   readonly requirements: readonly Requirement[];
+  readonly allNutrients: readonly Nutrient[];
   readonly activeRequirement: Requirement;
   readonly hasActiveRequirementOverride: boolean;
   readonly config: FormulationConfig;
@@ -110,6 +113,15 @@ export interface PrototypeStore {
   readonly addIngredient: (ingredient: Ingredient) => void;
   readonly resetPriceOverride: (id: string) => void;
   readonly updateConstraint: (nutrientId: string, patch: ConstraintPatch) => void;
+  readonly addCustomNutrient: (input: {
+    readonly name: string;
+    readonly unit: NutrientUnit;
+    readonly defaultBasis?: Basis;
+    readonly min?: number;
+    readonly max?: number;
+  }) => { readonly ok: boolean; readonly error?: string };
+  readonly removeCustomNutrient: (nutrientId: string) => void;
+  readonly updateCustomNutrientBasis: (nutrientId: string, defaultBasis: Basis) => void;
   readonly addRequirement: (requirement: Requirement) => void;
   readonly setActiveBasis: (basis: Basis) => void;
   readonly setOptimizationMode: (mode: OptimizationMode) => void;
@@ -269,7 +281,7 @@ export function usePrototypeStore(): PrototypeStore {
       }));
       setSessionDirty(false);
 
-      if (target.id.startsWith("kearl-")) {
+      if (target.id.startsWith("kearl") || target.id.startsWith("nrc88-")) {
         setIngredients((prev) =>
           prev.map((ing) => ({
             ...ing,
@@ -355,6 +367,121 @@ export function usePrototypeStore(): PrototypeStore {
     setActiveReqId(requirement.id);
     setConfig((prev) => ({ ...prev, activeBasis: requirement.basis }));
     setSessionDirty(false);
+  }, []);
+
+  const allNutrients = useMemo<readonly Nutrient[]>(
+    () => [...MOCK_NUTRIENTS, ...(config.customNutrients ?? [])],
+    [config.customNutrients],
+  );
+
+  const addCustomNutrient = useCallback(
+    (input: {
+      readonly name: string;
+      readonly unit: NutrientUnit;
+      readonly defaultBasis?: Basis;
+      readonly min?: number;
+      readonly max?: number;
+    }): { readonly ok: boolean; readonly error?: string } => {
+      const trimmedName = input.name.trim().slice(0, 100);
+      if (!trimmedName) {
+        return { ok: false, error: "Nama nutrien kustom wajib diisi." };
+      }
+      if (input.min !== undefined && input.max !== undefined && input.min > input.max) {
+        return { ok: false, error: "Nilai Min tidak boleh lebih besar dari Max." };
+      }
+      const existingCustom = config.customNutrients ?? [];
+      if (existingCustom.length >= 50) {
+        return { ok: false, error: "Batas maksimal 50 nutrien kustom tercapai." };
+      }
+
+      const baseSlug =
+        trimmedName
+          .toLowerCase()
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "")
+          .slice(0, 40) || "item";
+      const usedIds = new Set([
+        ...MOCK_NUTRIENTS.map((n) => n.id),
+        ...existingCustom.map((n) => n.id),
+      ]);
+      let slug = `custom_${baseSlug}`;
+      let seq = 2;
+      while (usedIds.has(slug)) {
+        slug = `custom_${baseSlug}_${seq}`;
+        seq += 1;
+      }
+
+      const basisToUse = input.defaultBasis ?? config.activeBasis;
+      const newNutrient: Nutrient = {
+        id: slug,
+        name: trimmedName,
+        unit: input.unit,
+        tier: "basic",
+        isCustom: true,
+        defaultBasis: basisToUse,
+      };
+      const newConstraint: NutrientConstraint = {
+        nutrientId: slug,
+        enabled: true,
+        isAdvance: false,
+        ...(input.min !== undefined ? { min: input.min } : {}),
+        ...(input.max !== undefined ? { max: input.max } : {}),
+      };
+
+      setSessionDirty(true);
+      setConfig((prev) => ({
+        ...prev,
+        customNutrients: [...(prev.customNutrients ?? []), newNutrient],
+      }));
+
+      const applyConstraint = (req: Requirement): Requirement => ({
+        ...req,
+        constraints: [...req.constraints, newConstraint],
+      });
+      if (activeRequirementOverride !== null) {
+        setActiveRequirementOverride((prev) => (prev ? applyConstraint(prev) : null));
+      } else {
+        setRequirements((prev) =>
+          prev.map((req) => (req.id === activeRequirement.id ? applyConstraint(req) : req)),
+        );
+      }
+      return { ok: true };
+    },
+    [activeRequirement.id, activeRequirementOverride, config.activeBasis, config.customNutrients],
+  );
+
+  const removeCustomNutrient = useCallback(
+    (nutrientId: string) => {
+      setSessionDirty(true);
+      setConfig((prev) => ({
+        ...prev,
+        customNutrients: (prev.customNutrients ?? []).filter((n) => n.id !== nutrientId),
+      }));
+      const stripConstraint = (req: Requirement): Requirement => ({
+        ...req,
+        constraints: req.constraints.filter((c) => c.nutrientId !== nutrientId),
+      });
+      if (activeRequirementOverride !== null) {
+        setActiveRequirementOverride((prev) => (prev ? stripConstraint(prev) : null));
+      } else {
+        setRequirements((prev) =>
+          prev.map((req) => (req.id === activeRequirement.id ? stripConstraint(req) : req)),
+        );
+      }
+    },
+    [activeRequirement.id, activeRequirementOverride],
+  );
+
+  const updateCustomNutrientBasis = useCallback((nutrientId: string, defaultBasis: Basis) => {
+    setSessionDirty(true);
+    setConfig((prev) => ({
+      ...prev,
+      customNutrients: (prev.customNutrients ?? []).map((n) =>
+        n.id === nutrientId ? { ...n, defaultBasis } : n,
+      ),
+    }));
   }, []);
 
   const setActiveBasis = useCallback((basis: Basis) => {
@@ -726,6 +853,7 @@ export function usePrototypeStore(): PrototypeStore {
     setRoute,
     ingredients,
     requirements,
+    allNutrients,
     activeRequirement,
     hasActiveRequirementOverride: activeRequirementOverride !== null,
     config,
@@ -745,6 +873,9 @@ export function usePrototypeStore(): PrototypeStore {
     addIngredient,
     resetPriceOverride,
     updateConstraint,
+    addCustomNutrient,
+    removeCustomNutrient,
+    updateCustomNutrientBasis,
     addRequirement,
     setActiveBasis,
     setOptimizationMode,

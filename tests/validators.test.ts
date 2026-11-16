@@ -1,27 +1,51 @@
 import { describe, expect, it } from "vitest";
 import { HARTADI_FEEDS } from "../src/data/hartadi-feeds";
-import { KEARL_REQUIREMENTS } from "../src/data/kearl-requirements";
+import { KEARL_REQUIREMENTS, NRC_1988_DAIRY_REQUIREMENTS } from "../src/data/kearl-requirements";
 import { DEFAULT_CONFIG, MOCK_INGREDIENTS, MOCK_REQUIREMENTS } from "../src/data/mock-state";
 import { parseFeedJson, serializeRecipeToFeedJson } from "../src/storage/recipeTransfer";
-import type { Recipe } from "../src/types";
-import { parseAndMergeIngredientsCsv } from "../src/utils/ingredientCsvImport";
+import type { Nutrient, Recipe } from "../src/types";
+import {
+  exportIngredientsToCsv,
+  parseAndMergeIngredientsCsv,
+} from "../src/utils/ingredientCsvImport";
 import { applyTsvGridPaste } from "../src/utils/tsvPaste";
-import { validateIngredient, validateRequirement } from "../src/utils/validators";
+import {
+  validateCustomNutrient,
+  validateFormulationConfig,
+  validateIngredient,
+  validateRequirement,
+} from "../src/utils/validators";
 
 describe("Task 1 — Validators, .feed.json Transfer, CSV Partial Merge & TSV Paste", () => {
-  it("memvalidasi seluruh kurasi data Hartadi & Kearl (1982) terhadap skema kanonik", () => {
-    expect(HARTADI_FEEDS.length).toBeGreaterThanOrEqual(14);
+  it("memvalidasi seluruh kurasi data Hartadi (304) & Kearl (82) + NRC (24) terhadap skema kanonik", () => {
+    expect(HARTADI_FEEDS.length).toBe(304);
+    const hartadiIds = new Set<string>();
     for (const ing of HARTADI_FEEDS) {
       expect(ing.isActive).toBe(false);
       expect(ing.source.trim().length).toBeGreaterThan(10);
+      expect(hartadiIds.has(ing.id)).toBe(false);
+      hartadiIds.add(ing.id);
       const checked = validateIngredient(ing);
       expect(checked.ok).toBe(true);
     }
 
-    expect(KEARL_REQUIREMENTS.length).toBe(6);
+    expect(KEARL_REQUIREMENTS.length).toBe(82);
+    const reqIds = new Set<string>();
     for (const req of KEARL_REQUIREMENTS) {
       expect(req.basis).toBe("dry_matter");
       expect(req.source?.includes("Kearl (1982)")).toBe(true);
+      expect(reqIds.has(req.id)).toBe(false);
+      reqIds.add(req.id);
+      const checked = validateRequirement(req);
+      expect(checked.ok).toBe(true);
+    }
+
+    expect(NRC_1988_DAIRY_REQUIREMENTS.length).toBe(24);
+    for (const req of NRC_1988_DAIRY_REQUIREMENTS) {
+      expect(req.basis).toBe("dry_matter");
+      expect(req.source?.includes("NRC (1988)")).toBe(true);
+      expect(reqIds.has(req.id)).toBe(false);
+      reqIds.add(req.id);
       const checked = validateRequirement(req);
       expect(checked.ok).toBe(true);
     }
@@ -131,5 +155,64 @@ describe("Task 1 — Validators, .feed.json Transfer, CSV Partial Merge & TSV Pa
       startColKey: "price",
     });
     expect(single.isGrid).toBe(false);
+  });
+
+  it("memvalidasi nutrien kustom (nama, satuan, basis) dan mendukung ekspor/impor CSV nutrien kustom", () => {
+    const validCustom = validateCustomNutrient({
+      id: "custom_beta_glukan",
+      name: "Beta-Glukan",
+      unit: "%",
+      defaultBasis: "dry_matter",
+    });
+    expect(validCustom.ok).toBe(true);
+    if (validCustom.ok) {
+      expect(validCustom.data.isCustom).toBe(true);
+      expect(validCustom.data.defaultBasis).toBe("dry_matter");
+    }
+
+    const badUnit = validateCustomNutrient({
+      id: "custom_x",
+      name: "Invalid Unit",
+      unit: "oz",
+    });
+    expect(badUnit.ok).toBe(false);
+
+    const cfgCheck = validateFormulationConfig({
+      ...DEFAULT_CONFIG,
+      customNutrients: [
+        {
+          id: "custom_beta_glukan",
+          name: "Beta-Glukan",
+          unit: "%",
+          defaultBasis: "dry_matter",
+        },
+      ],
+    });
+    expect(cfgCheck.ok).toBe(true);
+
+    const customList: readonly Nutrient[] = [
+      {
+        id: "custom_beta_glukan",
+        name: "Beta-Glukan",
+        unit: "%",
+        isCustom: true,
+        defaultBasis: "dry_matter",
+      },
+    ];
+    const sample = MOCK_INGREDIENTS.slice(0, 2).map((ing, i) => ({
+      ...ing,
+      nutrients: { ...ing.nutrients, custom_beta_glukan: i === 0 ? 1.25 : 0.4 },
+    }));
+    const exported = exportIngredientsToCsv(sample, customList);
+    expect(exported).toContain("custom_beta_glukan (%)");
+
+    const reimported = parseAndMergeIngredientsCsv(
+      `id,Beta-Glukan (%)\n${sample[0]!.id},2.35`,
+      sample,
+      customList,
+    );
+    expect(reimported.errors).toEqual([]);
+    expect(reimported.updatedCount).toBe(1);
+    expect(reimported.ingredients[0]?.nutrients.custom_beta_glukan).toBe(2.35);
   });
 });

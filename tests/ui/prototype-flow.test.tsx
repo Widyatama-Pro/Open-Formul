@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import App from "../../src/App";
@@ -125,5 +125,45 @@ describe("Open Formul Fase 1 UI Prototype Flow", () => {
     await user.click(screen.getAllByRole("button", { name: /Pengaturan/i })[0]!);
     await user.selectOptions(screen.getByLabelText("Pilih bahasa"), "en");
     expect(screen.getByRole("heading", { name: "Application Settings" })).toBeInTheDocument();
+  });
+
+  it("mendukung penambahan nutrien kustom penuh (nama, satuan, basis dinamis)", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    // Tambah nutrien kustom melalui Target Nutrien (tanpa perlu Mode Advance)
+    await user.click(screen.getAllByRole("button", { name: /Tambah Nutrien Kustom/i })[0]!);
+    fireEvent.change(screen.getAllByLabelText("Nama Nutrien Kustom")[0]!, {
+      target: { value: "Beta-Glukan" },
+    });
+    await user.selectOptions(screen.getAllByLabelText("Satuan Nutrien Kustom")[0]!, "mg/kg");
+    await user.selectOptions(screen.getAllByLabelText("Basis Nutrien Kustom")[0]!, "dry_matter");
+    await user.click(screen.getAllByRole("button", { name: /Simpan Nutrien/i })[0]!);
+
+    expect(screen.getAllByText(/Beta-Glukan/i).length).toBeGreaterThan(0);
+
+    // Ubah basis dinamis & hapus nutrien kustom
+    const toggleBasisBtn = screen.getAllByTitle("Klik untuk ubah basis nutrien kustom")[0]!;
+    expect(toggleBasisBtn).toHaveTextContent("BK");
+    await user.click(toggleBasisBtn);
+    expect(toggleBasisBtn).toHaveTextContent("AF");
+
+    await user.click(screen.getAllByRole("button", { name: /Hapus Beta-Glukan/i })[0]!);
+    expect(screen.queryByTitle("Klik untuk ubah basis nutrien kustom")).not.toBeInTheDocument();
+  });
+
+  it("mendukung windowing progresif katalog >50 item di Workbench dan Database Kebutuhan", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    // Windowing progresif katalog >50 bahan pada workbench formulasi
+    const loadMoreBtn = screen.getAllByRole("button", { name: /Muat \+50/i })[0]!;
+    await user.click(loadMoreBtn);
+    expect(screen.getAllByRole("button", { name: /Ringkas Daftar/i }).length).toBeGreaterThan(0);
+    await user.click(screen.getAllByRole("button", { name: /Ringkas Daftar/i })[0]!);
+
+    // Cek windowing & pencarian pada Database Kebutuhan Ternak
+    await user.click(screen.getAllByRole("button", { name: /Kebutuhan Ternak/i })[0]!);
+    expect(screen.getByRole("button", { name: /Tampilkan Semua \(1/i })).toBeInTheDocument();
   });
 });

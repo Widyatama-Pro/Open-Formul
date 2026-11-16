@@ -63,12 +63,14 @@ Detail: [prd.md](prd.md) · [docs/architecture.md](docs/architecture.md) · [doc
 ├── project-brief/        # Dokumen brief spesifikasi fitur & analisis arsitektur industri
 ├── src/
 │   ├── components/       # Komponen React
-│   ├── data/             # Sampel JSON, dataset kerja, bahan Indonesia (Hartadi), & profil Kearl (1982)
+│   ├── data/             # Sampel JSON, mock-state, pustaka penuh Hartadi 1980 (304 bahan), Kearl 1982 (82), & NRC 1988 (24)
 │   ├── hooks/            # Custom React hooks (usePrototypeStore, usePwaStatus)
 │   ├── solver/           # Engine optimasi LP murni + HiGHS WASM Web Worker (`ENG-01`–`ENG-08`)
 │   ├── storage/          # Persistensi IndexedDB (`idb`), transfer `.feed.json`, ekspor CSV/`.xlsx`/PDF 1.4
 │   ├── types/            # Tipe domain TypeScript
-│   └── utils/            # Utilitas murni (basis, persamaan, validator batas, impor CSV, TSV paste, unduh)
+│   └── utils/            # Utilitas murni (basis, persamaan ruminansia/monogastrik, validator batas, impor/ekspor CSV, TSV paste)
+├── docs/
+│   ├── references/       # Arsip PDF & transkripsi lengkap tervalidasi (Hartadi 1980 JSON/MD & Kearl 1982 / NRC 1988 JSON/MD)
 ├── AGENTS.md             # Aturan global & standar UI/UX wajib untuk AI agent
 ├── DESIGN.md             # Referensi sistem desain root (Linear-style)
 ├── prd.md                # Dokumen PRD & panduan lengkap seluruh fitur Open Formul
@@ -78,7 +80,7 @@ Detail: [prd.md](prd.md) · [docs/architecture.md](docs/architecture.md) · [doc
 
 ## 🚀 Instalasi Lokal
 
-> 💡 **Status Saat Ini:** Antarmuka Glass-Neumorphism responsif, **engine LP HiGHS WASM di Web Worker** (`ENG-01`–`ENG-08`), **persistensi offline IndexedDB (`open-formul-db` v1) + PWA (`vite-plugin-pwa` precache `.wasm`)**, **dataset lokal Indonesia (14 bahan Hartadi + 6 profil Kearl 1982)**, serta **ekspor/impor `.feed.json`, CSV partial-merge, Excel `.xlsx`, PDF 1.4 (`full` & `batch_only`), dan TSV Multi-Cell Paste** telah aktif. Item tersisa (nutrien kustom penuh & internasionalisasi lengkap) dipantau di [ROADMAP.md](ROADMAP.md).
+> 💡 **Status Saat Ini (Fase 3 Selesai ✅):** Antarmuka Glass-Neumorphism responsif dengan _windowing_ progresif (`> 50` item), **engine LP HiGHS WASM di Web Worker** (`ENG-01`–`ENG-08`), **nutrien kustom penuh** (nama, satuan, basis dinamis pengguna), **persistensi offline IndexedDB (`open-formul-db` v1) + PWA (`vite-plugin-pwa` precache `.wasm`)**, **pustaka penuh Hartadi 1980 (304 bahan), Kearl 1982 (82 profil), & NRC 1988 (24 profil sapi perah)** beserta arsip lokal di [`docs/references/`](docs/references/), serta **ekspor/impor `.feed.json`, CSV partial-merge, Excel `.xlsx`, PDF 1.4 (`full` & `batch_only`), dan TSV Multi-Cell Paste** telah aktif. Item tersisa (internasionalisasi penuh & fitur lanjutan Fase 4) dipantau di [ROADMAP.md](ROADMAP.md).
 
 Prasyarat: **Node.js ≥ 20** dan **npm ≥ 10**.
 

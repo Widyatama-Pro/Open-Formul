@@ -52,6 +52,7 @@ export function App() {
       {store.route === "ingredients" && (
         <IngredientLibraryPage
           ingredients={store.ingredients}
+          customNutrients={store.config.customNutrients ?? []}
           language={store.preferences.language}
           onToggleActive={(id, active) => store.updateIngredient(id, { isActive: active })}
           onOpenAdd={() => setAddIngredientOpen(true)}
@@ -116,6 +117,7 @@ export function App() {
         requirement={store.activeRequirement}
         config={store.config}
         result={store.result}
+        nutrientsCatalog={store.allNutrients}
       />
 
       <AddEditIngredientModal

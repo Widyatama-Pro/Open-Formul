@@ -17,6 +17,8 @@ export interface Nutrient {
   readonly unit: NutrientUnit;
   readonly tier?: NutrientTier;
   readonly isDigestibleVariant?: boolean;
+  readonly isCustom?: boolean;
+  readonly defaultBasis?: Basis;
 }
 
 export type IngredientCategory =
@@ -106,6 +108,7 @@ export interface FormulationConfig {
   readonly enableElasticFallback: boolean;
   readonly globalZeroInclusion: ZeroInclusionRule;
   readonly manualLocks?: Readonly<Record<string, number>>;
+  readonly customNutrients?: readonly Nutrient[];
 }
 
 export type FormulationStatus = "optimal" | "near_feasible" | "infeasible" | "error";

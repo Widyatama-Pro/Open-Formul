@@ -26,11 +26,13 @@ Tipe kanonik didefinisikan di [`src/types/index.ts`](../src/types/index.ts). Dok
 
 | Field                 | Tipe            | Keterangan                                                                                         |
 | --------------------- | --------------- | -------------------------------------------------------------------------------------------------- |
-| `id`                  | `string`        | kode unik (`cp`, `me_poultry`, `ca`, `sid_lys`, `avp`, …)                                          |
+| `id`                  | `string`        | kode unik (`cp`, `me_poultry`, `ca`, `sid_lys`, `avp`, `custom_*`, …)                              |
 | `name` / `nameEn`     | `string`        | label Indonesia / opsional English                                                                 |
-| `unit`                | `NutrientUnit`  | satuan nutrien                                                                                     |
+| `unit`                | `NutrientUnit`  | satuan nutrien (`% \| kcal/kg \| MJ/kg \| mg/kg \| IU/kg \| mEq/kg`)                               |
 | `tier`                | `NutrientTier?` | pengelompokan Basic vs Advance (`amino_acid`, `fiber_carb`, `mineral_electrolyte`, `anf_physical`) |
 | `isDigestibleVariant` | `boolean?`      | penanda fraksi tercerna (`SID` asam amino / `AvP`)                                                 |
+| `isCustom`            | `boolean?`      | penanda nutrien kustom definisi pengguna (tampil dan aktif langsung di luar Mode Advance)          |
+| `defaultBasis`        | `Basis?`        | basis pilihan pengguna yang dapat diubah dinamis (`as_fed \| dry_matter`)                          |
 
 ## `Ingredient`
 
@@ -89,6 +91,7 @@ Menyimpan parameter aktif workbench formulasi:
 - `enableElasticFallback`: `boolean`
 - `globalZeroInclusion`: `ZeroInclusionRule`
 - `manualLocks?`: `Record<string, number>` (kunci persentase manual untuk What-If)
+- `customNutrients?`: `readonly Nutrient[]` (daftar nutrien kustom pengguna; maksimal 50, divalidasi lewat `validateCustomNutrient`)
 
 ## `FormulationResult`
 

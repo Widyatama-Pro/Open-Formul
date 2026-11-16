@@ -1,5 +1,5 @@
 import { HARTADI_FEEDS } from "./hartadi-feeds";
-import { KEARL_REQUIREMENTS } from "./kearl-requirements";
+import { KEARL_REQUIREMENTS, NRC_1988_DAIRY_REQUIREMENTS } from "./kearl-requirements";
 import type {
   Basis,
   BoundDualItem,
@@ -455,7 +455,7 @@ export const MOCK_INGREDIENTS: readonly Ingredient[] = [
   ...HARTADI_FEEDS,
 ];
 
-export { HARTADI_FEEDS, KEARL_REQUIREMENTS };
+export { HARTADI_FEEDS, KEARL_REQUIREMENTS, NRC_1988_DAIRY_REQUIREMENTS };
 
 export const MOCK_REQUIREMENTS: readonly Requirement[] = [
   {
@@ -556,6 +556,7 @@ export const MOCK_REQUIREMENTS: readonly Requirement[] = [
     source: "NRC Beef Cattle (2016) / SNI Konsentrat Sapi",
   },
   ...KEARL_REQUIREMENTS,
+  ...NRC_1988_DAIRY_REQUIREMENTS,
 ];
 
 export const DEFAULT_CONFIG: FormulationConfig = {
@@ -567,6 +568,7 @@ export const DEFAULT_CONFIG: FormulationConfig = {
   enableElasticFallback: true,
   globalZeroInclusion: { enforceNonZero: false, minIfSelected: 1 },
   manualLocks: {},
+  customNutrients: [],
 };
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
@@ -771,9 +773,21 @@ export function evaluateMockFormulation(
     });
   }
 
-  const visibleConstraints = requirement.constraints.filter(
-    (c) => (c.isAdvance !== true || config.enableAdvanceNutrients) && c.enabled !== false,
-  );
+  const customIds = new Set((config.customNutrients ?? []).map((n) => n.id));
+  const visibleConstraints = requirement.constraints.filter((c) => {
+    const isCustom = customIds.has(c.nutrientId);
+    return (
+      (isCustom || c.isAdvance !== true || config.enableAdvanceNutrients) && c.enabled !== false
+    );
+  });
+
+  // Pastikan setiap nutrien kustom selalu dievaluasi meskipun belum punya target Min/Max
+  const evalConstraints: typeof visibleConstraints = [...visibleConstraints];
+  for (const custom of config.customNutrients ?? []) {
+    if (!evalConstraints.some((c) => c.nutrientId === custom.id)) {
+      evalConstraints.push({ nutrientId: custom.id, enabled: true });
+    }
+  }
 
   for (const c of visibleConstraints) {
     if (c.min !== undefined && c.max !== undefined && c.min > c.max) {
@@ -927,7 +941,7 @@ export function evaluateMockFormulation(
   const nutrientResults: NutrientResult[] = [];
   let hasViolation = false;
 
-  for (const c of visibleConstraints) {
+  for (const c of evalConstraints) {
     let val = 0;
     for (const item of rawComposition) {
       const converted = convertNutrientToBasis(

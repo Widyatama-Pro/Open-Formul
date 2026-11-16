@@ -7,10 +7,22 @@ import {
   normalizeIngredientToBasis,
 } from "../src/utils/basis";
 import {
+  computeCattleDigestibleEnergyFromTdn,
+  computeCattleMetabolizableEnergyFromDe,
+  computeCattleNetEnergyGain,
+  computeCattleNetEnergyGainGarrett1977,
+  computeCattleNetEnergyLactation,
+  computeCattleNetEnergyMaintenance,
   computeElectrolyteBalance,
+  computeFatCorrectedMilk4Pct,
+  computeKearlLactationRequirement,
   computePoultryMeFromProximatePct,
   computePoultryMeWpsaMjPerKg,
+  computeRuminantRoughageDigestibleProtein,
+  computeSheepDigestibleEnergyFromTdn,
   computeSwineDigestibleFat,
+  computeSwineMetabolizableEnergyFromDe,
+  estimateCattleDryMatterIntakePctBw,
 } from "../src/utils/equations";
 
 describe("Konversi basis As-Fed <-> Bahan Kering (src/utils/basis.ts)", () => {
@@ -99,5 +111,56 @@ describe("Persamaan dEB/DCAD & Regresi Energi (src/utils/equations.ts)", () => {
     // Bahan tinggi serat & lemak sangat rendah tidak boleh menghasilkan DEE negatif (safety clamp >= 0)
     expect(computeSwineDigestibleFat(0.5, 40)).toBe(0);
     expect(computeSwineDigestibleFat(10, 10)).toBeCloseTo(0.82 * 10 - 0.02 * 10 - 0.7, 6);
+  });
+
+  it("menghitung persamaan nutrisi ruminansia & babi Hartadi (1980), Garrett (1977), NRC (1988) & Kearl (1982)", () => {
+    expect(computeRuminantRoughageDigestibleProtein(10)).toBeCloseTo(0.908 * 10 - 3.77, 5);
+    expect(computeRuminantRoughageDigestibleProtein(3.4)).toBe(0);
+
+    expect(computeCattleDigestibleEnergyFromTdn(68)).toBeCloseTo(0.04409 * 68, 4);
+    expect(computeSheepDigestibleEnergyFromTdn(79)).toBeCloseTo(0.04409 * 79, 4);
+
+    // Jagung/bahan TDN 80% -> DE ~3.54 Mcal/kg: ME regresi (-0.45 + 1.01*DE = 3.125) vs 0.82*DE
+    expect(computeCattleMetabolizableEnergyFromDe(3.54, "hartadi_regression")).toBeCloseTo(
+      -0.45 + 1.01 * 3.54,
+      4,
+    );
+    expect(computeCattleMetabolizableEnergyFromDe(3.54, "garrett_082")).toBeCloseTo(0.82 * 3.54, 4);
+    expect(computeCattleMetabolizableEnergyFromDe(0.31, "hartadi_regression")).toBe(0);
+
+    const garrett = computeCattleNetEnergyGainGarrett1977(3.54);
+    expect(garrett.me).toBeCloseTo(0.82 * 3.54, 4);
+    expect(garrett.nem).toBeCloseTo(computeCattleNetEnergyMaintenance(garrett.me), 6);
+    expect(garrett.neg).toBeCloseTo(computeCattleNetEnergyGain(garrett.me), 6);
+    expect(garrett.nem).toBeGreaterThan(garrett.neg);
+
+    expect(computeCattleNetEnergyLactation(80)).toBeCloseTo(-0.12 + 0.0245 * 80, 4);
+    expect(computeCattleNetEnergyLactation(4)).toBe(0);
+
+    expect(computeSwineMetabolizableEnergyFromDe(3600, 15)).toBeCloseTo(
+      (0.96 - 0.00202 * 15) * 3600,
+      2,
+    );
+
+    // FCM 4% & Interpolasi Bilinear Tabel 6-1 NRC (1988)
+    expect(computeFatCorrectedMilk4Pct(20, 4.0)).toBeCloseTo(20, 6);
+    expect(computeFatCorrectedMilk4Pct(20, 3.5)).toBeCloseTo(18.5, 6);
+    expect(estimateCattleDryMatterIntakePctBw(500, 25)).toBeCloseTo(3.5, 4);
+    expect(estimateCattleDryMatterIntakePctBw(550, 25)).toBeCloseTo(3.35, 4);
+    // Clamping aman pada sudut '-' Tabel 6-1 (BB 400 kg, FCM 60 kg -> ikut batas max 400 kg = 5.5%)
+    expect(estimateCattleDryMatterIntakePctBw(400, 60)).toBeCloseTo(5.5, 4);
+
+    // Kearl (1982) Table 15 Laktasi: BB 400 kg + 10 kg susu 4.0% lemak
+    const lact = computeKearlLactationRequirement(
+      { dmiKg: 11.0, meMcal: 11.2, tdnKg: 3.1, cpG: 480, caG: 16, pG: 13 },
+      10,
+      4.0,
+    );
+    expect(lact.dmiKg).toBe(11.0);
+    expect(lact.mePctOrMcalPerKgDm).toBeCloseTo((11.2 + 10 * 1.14) / 11.0, 4);
+    expect(lact.tdnPctDm).toBeCloseTo(((3.1 + 10 * 0.31) / 11.0) * 100, 2);
+    expect(lact.cpPctDm).toBeCloseTo(((480 + 10 * 79) / 11000) * 100, 2);
+    expect(lact.caPctDm).toBeCloseTo(((16 + 10 * 2.7) / 11000) * 100, 2);
+    expect(lact.pPctDm).toBeCloseTo(((13 + 10 * 2.0) / 11000) * 100, 2);
   });
 });

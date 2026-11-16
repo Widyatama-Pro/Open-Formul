@@ -1,5 +1,6 @@
 import { MOCK_NUTRIENTS } from "../data/mock-state";
-import type { Basis, Ingredient, IngredientCategory } from "../types";
+import type { Basis, Ingredient, IngredientCategory, Nutrient } from "../types";
+import { escapeCsvCell } from "../storage/exportCsvXlsx";
 import { parseLocaleDecimal } from "./locale-number";
 import { sanitizeText } from "./validators";
 
@@ -94,18 +95,32 @@ const HEADER_ALIASES: Record<string, string> = {
   lemakcair: "nutrient:liquid_fat",
 };
 
-function normalizeHeaderKey(rawHeader: string): string {
+function normalizeHeaderKey(
+  rawHeader: string,
+  customLookup: ReadonlyMap<string, string> = new Map(),
+  knownNutrientIds: ReadonlySet<string> = KNOWN_NUTRIENT_IDS,
+): string {
   const withoutUnits = rawHeader
     .replace(/\([^)]*\)/g, " ")
     .trim()
     .toLowerCase();
-  if (KNOWN_NUTRIENT_IDS.has(withoutUnits)) {
+  if (knownNutrientIds.has(withoutUnits)) {
     return `nutrient:${withoutUnits}`;
   }
+  const customDirect = customLookup.get(withoutUnits);
+  if (customDirect) {
+    return `nutrient:${customDirect}`;
+  }
   const compact = withoutUnits.replace(/[^a-z0-9]/g, "");
-  return (
-    HEADER_ALIASES[compact] ?? (KNOWN_NUTRIENT_IDS.has(compact) ? `nutrient:${compact}` : compact)
-  );
+  const aliasHit = HEADER_ALIASES[compact];
+  if (aliasHit) {
+    return aliasHit;
+  }
+  const customCompact = customLookup.get(compact);
+  if (customCompact) {
+    return `nutrient:${customCompact}`;
+  }
+  return knownNutrientIds.has(compact) ? `nutrient:${compact}` : compact;
 }
 
 function detectDelimiter(headerLine: string): "," | ";" {
@@ -223,6 +238,7 @@ function makeSlugId(name: string, existingIds: Set<string>): string {
 export function parseAndMergeIngredientsCsv(
   csvText: string,
   existingIngredients: readonly Ingredient[],
+  customNutrients: readonly Nutrient[] = [],
 ): CsvIngredientImportResult {
   const { headers, rows } = parseCsvRows(csvText);
   if (headers.length === 0 || rows.length === 0) {
@@ -235,7 +251,27 @@ export function parseAndMergeIngredientsCsv(
     };
   }
 
-  const colKeys = headers.map(normalizeHeaderKey);
+  const knownNutrientIds = new Set<string>([
+    ...KNOWN_NUTRIENT_IDS,
+    ...customNutrients.map((n) => n.id),
+  ]);
+  const customLookup = new Map<string, string>();
+  for (const n of customNutrients) {
+    customLookup.set(n.id.toLowerCase(), n.id);
+    customLookup.set(n.id.toLowerCase().replace(/[^a-z0-9]/g, ""), n.id);
+    const nm = n.name.trim().toLowerCase();
+    if (nm) {
+      customLookup.set(nm, n.id);
+      customLookup.set(nm.replace(/[^a-z0-9]/g, ""), n.id);
+    }
+    if (n.nameEn) {
+      const nme = n.nameEn.trim().toLowerCase();
+      customLookup.set(nme, n.id);
+      customLookup.set(nme.replace(/[^a-z0-9]/g, ""), n.id);
+    }
+  }
+
+  const colKeys = headers.map((h) => normalizeHeaderKey(h, customLookup, knownNutrientIds));
   const working = [...existingIngredients];
   const byId = new Map<string, number>();
   const byName = new Map<string, number>();
@@ -466,7 +502,7 @@ export function parseAndMergeIngredientsCsv(
     }
 
     const nutrients: Record<string, number | null> = {};
-    for (const id of KNOWN_NUTRIENT_IDS) {
+    for (const id of knownNutrientIds) {
       nutrients[id] = null;
     }
 
@@ -550,4 +586,41 @@ export function parseAndMergeIngredientsCsv(
     errors,
     warnings,
   };
+}
+
+/** Mengekspor daftar bahan pakan ke CSV termasuk kolom nutrien kustom pengguna. */
+export function exportIngredientsToCsv(
+  ingredients: readonly Ingredient[],
+  customNutrients: readonly Nutrient[] = [],
+): string {
+  const nutrientCols = [...MOCK_NUTRIENTS, ...customNutrients];
+  const header = [
+    "id",
+    "name",
+    "nameEn",
+    "category",
+    "pricePerKg",
+    "dryMatter",
+    "basis",
+    "isActive",
+    "inclusionMin",
+    "inclusionMax",
+    "source",
+    ...nutrientCols.map((n) => `${n.id} (${n.unit})`),
+  ];
+  const rows = ingredients.map((ing) => [
+    ing.id,
+    ing.name,
+    ing.nameEn ?? "",
+    ing.category,
+    ing.priceOverride ?? ing.pricePerKg,
+    ing.dryMatter,
+    ing.basis,
+    ing.isActive !== false ? "true" : "false",
+    ing.inclusion?.min ?? 0,
+    ing.inclusion?.max ?? 100,
+    ing.source,
+    ...nutrientCols.map((n) => ing.nutrients[n.id] ?? ""),
+  ]);
+  return "\uFEFF" + [header, ...rows].map((r) => r.map(escapeCsvCell).join(",")).join("\r\n");
 }

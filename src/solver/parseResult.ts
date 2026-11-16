@@ -45,10 +45,12 @@ function collectDisplayNutrientIds(
   requirement: Requirement,
   config: FormulationConfig,
 ): readonly string[] {
-  const seen = new Set<string>([...BASIC_NUTRIENT_IDS]);
+  const customIds = new Set((config.customNutrients ?? []).map((n) => n.id));
+  const seen = new Set<string>([...BASIC_NUTRIENT_IDS, ...customIds]);
   for (const c of requirement.constraints) {
     const isBasic = BASIC_NUTRIENT_IDS.has(c.nutrientId);
-    if (!isBasic && !config.enableAdvanceNutrients) continue;
+    const isCustom = customIds.has(c.nutrientId) || (!isBasic && c.isAdvance === false);
+    if (!isBasic && !isCustom && !config.enableAdvanceNutrients) continue;
     if (DIGESTIBLE_NUTRIENT_IDS.has(c.nutrientId) && !config.enableDigestibleBasis) continue;
     seen.add(c.nutrientId);
   }

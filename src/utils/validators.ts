@@ -5,7 +5,10 @@ import type {
   Ingredient,
   IngredientCategory,
   IngredientGroupConstraint,
+  Nutrient,
   NutrientConstraint,
+  NutrientTier,
+  NutrientUnit,
   OptimizationMode,
   RatioConstraint,
   Recipe,
@@ -29,6 +32,21 @@ const VALID_CATEGORIES = new Set<IngredientCategory>([
 ]);
 
 const VALID_BASES = new Set<Basis>(["as_fed", "dry_matter"]);
+const VALID_NUTRIENT_UNITS = new Set<NutrientUnit>([
+  "%",
+  "kcal/kg",
+  "MJ/kg",
+  "mg/kg",
+  "IU/kg",
+  "mEq/kg",
+]);
+const VALID_NUTRIENT_TIERS = new Set<NutrientTier>([
+  "basic",
+  "amino_acid",
+  "fiber_carb",
+  "mineral_electrolyte",
+  "anf_physical",
+]);
 const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -495,6 +513,65 @@ export function validateRequirement(
   };
 }
 
+export function validateCustomNutrient(
+  raw: unknown,
+  contextLabel = "CustomNutrient",
+): ValidationResult<Nutrient> {
+  if (!isPlainObject(raw)) {
+    return { ok: false, errors: [`${contextLabel}: harus berupa objek JSON.`] };
+  }
+  const errors: string[] = [];
+  const id = sanitizeText(raw.id, { maxLength: 60 });
+  if (!id || FORBIDDEN_KEYS.has(id)) {
+    errors.push(`${contextLabel}: id nutrien kustom tidak valid.`);
+  }
+  const name = sanitizeText(raw.name, { maxLength: 100 });
+  if (!name) {
+    errors.push(`${contextLabel}: nama nutrien wajib terisi.`);
+  }
+  const nameEn = sanitizeText(raw.nameEn, { maxLength: 100 });
+  const unitRaw = typeof raw.unit === "string" ? raw.unit.trim() : "";
+  const unit = VALID_NUTRIENT_UNITS.has(unitRaw as NutrientUnit) ? (unitRaw as NutrientUnit) : null;
+  if (!unit) {
+    errors.push(
+      `${contextLabel}: satuan tidak valid (pilih %, kcal/kg, MJ/kg, mg/kg, IU/kg, atau mEq/kg).`,
+    );
+  }
+  let tier: NutrientTier | undefined;
+  if (raw.tier !== undefined) {
+    if (typeof raw.tier !== "string" || !VALID_NUTRIENT_TIERS.has(raw.tier as NutrientTier)) {
+      errors.push(`${contextLabel}: tier nutrien tidak valid.`);
+    } else {
+      tier = raw.tier as NutrientTier;
+    }
+  }
+  let defaultBasis: Basis | undefined;
+  if (raw.defaultBasis !== undefined) {
+    const parsedBasis = validateBasis(raw.defaultBasis);
+    if (!parsedBasis) {
+      errors.push(`${contextLabel}: defaultBasis harus 'as_fed' atau 'dry_matter'.`);
+    } else {
+      defaultBasis = parsedBasis;
+    }
+  }
+  if (errors.length > 0 || !unit) {
+    return { ok: false, errors };
+  }
+  return {
+    ok: true,
+    data: {
+      id,
+      name,
+      unit,
+      isCustom: true,
+      ...(nameEn ? { nameEn } : {}),
+      ...(tier ? { tier } : {}),
+      ...(raw.isDigestibleVariant === true ? { isDigestibleVariant: true } : {}),
+      ...(defaultBasis ? { defaultBasis } : {}),
+    },
+  };
+}
+
 export function validateFormulationConfig(raw: unknown): ValidationResult<FormulationConfig> {
   if (!isPlainObject(raw)) {
     return { ok: false, errors: ["Konfigurasi formulasi harus berupa objek JSON."] };
@@ -544,6 +621,29 @@ export function validateFormulationConfig(raw: unknown): ValidationResult<Formul
     }
   }
 
+  let customNutrients: Nutrient[] | undefined;
+  if (raw.customNutrients !== undefined) {
+    if (!Array.isArray(raw.customNutrients)) {
+      errors.push("customNutrients harus berupa array.");
+    } else if (raw.customNutrients.length > 50) {
+      errors.push("Jumlah nutrien kustom melebihi batas maksimal (50).");
+    } else {
+      customNutrients = [];
+      const seenCustomIds = new Set<string>();
+      raw.customNutrients.forEach((item, idx) => {
+        const res = validateCustomNutrient(item, `customNutrients[${idx}]`);
+        if (!res.ok) {
+          errors.push(...res.errors);
+        } else if (seenCustomIds.has(res.data.id)) {
+          errors.push(`customNutrients[${idx}]: duplikasi id '${res.data.id}'.`);
+        } else {
+          seenCustomIds.add(res.data.id);
+          customNutrients!.push(res.data);
+        }
+      });
+    }
+  }
+
   if (errors.length > 0 || batchSizeKg === null) {
     return { ok: false, errors };
   }
@@ -559,6 +659,7 @@ export function validateFormulationConfig(raw: unknown): ValidationResult<Formul
       enableElasticFallback: raw.enableElasticFallback !== false,
       globalZeroInclusion: zeroRule,
       ...(manualLocks ? { manualLocks } : {}),
+      ...(customNutrients !== undefined ? { customNutrients } : {}),
     },
   };
 }

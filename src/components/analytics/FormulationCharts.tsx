@@ -1,11 +1,12 @@
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
-import type { CompositionItem, Ingredient, NutrientResult } from "../../types";
+import type { CompositionItem, Ingredient, Nutrient, NutrientResult } from "../../types";
 import { formatNumberLocale } from "../../utils/locale-number";
 import { NeumorphicProgressTrack } from "../ui/NeumorphicProgressTrack";
 
 export interface FormulationChartsProps {
   readonly composition: readonly CompositionItem[];
   readonly nutrients: readonly NutrientResult[];
+  readonly allNutrients?: readonly Nutrient[];
   readonly ingredients: readonly Ingredient[];
   readonly batchTotalCost: number | null;
 }
@@ -14,11 +15,12 @@ export interface FormulationChartsProps {
 export function FormulationCharts({
   composition,
   nutrients,
+  allNutrients = MOCK_NUTRIENTS,
   ingredients,
   batchTotalCost,
 }: FormulationChartsProps) {
   const ingMap = new Map(ingredients.map((i) => [i.id, i]));
-  const nutMap = new Map(MOCK_NUTRIENTS.map((n) => [n.id, n]));
+  const nutMap = new Map(allNutrients.map((n) => [n.id, n]));
 
   const radarItems = nutrients
     .filter((n) => n.min !== undefined || n.max !== undefined)

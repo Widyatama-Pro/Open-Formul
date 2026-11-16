@@ -1,15 +1,20 @@
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
-import type { RatioConstraint } from "../../types";
+import type { Nutrient, RatioConstraint } from "../../types";
 import { formatNumberLocale } from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 
 export interface RatioConstraintsSectionProps {
   readonly ratios: readonly RatioConstraint[];
   readonly achievedMap: ReadonlyMap<string, number>;
+  readonly nutrientsCatalog?: readonly Nutrient[];
 }
 
 /** Menampilkan pengunci rasio antar-nutrien (seperti Ca:P dan ME:CP) beserta nilai aktual. */
-export function RatioConstraintsSection({ ratios, achievedMap }: RatioConstraintsSectionProps) {
+export function RatioConstraintsSection({
+  ratios,
+  achievedMap,
+  nutrientsCatalog = MOCK_NUTRIENTS,
+}: RatioConstraintsSectionProps) {
   if (ratios.length === 0) return null;
 
   return (
@@ -28,8 +33,8 @@ export function RatioConstraintsSection({ ratios, achievedMap }: RatioConstraint
           const num = achievedMap.get(ratio.numerator) ?? 0;
           const den = achievedMap.get(ratio.denominator) ?? 0;
           const actualRatio = den > 1e-6 ? num / den : null;
-          const numMeta = MOCK_NUTRIENTS.find((n) => n.id === ratio.numerator);
-          const denMeta = MOCK_NUTRIENTS.find((n) => n.id === ratio.denominator);
+          const numMeta = nutrientsCatalog.find((n) => n.id === ratio.numerator);
+          const denMeta = nutrientsCatalog.find((n) => n.id === ratio.denominator);
           const isMet =
             actualRatio !== null &&
             (ratio.min === undefined || actualRatio >= ratio.min - 1e-4) &&

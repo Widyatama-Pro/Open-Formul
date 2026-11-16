@@ -23,14 +23,14 @@ Status: ⬜ belum dimulai · 🟨 berjalan · ✅ selesai
 - ✅ Kalkulasi otomatis _debounced_ via Web Worker HiGHS WASM (`solveFormulation()` dengan pembatalan tiket usang & fallback JSDOM/Node)
 - ✅ Tabel hasil, batch mixer As-Fed/BK, grafik SVG, Shadow Price/Bound Duals/Price Range, Mode 1–5, & Mode Relaksasi Elastik $\ell_1$
 
-## Fase 3 — Fitur Presisi 🟨
+## Fase 3 — Fitur Presisi ✅
 
-- ✅ Konversi basis As-Fed ↔ Bahan Kering (BK/DM) & kalkulator persamaan nutrisi (`src/utils/basis.ts`, `src/utils/equations.ts`)
+- ✅ Konversi basis As-Fed ↔ Bahan Kering (BK/DM) & kalkulator persamaan nutrisi (`src/utils/basis.ts`, `src/utils/equations.ts` mencakup persamaan ruminansia & babi Hartadi 1980, Garrett 1977, NRC 1988 Table 6-1, dan Kearl 1982 Table 15)
 - ✅ Batas inklusi bahan (min/max %, grup bahan, What-If lock)
-- ⬜ Nutrien kustom penuh (nama, satuan, basis dinamis pengguna)
+- ✅ Nutrien kustom penuh (nama, satuan, basis dinamis pengguna) pada target nutrien, tabel grid/detail bahan, impor/ekspor CSV, serta solver HiGHS LP
 - ✅ Rasio nutrien terlinearisasi (`Ca:P` dan batas min/max rasio lain tanpa `0/0`)
 - ✅ Analisis sensitivitas / _shadow price_, _bound duals_, _opportunity cost_, dan rentang harga bahan
-- 🟨 Ekspansi pustaka profil kebutuhan ternak bawaan & validasi sitasi sumber lengkap (termasuk 14 bahan Indonesia [`hartadi-feeds.ts`](src/data/hartadi-feeds.ts) & 6 profil ruminansia tropis Kearl 1982 [`kearl-requirements.ts`](src/data/kearl-requirements.ts))
+- ✅ Ekspansi penuh pustaka bahan & standar kebutuhan ruminansia beserta arsip referensi lokal (`docs/references/`): **304 bahan** [`hartadi-feeds.ts`](src/data/hartadi-feeds.ts) (14 kurasi awal + 246 bahan Tabel 12 tergabung Tabel 13/14 + 44 suplemen mineral Tabel 15), **82 profil Kearl 1982** (`KEARL_REQUIREMENTS`: 6 profil awal + 76 profil Tabel 14), **24 profil sapi perah NRC 1988** (`NRC_1988_DAIRY_REQUIREMENTS`), serta _windowing_ progresif katalog `> 50` item (`Tampilkan Semua`)
 
 ## Fase 4 — PWA Penuh & Ekspor/Impor 🟨
 

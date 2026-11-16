@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Coins, Scale } from "lucide-react";
-import type { FormulationConfig, FormulationResult, Ingredient } from "../../types";
+import { MOCK_NUTRIENTS } from "../../data/mock-state";
+import type { FormulationConfig, FormulationResult, Ingredient, Nutrient } from "../../types";
 import { formatCurrencyIdr } from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
@@ -16,6 +17,7 @@ import { WhatIfManualLock } from "./WhatIfManualLock";
 export interface ResultsPanelProps {
   readonly result: FormulationResult;
   readonly ingredients: readonly Ingredient[];
+  readonly allNutrients?: readonly Nutrient[];
   readonly config: FormulationConfig;
   readonly onSetBatchSize: (kg: number) => void;
   readonly onToggleElastic: (enabled: boolean) => void;
@@ -28,6 +30,7 @@ type ResultSubTab = "batch" | "charts" | "dual" | "whatif";
 export function ResultsPanel({
   result,
   ingredients,
+  allNutrients,
   config,
   onSetBatchSize,
   onToggleElastic,
@@ -35,6 +38,7 @@ export function ResultsPanel({
   onClearManualLocks,
 }: ResultsPanelProps) {
   const [subTab, setSubTab] = useState<ResultSubTab>("batch");
+  const nutrientsCatalog = allNutrients ?? [...MOCK_NUTRIENTS, ...(config.customNutrients ?? [])];
 
   const statusBadge =
     result.status === "optimal" ? (
@@ -133,6 +137,7 @@ export function ResultsPanel({
               <FormulationCharts
                 composition={result.composition}
                 nutrients={result.nutrients}
+                allNutrients={nutrientsCatalog}
                 ingredients={ingredients}
                 batchTotalCost={result.batchTotalCost ?? null}
               />
@@ -141,6 +146,7 @@ export function ResultsPanel({
             {subTab === "dual" && (
               <ShadowPriceTab
                 nutrients={result.nutrients}
+                allNutrients={nutrientsCatalog}
                 composition={result.composition}
                 opportunityCosts={result.opportunityCosts ?? []}
                 boundDuals={result.boundDuals ?? []}

@@ -75,3 +75,17 @@ Biaya ≈ 5.500·0,6761 + 8.200·0,3239 ≈ **Rp6.374/kg**. Kasus ini dipakai se
 
 - _Shadow price_ (nilai dual) kendala nutrien: perubahan biaya per kenaikan satu satuan target.
 - _Reduced cost_ bahan tak terpakai: penurunan harga yang dibutuhkan agar bahan masuk ransum.
+
+## Persamaan Nutrisi Ruminansia & Monogastrik (`src/utils/equations.ts`)
+
+Seluruh persamaan berikut diimplementasikan murni pada basis Bahan Kering (BK) dengan _safety clamp_ $\ge 0$:
+
+- **Protein Tercerna Hijauan/Silase (Knight & Harris, 1966; Hartadi et al., 1980 Tabel 10 Kelas 3):** $\text{DP}\% = \max(0,\, 0,908 \cdot \text{CP}\% - 3,77)$.
+- **Digestible Energy (Crampton et al., 1957; Swift, 1957):** $\text{DE}_{\text{sapi/domba}}(\text{Mcal/kg}) = 0,04409 \cdot \text{TDN}\%$.
+- **Metabolizable Energy Ruminansia:** $\text{ME}_{\text{regresi}} = \max(0,\, -0,45 + 1,01 \cdot \text{DE})$ (Moe & Tyrrell, 1976 / Tabel 12 Hartadi) dan $\text{ME}_{0,82} = 0,82 \cdot \text{DE}$ (masukan polinomial Garrett, 1977).
+- **Net Energy Sapi Potong (Garrett, 1977; teks Inggris Hartadi hlm. 25):**
+  - $\text{NE}_m = \max(0,\, 1,115 - 0,8971\text{ME} + 0,6507\text{ME}^2 - 0,1028\text{ME}^3 + 0,005725\text{ME}^4)$
+  - $\text{NE}_g = \max(0,\, 3,178\text{ME} - 0,8646\text{ME}^2 + 0,1275\text{ME}^3 - 0,006787\text{ME}^4 - 3,325)$
+- **Net Energy Laktasi (Moe & Tyrrell, 1976):** $\text{NE}_l(\text{Mcal/kg}) = \max(0,\, -0,12 + 0,0245 \cdot \text{TDN}\%)$.
+- **ME Babi (Asplund & Harris, 1969):** $\text{ME}(\text{kcal/kg}) = \max(0,\, (0,96 - 0,00202 \cdot \text{CP}\%) \cdot \text{DE})$.
+- **4% Fat-Corrected Milk & Kebutuhan DMI/Laktasi (NRC, 1988 Tabel 6-1 & Kearl, 1982 Tabel 15):** $\text{FCM}(4\%) = 0,4 \cdot \text{Susu} + 0,15 \cdot \text{Susu} \cdot \text{Lemak}\%$, interpolasi bilinear DMI (`estimateCattleDryMatterIntakePctBw`), dan agregasi kebutuhan harian hidup pokok + produksi susu menjadi konsentrasi `% BK` (`computeKearlLactationRequirement`).

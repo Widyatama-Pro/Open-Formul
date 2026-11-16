@@ -38,7 +38,12 @@ export function App() {
       isOnline={pwa.isOnline}
       offlineReady={pwa.offlineReady}
       needRefresh={pwa.needRefresh}
+      canInstall={pwa.canInstall}
+      isInstalled={pwa.isInstalled}
       onApplyUpdate={pwa.applyUpdate}
+      onInstallApp={() => {
+        void pwa.installApp();
+      }}
     >
       {store.route === "formulation" && (
         <FormulationWorkbench
@@ -88,7 +93,9 @@ export function App() {
         />
       )}
 
-      {store.route === "advanced" && <AdvancedModulesPreview />}
+      {store.route === "advanced" && (
+        <AdvancedModulesPreview language={store.preferences.language} />
+      )}
 
       {store.route === "settings" && (
         <SettingsPage

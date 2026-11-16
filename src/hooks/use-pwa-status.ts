@@ -1,11 +1,45 @@
 import { useCallback, useEffect, useState } from "react";
 
+export type PwaPlatformHint = "android" | "ios" | "desktop";
+
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms?: readonly string[];
+  readonly userChoice: Promise<{
+    readonly outcome: "accepted" | "dismissed";
+    readonly platform: string;
+  }>;
+  prompt(): Promise<void>;
+}
+
 export interface PwaStatus {
   readonly isOnline: boolean;
   readonly offlineReady: boolean;
   readonly needRefresh: boolean;
   readonly swSupported: boolean;
+  readonly canInstall: boolean;
+  readonly isInstalled: boolean;
+  readonly platformHint: PwaPlatformHint;
   readonly applyUpdate: () => void;
+  readonly installApp: () => Promise<"accepted" | "dismissed" | "unavailable">;
+}
+
+function detectPlatformHint(): PwaPlatformHint {
+  if (typeof navigator === "undefined") return "desktop";
+  const ua = navigator.userAgent.toLowerCase();
+  if (/iphone|ipad|ipod/.test(ua)) return "ios";
+  if (/android/.test(ua)) return "android";
+  return "desktop";
+}
+
+function detectStandaloneMode(): boolean {
+  if (typeof window === "undefined") return false;
+  const mediaMatch =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(display-mode: standalone)").matches;
+  const iosStandalone =
+    typeof navigator !== "undefined" &&
+    Boolean((navigator as { readonly standalone?: boolean }).standalone);
+  return mediaMatch || iosStandalone;
 }
 
 export function usePwaStatus(): PwaStatus {
@@ -15,6 +49,11 @@ export function usePwaStatus(): PwaStatus {
   const [offlineReady, setOfflineReady] = useState(false);
   const [needRefresh, setNeedRefresh] = useState(false);
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
+  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(
+    null,
+  );
+  const [isInstalled, setIsInstalled] = useState<boolean>(() => detectStandaloneMode());
+  const [platformHint] = useState<PwaPlatformHint>(() => detectPlatformHint());
 
   const swSupported = typeof navigator !== "undefined" && "serviceWorker" in navigator;
 
@@ -23,12 +62,26 @@ export function usePwaStatus(): PwaStatus {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
+    const handleBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event as BeforeInstallPromptEvent);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setInstallPromptEvent(null);
+    };
+
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+    window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+      window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
@@ -92,11 +145,32 @@ export function usePwaStatus(): PwaStatus {
     }
   }, [waitingWorker]);
 
+  const installApp = useCallback(async (): Promise<"accepted" | "dismissed" | "unavailable"> => {
+    if (!installPromptEvent) {
+      return "unavailable";
+    }
+    try {
+      await installPromptEvent.prompt();
+      const choice = await installPromptEvent.userChoice;
+      if (choice.outcome === "accepted") {
+        setIsInstalled(true);
+        setInstallPromptEvent(null);
+      }
+      return choice.outcome;
+    } catch {
+      return "unavailable";
+    }
+  }, [installPromptEvent]);
+
   return {
     isOnline,
     offlineReady,
     needRefresh,
     swSupported,
+    canInstall: installPromptEvent !== null && !isInstalled,
+    isInstalled,
+    platformHint,
     applyUpdate,
+    installApp,
   };
 }

@@ -1,11 +1,15 @@
 import { useState } from "react";
 import {
   AlertTriangle,
+  CheckCircle2,
   Database,
   Download,
+  ExternalLink,
+  Laptop,
   RefreshCw,
   RotateCcw,
   SlidersHorizontal,
+  Smartphone,
   Trash2,
   Wifi,
   WifiOff,
@@ -180,6 +184,113 @@ export function SettingsPage({
           />
         </div>
       </Card>
+
+      {(storageStats || pwaStatus) && (
+        <Card interactive={false} className="space-y-4 p-4 sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <GlossySquircleIcon tone="mint" size="sm" icon={<Download className="h-4 w-4" />} />
+              <div>
+                <h2 className="text-sm font-bold text-[#122B36] dark:text-slate-100">
+                  {preferences.language === "id"
+                    ? "Unduh & Instal Aplikasi (Desktop & Mobile)"
+                    : "Download & Install App (Desktop & Mobile)"}
+                </h2>
+                <p className="text-xs text-[#54707E] dark:text-slate-400">
+                  {preferences.language === "id"
+                    ? "Instal Open Formul langsung ke Windows, macOS, Linux, atau HP Android/iOS agar berjalan mandiri 100% offline."
+                    : "Install Open Formul directly on Windows, macOS, Linux, Android, or iOS for 100% offline standalone use."}
+                </p>
+              </div>
+            </div>
+
+            {pwaStatus && (
+              <Badge
+                tone={pwaStatus.isInstalled ? "emerald" : pwaStatus.canInstall ? "sky" : "neutral"}
+              >
+                {pwaStatus.isInstalled ? (
+                  <span className="inline-flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    {preferences.language === "id" ? "Sudah Terinstal" : "Installed"}
+                  </span>
+                ) : pwaStatus.canInstall ? (
+                  preferences.language === "id" ? (
+                    "Siap Diinstal"
+                  ) : (
+                    "Ready to Install"
+                  )
+                ) : (
+                  "PWA Offline"
+                )}
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {pwaStatus?.canInstall && !pwaStatus.isInstalled && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  void pwaStatus.installApp().then((outcome) => {
+                    if (outcome === "accepted") {
+                      setActionNotice(
+                        preferences.language === "id"
+                          ? "Open Formul berhasil dipasang ke perangkat Anda."
+                          : "Open Formul has been installed on your device.",
+                      );
+                    }
+                  });
+                }}
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>
+                  {preferences.language === "id" ? "Instal Aplikasi Sekarang" : "Install App Now"}
+                </span>
+              </Button>
+            )}
+
+            <a
+              href="https://github.com/Widyatama-Pro/Open-Formul/releases"
+              target="_blank"
+              rel="noreferrer"
+              className="neu-pill-btn inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm font-semibold text-[#123340] md:min-h-8 md:px-3 md:text-xs dark:text-slate-100"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              <span>
+                {preferences.language === "id"
+                  ? "Bundel Offline di GitHub Releases"
+                  : "Offline Bundle on GitHub Releases"}
+              </span>
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2.5 text-xs sm:grid-cols-2">
+            <div className="neu-well rounded-2xl p-3">
+              <div className="flex items-center gap-1.5 font-bold text-[#122B36] dark:text-slate-100">
+                <Laptop className="h-3.5 w-3.5 text-[#0E7490] dark:text-cyan-300" />
+                <span>Desktop (Windows / macOS / Linux)</span>
+              </div>
+              <p className="mt-1 leading-relaxed text-[#466270] dark:text-slate-300">
+                {preferences.language === "id"
+                  ? "Buka di Chrome atau Edge, lalu klik ikon Instal di ujung kanan kolom alamat browser (atau unduh bundel portabel di GitHub Releases)."
+                  : "Open in Chrome or Edge and click the Install icon in the address bar (or download the portable bundle from GitHub Releases)."}
+              </p>
+            </div>
+            <div className="neu-well rounded-2xl p-3">
+              <div className="flex items-center gap-1.5 font-bold text-[#122B36] dark:text-slate-100">
+                <Smartphone className="h-3.5 w-3.5 text-[#059669] dark:text-emerald-300" />
+                <span>Mobile (Android &amp; iOS)</span>
+              </div>
+              <p className="mt-1 leading-relaxed text-[#466270] dark:text-slate-300">
+                {preferences.language === "id"
+                  ? "Di Android Chrome ketuk menu ⋮ → Instal Aplikasi / Tambahkan ke Layar Utama. Di Safari iOS ketuk Share → Add to Home Screen."
+                  : "On Android Chrome tap menu ⋮ → Install App / Add to Home Screen. On iOS Safari tap Share → Add to Home Screen."}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {(storageStats || pwaStatus) && (
         <Card interactive={false} className="space-y-4 p-4 sm:p-5">

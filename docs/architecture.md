@@ -46,17 +46,19 @@ sequenceDiagram
 
 ## Modul
 
-| Folder           | Tanggung jawab                                                                                                                                |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/types`      | Tipe domain kanonik                                                                                                                           |
-| `src/data`       | Sampel bahan JSON, dataset kerja (`mock-state`), 14 bahan Indonesia (`hartadi-feeds`), & 6 profil Kearl 1982 (`kearl-requirements`)           |
-| `src/solver`     | `precheck`, `buildModel`, `toLpString`, `parseResult`, `solveFormulation`, `highs.worker`, `solverClient`                                     |
-| `src/storage`    | `db` (IndexedDB `idb` `open-formul-db` v1), `recipeTransfer` (`.feed.json`), `exportCsvXlsx` (CSV BOM & OOXML `.xlsx`), `exportPdf` (PDF 1.4) |
-| `src/utils`      | `basis` (As-Fed ↔ BK), `equations`, `validators`, `ingredientCsvImport`, `tsvPaste`, `download`, `locale-number`, `cn`                        |
-| `src/hooks`      | `usePrototypeStore` (orkestrasi solve live, hidrasi & persistensi IDB, non-destructive `loadRecipe`), `usePwaStatus`                          |
-| `src/components` | UI presentasional (Layered Glassmorphism & Soft Neumorphism, Light/Dark, offline font via `@fontsource-variable/*`)                           |
+| Folder           | Tanggung jawab                                                                                                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/types`      | Tipe domain kanonik                                                                                                                                                     |
+| `src/data`       | Sampel bahan JSON, dataset kerja (`mock-state`), **304 bahan** Hartadi 1980 (`hartadi-feeds`), **82 profil** Kearl 1982 & **24 profil** NRC 1988 (`kearl-requirements`) |
+| `src/solver`     | `precheck`, `buildModel`, `toLpString`, `parseResult`, `solveFormulation`, `highs.worker`, `solverClient`                                                               |
+| `src/storage`    | `db` (IndexedDB `idb` `open-formul-db` v1), `recipeTransfer` (`.feed.json`), `exportCsvXlsx` (CSV BOM & OOXML `.xlsx`), `exportPdf` (PDF 1.4)                           |
+| `src/utils`      | `basis` (As-Fed ↔ BK), `equations`, `validators`, `ingredientCsvImport`, `tsvPaste`, `download`, `locale-number`, `cn`                                                  |
+| `src/hooks`      | `usePrototypeStore` (orkestrasi solve live, hidrasi & persistensi IDB, non-destructive `loadRecipe`), `usePwaStatus`                                                    |
+| `src/components` | UI presentasional (Layered Glassmorphism & Soft Neumorphism, Light/Dark, offline font via `@fontsource-variable/*`)                                                     |
 
-## Offline & PWA (Fase 4)
+## Offline, PWA & Deploy Lintas Platform (Fase 4)
 
-- `vite-plugin-pwa` (`mode: "generateSW"`, `registerType: "autoUpdate"`) dengan `maximumFileSizeToCacheInBytes: 6 * 1024 * 1024` untuk _precache_ aset statis serta `highs-*.wasm`.
+- `vite-plugin-pwa` (`mode: "generateSW"`, `registerType: "autoUpdate"`) dengan `base` dinamis via `VITE_BASE_PATH` (`/Open-Formul/` di GitHub Pages, `/` di lokal/root), `start_url: "./"`, `scope: "./"`, dan `maximumFileSizeToCacheInBytes: 6 * 1024 * 1024` untuk _precache_ aset statis serta `highs-*.wasm`.
+- **Instalasi Desktop & Mobile (`usePwaStatus.ts`):** Menangkap `beforeinstallprompt` dan menyediakan tombol instalasi native di `AppShell` dan `SettingsPage` + bundel portabel di GitHub Releases.
 - IndexedDB via `idb` (`open-formul-db` v1) dengan 5 object store: `ingredients`, `requirements`, `recipes`, `active_session`, dan `preferences` (beserta fallback memori aman jika IndexedDB diblokir/tidak tersedia).
+- **Katalog Lanjutan (`AdvancedModulesPreview.tsx`):** Menampilkan seluruh 15 modul riset (`PR-01` s/d `EN-05`) dalam mode _Coming Soon_ dengan penjelasan fungsi sederhana sambil menargetkan rilis implementasi bertahap di Fase 4A–6 (lihat [advanced-feature-research-plan.md](advanced-feature-research-plan.md)).

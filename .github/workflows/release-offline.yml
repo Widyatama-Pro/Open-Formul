@@ -1,0 +1,97 @@
+name: Build Offline Portable Release Bundle
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag rilis GitHub (contoh: v0.1.0)"
+        required: false
+        default: "v0.1.0"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
+      - name: Build standalone offline bundle
+        env:
+          VITE_BASE_PATH: /
+        run: npm run build
+      - name: Package portable desktop & offline launcher
+        run: |
+          mkdir -p release-bundle/dist
+          cp -r dist/* release-bundle/dist/
+          cat << 'EOF' > release-bundle/server.mjs
+          import http from "node:http";
+          import fs from "node:fs";
+          import path from "node:path";
+          import { fileURLToPath } from "node:url";
+
+          const __dirname = path.dirname(fileURLToPath(import.meta.url));
+          const distDir = path.join(__dirname, "dist");
+          const port = Number(process.env.PORT || 4173);
+
+          const MIME = {
+            ".html": "text/html; charset=utf-8",
+            ".js": "application/javascript; charset=utf-8",
+            ".css": "text/css; charset=utf-8",
+            ".json": "application/json; charset=utf-8",
+            ".webmanifest": "application/manifest+json; charset=utf-8",
+            ".wasm": "application/wasm",
+            ".png": "image/png",
+            ".svg": "image/svg+xml",
+            ".ico": "image/x-icon",
+            ".woff2": "font/woff2",
+          };
+
+          const server = http.createServer((req, res) => {
+            const urlPath = (req.url || "/").split("?")[0];
+            const safeRel = path.normalize(urlPath === "/" ? "index.html" : urlPath).replace(/^(\.\.[/\\])+/, "");
+            let filePath = path.join(distDir, safeRel);
+            if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+              filePath = path.join(distDir, "index.html");
+            }
+            const ext = path.extname(filePath).toLowerCase();
+            res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream" });
+            fs.createReadStream(filePath).pipe(res);
+          });
+
+          server.listen(port, "127.0.0.1", () => {
+            console.log(`Open Formul offline siap di http://127.0.0.1:${port}`);
+          });
+          EOF
+          cat << 'EOF' > release-bundle/start-windows.bat
+          @echo off
+          echo Menjalankan Open Formul Offline di http://127.0.0.1:4173 ...
+          start "" http://127.0.0.1:4173
+          node "%~dp0server.mjs"
+          EOF
+          cat << 'EOF' > release-bundle/start-mac-linux.sh
+          #!/usr/bin/env bash
+          cd "$(dirname "$0")"
+          echo "Menjalankan Open Formul Offline di http://127.0.0.1:4173 ..."
+          (sleep 1 && (xdg-open http://127.0.0.1:4173 || open http://127.0.0.1:4173) 2>/dev/null) &
+          node server.mjs
+          EOF
+          chmod +x release-bundle/start-mac-linux.sh
+          cd release-bundle && zip -r ../open-formul-offline-portable.zip .
+      - name: Publish Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: open-formul-offline-portable.zip
+          generate_release_notes: true

@@ -166,4 +166,29 @@ describe("Open Formul Fase 1 UI Prototype Flow", () => {
     await user.click(screen.getAllByRole("button", { name: /Kebutuhan Ternak/i })[0]!);
     expect(screen.getByRole("button", { name: /Tampilkan Semua \(1/i })).toBeInTheDocument();
   });
+
+  it("menampilkan seluruh 15 modul Advance berstatus Coming Soon dan panduan instalasi Desktop/Mobile", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getAllByRole("button", { name: /Modul Lanjutan/i })[0]!);
+    expect(
+      screen.getByRole("heading", { name: /Modul Presisi, Pabrik & Enterprise/i }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("Coming Soon").length).toBe(15);
+    expect(screen.getByText(/Diagnosis Konflik Cerdas \(IIS\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Urutan Batch Bebas Kontaminasi/i)).toBeInTheDocument();
+
+    // Filter tahap Presisi & Risiko menampilkan 5 modul
+    await user.click(screen.getByRole("tab", { name: /Presisi & Risiko \(5\)/i }));
+    expect(screen.getAllByText("Coming Soon").length).toBe(5);
+
+    // Cek kartu unduh/instal lintas platform di Pengaturan
+    await user.click(screen.getAllByRole("button", { name: /Pengaturan/i })[0]!);
+    expect(
+      screen.getByRole("heading", { name: /Unduh & Instal Aplikasi \(Desktop & Mobile\)/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Desktop \(Windows \/ macOS \/ Linux\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Mobile \(Android & iOS\)/i)).toBeInTheDocument();
+  });
 });

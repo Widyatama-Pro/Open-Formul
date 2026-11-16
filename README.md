@@ -50,7 +50,7 @@ flowchart LR
   UI <--> DB[("IndexedDB")]
 ```
 
-Detail: [prd.md](prd.md) · [docs/architecture.md](docs/architecture.md) · [docs/formulation-math.md](docs/formulation-math.md) · [docs/data-schema.md](docs/data-schema.md)
+Detail: [prd.md](prd.md) · [docs/architecture.md](docs/architecture.md) · [docs/formulation-math.md](docs/formulation-math.md) · [docs/data-schema.md](docs/data-schema.md) · [docs/advanced-feature-research-plan.md](docs/advanced-feature-research-plan.md)
 
 ## 📁 Struktur Repositori
 
@@ -78,15 +78,27 @@ Detail: [prd.md](prd.md) · [docs/architecture.md](docs/architecture.md) · [doc
 └── CONTRIBUTING.md
 ```
 
-## 🚀 Instalasi Lokal
+## 🌐 Akses Aplikasi & Unduh Lintas Platform (Desktop & Mobile)
+
+- **Aplikasi Web / PWA Langsung (GitHub Pages):** [`https://widyatama-pro.github.io/Open-Formul/`](https://widyatama-pro.github.io/Open-Formul/) _(aktif otomatis via workflow [deploy-pages.yml](.github/workflows/deploy-pages.yml) pada setiap push ke `main` — pastikan Pages sumber diset ke **GitHub Actions** pada pengaturan repositori)._
+- **Desktop (Windows / macOS / Linux):**
+  - Buka URL di **Chrome** atau **Microsoft Edge**, lalu klik tombol **Instal App** di header/Pengaturan (atau ikon instalasi di bilah alamat browser) untuk memasang aplikasi mandiri **100% offline**.
+  - Atau unduh arsip siap pakai `open-formul-offline-portable.zip` di halaman [**GitHub Releases**](https://github.com/Widyatama-Pro/Open-Formul/releases) dan jalankan `start-windows.bat` / `start-mac-linux.sh`.
+- **Mobile (Android & iOS):**
+  - Buka URL di **Chrome Android**, ketuk menu **⋮ → Instal Aplikasi / Tambahkan ke Layar Utama** (atau gunakan tombol **Instal Aplikasi** di menu _Pengaturan_).
+  - Di **Safari iOS**, ketuk ikon **Share → Add to Home Screen**.
+
+> 🚀 **Fokus Rilis Saat Ini:** Seluruh **15 modul formulasi presisi, pabrik, dan keberlanjutan** (`PR-01..PR-05`, `ML-01..ML-05`, `EN-01..EN-05`) telah tersedia di menu **Modul Lanjutan (Advance)** dengan label **Coming Soon** & penjelasan fungsi sederhana sambil menuntaskan deploy publik terlebih dahulu. Rencana bedah teknis & dasar jurnalnya ada di [docs/advanced-feature-research-plan.md](docs/advanced-feature-research-plan.md).
+
+## 🚀 Instalasi Lokal & Pengembang
 
 > 💡 **Status Saat Ini (Fase 3 Selesai ✅):** Antarmuka Glass-Neumorphism responsif dengan _windowing_ progresif (`> 50` item), **engine LP HiGHS WASM di Web Worker** (`ENG-01`–`ENG-08`), **nutrien kustom penuh** (nama, satuan, basis dinamis pengguna), **persistensi offline IndexedDB (`open-formul-db` v1) + PWA (`vite-plugin-pwa` precache `.wasm`)**, **pustaka penuh Hartadi 1980 (304 bahan), Kearl 1982 (82 profil), & NRC 1988 (24 profil sapi perah)** beserta arsip lokal di [`docs/references/`](docs/references/), serta **ekspor/impor `.feed.json`, CSV partial-merge, Excel `.xlsx`, PDF 1.4 (`full` & `batch_only`), dan TSV Multi-Cell Paste** telah aktif. Item tersisa (internasionalisasi penuh & fitur lanjutan Fase 4) dipantau di [ROADMAP.md](ROADMAP.md).
 
-Prasyarat: **Node.js ≥ 20** dan **npm ≥ 10**.
+Prasyarat pengembangan lokal: **Node.js ≥ 20** dan **npm ≥ 10**.
 
 ```bash
-git clone https://github.com/<org>/open-formul.git
-cd open-formul
+git clone https://github.com/Widyatama-Pro/Open-Formul.git
+cd Open-Formul
 npm install
 npm run dev          # server pengembangan di http://localhost:5173
 npm run typecheck    # verifikasi TypeScript ketat (tsc --noEmit)

@@ -89,3 +89,13 @@ Seluruh persamaan berikut diimplementasikan murni pada basis Bahan Kering (BK) d
 - **Net Energy Laktasi (Moe & Tyrrell, 1976):** $\text{NE}_l(\text{Mcal/kg}) = \max(0,\, -0,12 + 0,0245 \cdot \text{TDN}\%)$.
 - **ME Babi (Asplund & Harris, 1969):** $\text{ME}(\text{kcal/kg}) = \max(0,\, (0,96 - 0,00202 \cdot \text{CP}\%) \cdot \text{DE})$.
 - **4% Fat-Corrected Milk & Kebutuhan DMI/Laktasi (NRC, 1988 Tabel 6-1 & Kearl, 1982 Tabel 15):** $\text{FCM}(4\%) = 0,4 \cdot \text{Susu} + 0,15 \cdot \text{Susu} \cdot \text{Lemak}\%$, interpolasi bilinear DMI (`estimateCattleDryMatterIntakePctBw`), dan agregasi kebutuhan harian hidup pokok + produksi susu menjadi konsentrasi `% BK` (`computeKearlLactationRequirement`).
+
+## Spesifikasi Target Matematis Lanjutan (Rencana Implementasi Fase 4A–6)
+
+> **Catatan Status:** Persamaan di bawah adalah **target desain terverifikasi** untuk implementasi bertahap pasca-deploy publik (belum aktif di solver produksi; saat ini berstatus _Coming Soon_ di menu Modul Lanjutan). Rincian lengkap tersedia di [`advanced-feature-research-plan.md`](advanced-feature-research-plan.md).
+
+- **Stokastik SLP Kovarians & Cantelli (`PR-04`):** Linearisasi Taylor $\sqrt{\mathbf{x}^\top \Sigma^{(i)}\mathbf{x} + \sigma_{b_i}^2 + 10^{-12}}$ dengan pengali $\kappa_i = \Phi^{-1}(p_i)$ atau $\sqrt{p_i / (1 - p_i)}$ (Munford, 1996; D'Alfonso et al., 1992; Chen, 1973).
+- **Optimasi Rasio Biaya/Nutrisi (`PR-03`):** Substitusi Charnes–Cooper ($t = (\sum e_j x_j)^{-1}$, $\mathbf{z} = t\mathbf{x}$) mengubah $\min \frac{\sum c_j x_j}{\sum e_j x_j}$ ke LP eksak.
+- **Minimal IIS & Priority Tiers (`PR-01`):** _Chinneck Deletion Filter_ (1997) + penalti bertingkat agar batas Tier-0 (toksin/VFD) tidak ikut terelaksasi.
+- **Neraca Susut Air Produk Jadi (`ML-02`):** $(1 - \delta_{\text{dust}})\sum x_j + x_{\text{steam}} + x_{\text{oil,coater}} - x_{\text{evap}} = 1{,}00$ per 1 kg pakan akhir + kendala indeks PDI linear.
+- **Pareto Eco-Nutrition (`ML-04`):** $\min \sum c_j x_j$ dengan kendala $\sum \text{GWP}_j^{\text{LCA+LUC}} x_j \le \varepsilon_k$ dan neraca retensi N/P (Mackenzie et al., 2016; Garcia-Launay et al., 2018; Moraes et al., 2015).

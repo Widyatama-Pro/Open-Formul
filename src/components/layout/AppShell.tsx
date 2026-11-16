@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import {
   ChevronDown,
+  Download,
   Languages,
   Menu,
   Moon,
@@ -30,7 +31,10 @@ export interface AppShellProps {
   readonly isOnline?: boolean;
   readonly offlineReady?: boolean;
   readonly needRefresh?: boolean;
+  readonly canInstall?: boolean;
+  readonly isInstalled?: boolean;
   readonly onApplyUpdate?: () => void;
+  readonly onInstallApp?: () => void;
   readonly children: ReactNode;
 }
 
@@ -48,7 +52,10 @@ export function AppShell({
   isOnline = true,
   offlineReady = false,
   needRefresh = false,
+  canInstall = false,
+  isInstalled = false,
   onApplyUpdate,
+  onInstallApp,
   children,
 }: AppShellProps) {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -110,6 +117,17 @@ export function AppShell({
             </div>
 
             <div className="flex items-center gap-2">
+              {canInstall && !isInstalled && onInstallApp && (
+                <button
+                  type="button"
+                  onClick={onInstallApp}
+                  className="neu-pill-btn hidden cursor-pointer items-center gap-1 rounded-full border border-cyan-400/55 bg-cyan-50/90 px-2.5 py-1 text-[11px] font-bold text-[#0B4657] sm:inline-flex dark:bg-cyan-950/60 dark:text-cyan-200"
+                >
+                  <Download className="h-3 w-3" />
+                  <span>{language === "id" ? "Instal App" : "Install App"}</span>
+                </button>
+              )}
+
               {needRefresh && onApplyUpdate && (
                 <button
                   type="button"

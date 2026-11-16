@@ -7,7 +7,7 @@ Dokumen ini adalah **panduan induk (_Single Source of Truth_)** yang menyatukan 
 > 1. [spesifikasi_rancangan_repositori_formulasi_pakan.md](project-brief/spesifikasi_rancangan_repositori_formulasi_pakan.md) (168 baris) — Spesifikasi fitur inti, analisis 5 bentrok logika, 5 fitur tambahan lapangan, 7 fitur komersial hasil _reverse engineering_, dan fitur ekosistem _open-source_.
 > 2. [analisis_arsitektur_perangkat_lunak_formulasi_pakan.md](project-brief/analisis_arsitektur_perangkat_lunak_formulasi_pakan.md) (603 baris) — Analisis arsitektur 4 lapis, perbandingan 10 platform komersial/akademis global, persamaan regresi & biologis, serta spesifikasi _state logic_ 12 modul kelas industri.
 >
-> **Dokumen Repositori Terkait:** [src/types/index.ts](src/types/index.ts) · [docs/data-schema.md](docs/data-schema.md) · [docs/formulation-math.md](docs/formulation-math.md) · [docs/architecture.md](docs/architecture.md) · [ROADMAP.md](ROADMAP.md) · [AGENTS.md](AGENTS.md) · [DESIGN.md](DESIGN.md)
+> **Dokumen Repositori Terkait:** [src/types/index.ts](src/types/index.ts) · [docs/data-schema.md](docs/data-schema.md) · [docs/formulation-math.md](docs/formulation-math.md) · [docs/architecture.md](docs/architecture.md) · [docs/advanced-feature-research-plan.md](docs/advanced-feature-research-plan.md) · [ROADMAP.md](ROADMAP.md) · [AGENTS.md](AGENTS.md) · [DESIGN.md](DESIGN.md)
 
 ---
 
@@ -97,13 +97,13 @@ Setiap fitur dari kedua berkas `project-brief/` dipetakan di bawah ini lengkap d
 
 - **Tujuan:** Memilih komoditas dan fase pemeliharaan (mis. _Broiler Starter 0–21 hari_, _Broiler Finisher_, _Ayam Petelur Fase Produksi_, _Sapi Potong Penggemukan_, _Sapi Perah Laktasi_, _Kambing/Domba_) untuk mengisi otomatis (_auto-fill_) seluruh target nutrien dasar dan rasio standar.
 - **Batasan Penting:** Preset berlaku hanya sebagai **template awal**. Setelah dipilih, pengguna bebas mengubah nilai Min/Max maupun menyusun profil kebutuhan baru dari nol. Memilih preset Sapi/Ruminansia otomatis menyarankan/mengaktifkan basis Bahan Kering (`dry_matter`).
-- **Status / Rilis:** Fase 1 ✅ → Fase 2–3 🟨 (3 preset dasar + 6 profil Kearl 1982 bersitasi di `src/data/kearl-requirements.ts`; ekspansi pustaka lanjutan berjalan).
+- **Status / Rilis:** Fase 1 ✅ → Fase 3 ✅ (`hartadi-feeds.ts` 304 bahan, `kearl-requirements.ts` 82 Kearl 1982 + 24 NRC 1988 profil sapi perah; riset CNCPS/NASEM lanjutan di Fase 4A–5).
 
 #### `F-03` Kustomisasi Target Nutrien (_Custom Nutrient Constraints_)
 
-- **Tujuan:** Menetapkan batas **Minimum (`Min`)** dan **Maksimum (`Max`)** yang masing-masing bersifat opsional per nutrien, termasuk mendefinisikan **nutrien kustom baru** (nama, satuan `%`, `kcal/kg`, `MJ/kg`, `mg/kg`, `IU/kg`, `mEq/kg`).
+- **Tujuan:** Menetapkan batas **Minimum (`Min`)** dan **Maksimum (`Max`)** yang masing-masing bersifat opsional per nutrien, termasuk mendefinisikan **nutrien kustom baru** (nama, satuan `%`, `kcal/kg`, `MJ/kg`, `mg/kg`, `IU/kg`, `mEq/kg`, serta basis dinamis `as_fed` ↔ `dry_matter`).
 - **Validasi Wajib:** Memastikan `Min ≤ Max` pada setiap nutrien. Jika `Min > Max`, tampilkan indikator error `rose` langsung di sel dan blokir eksekusi solver hingga diperbaiki.
-- **Status / Rilis:** Fase 1 ✅ (edit Min/Max) · Fase 2 ✅ (solver live) · Fase 3 ⬜ (builder nutrien kustom penuh pengguna).
+- **Status / Rilis:** Fase 1 ✅ (edit Min/Max) · Fase 2 ✅ (solver live) · Fase 3 ✅ (builder nutrien kustom penuh pengguna).
 
 #### `F-04` Manajemen Biaya Bahan Pakan (_Market Reference vs Custom Override_)
 
@@ -329,10 +329,10 @@ Ekstraksi variabel dual dari solusi Simplex akhir (Brill, Bestmix, WinFeed, Ara,
 
 #### `F-28` Moisture Shrinkage & Multi-Stage Extrusion/Pelleting Optimization
 
-- **Tujuan:** Memodelkan penambahan air/uap di _conditioner_ (suhu 82–93°C selama 30–45 detik; $\le 18\%$ total kadar air di _die_ agar _press_ tidak _choke_), pembatasan lemak di mixer ($\le 1\text{–}3\%$ sebelum _cooler_, sisanya _post-pellet liquid coating_), penambahan kombinasi asam organik-surfaktan (0,5–1,5 kg/ton), kehilangan debu di siklon (~34 g/ton), dan penguapan di _cooler_ langsung di dalam kesetimbangan massa solver LP:
-  $$\sum_{j=1}^{n} x_j + x_{\text{water/OS}} - \Delta W_{\text{evap}} = 1,00$$
-  sehingga pakan jadi memenuhi jaminan nutrisi tepat di dalam kemasan tanpa _over-dosing_ bahan kering.
-- **Status / Rilis:** Fase 4B (`ENT-03`).
+- **Tujuan:** Memodelkan penambahan air/uap di _conditioner_ (suhu 82–93°C selama 30–45 detik; $\le 18\%$ total kadar air di _die_ agar _press_ tidak _choke_), pembatasan lemak di mixer ($\le 1\text{–}3\%$ sebelum _cooler_, sisanya _post-pellet liquid coating_), kehilangan debu siklon ($\delta_{\text{dust}} \approx 3{,}4 \times 10^{-5}$), penguapan di _cooler_, serta skor kualitas pelet (`PDI / PQF`) langsung dalam kesetimbangan massa **1,00 kg produk jadi** pada solver LP:
+  $$(1 - \delta_{\text{dust}})\sum_{j=1}^{n} x_j + x_{\text{water/steam}} + x_{\text{oil,coater}} - x_{\text{evap}} = 1{,}00$$
+  sehingga bahan kering tak menguap terkonsentrasi akurat sesuai jaminan kemasan tanpa _over-dosing_.
+- **Status / Rilis:** Fase 5 (`ML-02` · saat ini _Coming Soon_ di Modul Lanjutan).
 
 #### `F-29` Integrasi QC Lab, FT-NIR, _Sample Basket_ & Kalkulasi _Mill Cost_
 
@@ -388,8 +388,26 @@ Ekstraksi variabel dual dari solusi Simplex akhir (Brill, Bestmix, WinFeed, Ara,
 
 - **Decoupled Core Engine:** Seluruh logika optimasi dan konversi domain (`src/solver`, `src/utils`) bebas DOM/React agar dapat diuji unit secara terisolasi maupun dikemas ulang di Fase 4B sebagai paket CLI/library/API riset (Jupyter Notebook).
 - **Internasionalisasi (`ID / EN`) & Tema (`Light / Dark`):** Switch bahasa antarmuka Bahasa Indonesia ↔ English dan Light/Dark mode.
-- **Input Desimal Lokal & Virtualisasi:** Mendukung tanda koma (`,`) dan titik (`.`) (`src/utils/locale-number.ts`) serta _virtual scrolling_ (`@tanstack/react-virtual`) ketika tabel memuat `> 50` hingga `200+` bahan baku.
-- **Status / Rilis:** Parser angka lokal & toggle ID/EN dasar (Fase 1 ✅) · i18n penuh + virtualisasi >50 bahan (Fase 3 🟨) → Paket `@open-formul/core` (Fase 4B `ENT-01` ⬜).
+- **Input Desimal Lokal & Windowing Progresif:** Mendukung tanda koma (`,`) dan titik (`.`) (`src/utils/locale-number.ts`) serta _windowing_ progresif ketika tabel memuat `> 50` hingga `300+` bahan baku maupun profil kebutuhan ternak.
+- **Status / Rilis:** Parser angka lokal (Fase 1 ✅) · _windowing_ progresif `> 50` item (Fase 3 ✅) · Deploy PWA Desktop/Mobile & i18n penuh (Fase 4 🟨) → Paket `@open-formul/core` (Fase 6 `EN-01` ⬜).
+
+---
+
+### Modul G — Fitur Baru & Penguatan Algoritma Industri (Riset Pasca-Audit · _Coming Soon_ di Menu Advance)
+
+> Seluruh modul di bawah ini telah dipetakan ke menu **Modul Lanjutan (`AdvancedModulesPreview.tsx`)** sebagai katalog **Coming Soon** dengan penjelasan ramah pengguna, sementara spesifikasi matematis, algoritma solver HiGHS WASM, dan daftar 30 pustaka jurnal terverifikasinya tersimpan di [docs/advanced-feature-research-plan.md](docs/advanced-feature-research-plan.md).
+
+- **`F-36` Optimasi Rasio Biaya/Nutrisi (`Charnes–Cooper Fractional LP`, Fase 4A `PR-03`):** Meminimalkan biaya per Mcal energi atau per gram SID Lisin ($\min \frac{\sum c_j x_j}{\sum e_j x_j}$) via transformasi variabel linear $z_j = t x_j$, sekaligus melindungi penyebut rasio `0/0` dan menjalankan `dEB/DCAD` sebagai baris kendala aktif.
+- **`F-37` Matriks Kompatibilitas Aditif & Beban Mikotoksin Kumulatif (Fase 5 `ML-03`):** Pengunci biner MILP untuk melarang pasangan fatal (seperti ionofor–tiamulin atau koksidiostat bertabrakan) pada tahap formulasi, ditambah indeks akumulasi racun jamur lintas bahan ($\text{MTEI} \le 1{,}0$).
+- **`F-38` _Cross-Formula Procurement Valuation Matrix_ & _Multi-Lot Silo Blending_ (Fase 6 `EN-02`, `EN-03`):** Evaluasi penawaran pemasok secara serentak di seluruh formula pabrik plus optimasi pencampuran antar-lot bahan yang berbeda kualitas/kadar air sebelum kedaluwarsa.
+- **`F-39` Penjadwalan Batch Anti-Carryover (GLSP/ATSP) & Label Patuh SNI RI (Fase 6 `EN-05`):** Optimasi urutan produksi batch guna meminimalkan limbah pembilasan (_flushing_) mixer disertai generator label regulasi **SNI / Permentan RI** selain EU Reg 767/2009 dan AAFCO/VFD.
+- **`F-40` Ekosistem LCA _Cradle-to-Mill-Gate_ (GFLI/ECOALIM), Neraca N/P Monogastrik, & Pareto $\epsilon$-Constraint (Fase 5 `ML-04`):** Perluasan `F-31` lintas unggas/babi/ruminansia dengan kurva trade-off biaya vs jejak karbon ($\text{CO}_2\text{-eq}$) dan kalkulasi _Marginal Abatement Cost_ eksplisit.
+- **`F-41` Loop Tertutup QC FT-NIR ($\hat{\sigma}\_{\text{EWMA}}$) & Penguatan Solver (`PR-01`, `PR-02`, `PR-04`, `PR-05`, `ML-01`):**
+  - **Diagnostik IIS & Priority Tiers (`PR-01`):** _Chinneck Deletion Filter_ (1997) mengisolasi 2–3 kendala bentrok + larangan relaksasi Tier-0 toksin + Mode 5 Chebyshev $\epsilon$-Lexicographic.
+  - **RHS Ranging & Degeneracy (`PR-02`):** Ekstraksi validitas _shadow price_ $[b_i^{\text{down}}, b_i^{\text{up}}]$, peringatan _dual degeneracy_, dan tangga harga beli eksak.
+  - **Stokastik SLP Lengkap (`PR-04`):** Kovarians ($\mathbf{x}^\top \Sigma^{(i)}\mathbf{x}$), varians ternak $\sigma_{b_i}^2$, batas _Cantelli_, & langkah redaman _Munford SLP_.
+  - **Multi-Enzim Sub-Aditif & Hybrid CNCPS SLP (`PR-05`):** Plafon Xilanase/Protease, faktor redaman gabungan pencegah _double-counting_, retensi termal peleting vs PPLA, serta iterasi cepat CNCPS + $\text{peuNDF}_{240}$.
+  - **MILP Pabrik (`ML-01`) & Loop EWMA (`EN-04`):** Semi-continuous anti-nol ($L_j^{\text{prod}} y_j \le x_j \le U_j y_j$), kelipatan kantong/timbangan, dan umpan balik $\hat{\sigma}_{\text{EWMA}}$ hasil lab/NIR ke formulasi stokastik.
 
 ---
 
@@ -438,8 +456,10 @@ Kontrak tipe kanonik didefinisikan secara ketat di [src/types/index.ts](src/type
 | **Fase 1**  | `CORE-01` s/d `FE-10` | Scaffold Vite+React+TS+Tailwind, sistem desain Anti-Slop, skema tipe kanonik, parser angka lokal, Adaptive Layout Desktop & Mobile, seluruh layar UI interaktif dengan evaluator & dataset mock, unit/UI tests                                                                                                         | **✅ Selesai** (prototype UI lengkap & lolos verifikasi)                                                                                                                                                                                                                            |
 | **Fase 2**  | `ENG-01` s/d `ENG-08` | Konversi basis murni (`basis.ts`), persamaan dEB/DCAD & energi (`equations.ts`), pre-check (`precheck.ts`), LP builder 5 mode/rasio/grup/elastik (`buildModel.ts`), HiGHS WASM Web Worker, ekstraktor dual & verifikasi `1e-6` (`parseResult.ts`), integrasi UI live (`usePrototypeStore`)                             | **✅ Selesai** (`src/solver/` + Web Worker HiGHS WASM aktif, benchmark manual & seluruh test solver/UI lulus)                                                                                                                                                                       |
 | **Fase 3**  | `STG-01` s/d `OPT-02` | Penyimpanan IndexedDB (`db.ts`), Service Worker PWA offline penuh (`vite-plugin-pwa`), resep portabel `.feed.json` + validator, ekspor CSV/XLSX/PDF (_Full_ & _Batch Only_), Paste TSV, nutrien kustom penuh, windowing progresif >50 bahan/profil, pustaka penuh Hartadi 1980 (304) & Kearl 1982 (82) + NRC 1988 (24) | **✅ Selesai** — IndexedDB, PWA (`highs-*.wasm` precache), `.feed.json`, CSV/XLSX/PDF, Paste TSV, nutrien kustom penuh (nama, satuan, basis dinamis), windowing progresif >50 item, & pustaka ruminansia lengkap + arsip `docs/references/` aktif; i18n penuh dilanjutkan di Fase 4 |
-| **Fase 4A** | `PRO-01` s/d `PRO-04` | Formulasi Stokastik ($\sigma$ _Recursive LP_), Matriks Enzim (_Piecewise Linear_ + plafon _Phytate-P_), _Parametric Stepping_ 1D–3D, Evaluator Biologis Ruminansia (CNCPS/NASEM 2021) & Emisi ($\text{eCH}_4$ / _Ortho-P_)                                                                                             | **⬜ Roadmap Lanjutan** (katalog pratinjau di `AdvancedModulesPreview.tsx`)                                                                                                                                                                                                         |
-| **Fase 4B** | `ENT-01` s/d `ENT-05` | _Decoupled Core Package_, _Multi-Blend / Multi-Plant / Silo MILP_, _Moisture Shrink_ peleting, QC FT-NIR + _Base/Overlay_ + _Mill Cost_, Pelabelan Regulasi & VFD _Carry-Over Sequencing_, Growth Economics _IOFC_ (_Gompertz GRG_ / _GA_), _Auto-Crawler_ dataset terbuka                                             | **⬜ Roadmap Enterprise & Ekosistem**                                                                                                                                                                                                                                               |
+| **Fase 4**  | Deploy, PWA & i18n    | Deploy GitHub Pages + Bundel Portabel GitHub Releases, tombol instal PWA lintas Desktop & Mobile (`beforeinstallprompt`), halaman Modul Lanjutan (_Coming Soon_ 15 modul), serta i18n penuh (`ID / EN`)                                                                                                                | **🟨 Berjalan (Prioritas Deploy Aktif)** — workflow GitHub Pages & Releases, PWA subpath-safe, serta katalog _Coming Soon_ siap; i18n & rilis publik diselesaikan                                                                                                                   |
+| **Fase 4A** | `PR-01` s/d `PR-05`   | _Precision Core & SLP:_ Minimal IIS _Deletion Filter_ + Priority Tiers, _RHS Validity Ranging_ & _Critical-Region Stepping_, _Charnes–Cooper Fractional LP_ & kendala aktif `dEB`, Stokastik SLP (Kovarians/Cantelli), & Multi-Enzim Sub-Aditif + Hybrid CNCPS SLP                                                     | **⬜ Pasca-Deploy** (pratinjau _Coming Soon_ di `AdvancedModulesPreview.tsx` & blueprint di `docs/advanced-feature-research-plan.md`)                                                                                                                                               |
+| **Fase 5**  | `ML-01` s/d `ML-05`   | _Mill-Floor MILP, Eco-Nutrition & IOFC:_ dukungan `Binaries`/`Generals` MILP untuk Anti-Nol _semi-continuous_ & step timbangan, koreksi _Moisture Shrink_ produk akhir + PDI, bentrok aditif & mikotoksin kumulatif, Pareto LCA (GFLI/ECOALIM) & N/P monogastrik, serta _Maximum Profit IOFC_ (Gompertz/GA)            | **⬜ Roadmap Pasca-4A**                                                                                                                                                                                                                                                             |
+| **Fase 6**  | `EN-01` s/d `EN-05`   | _Enterprise Feed Mill & Ecosystem:_ `@open-formul/core` & dataset crawler, _Multi-Blend / Silo / Multi-Lot MILP_, _Cross-Formula Procurement Matrix_, QC FT-NIR EWMA _closed-loop_, serta _Batch Sequencing_ (ATSP/GLSP) & pelabelan **SNI RI / EU / AAFCO**                                                           | **⬜ Roadmap Enterprise**                                                                                                                                                                                                                                                           |
 
 ### 7.2 Rencana Struktur Modul Target (Fase 1–3 Penuh)
 
@@ -468,5 +488,6 @@ Open-Formul/
 - [x] **(Fase 1)** Prototype antarmuka lengkap berfungsi di Desktop (`Sidebar` + `3-Panel Grid`) dan Mobile (`Bottom Nav` + `Drawer` + `3-Step Stepper` + `Card-Stack` + `Bottom Sheet`) tanpa _horizontal overflow_ di `375px` serta lolos `tsc --noEmit`, ESLint, Vitest, dan Vite build.
 - [x] **(Fase 2)** Solver HiGHS WASM berjalan non-blocking di Web Worker untuk seluruh 5 Mode Optimasi, konversi BK ↔ As-Fed, rasio nutrien, Mode Advance (AA/NDF/ANF/SID/AvP), Anti-Nol, Relaksasi Elastik, dan Shadow Price; lolos verifikasi pasca-solve `< 1e-6` dan contoh manual 2 bahan (Jagung 67,61% + SBM 32,39%, Rp6.374/kg).
 - [x] **(Fase 3)** PWA offline + IndexedDB + precache `highs-*.wasm`, `.feed.json`, ekspor CSV/XLSX/PDF _Full_ & _Batch Only_, impor CSV partial-merge, Paste TSV, nutrien kustom penuh (nama, satuan, basis dinamis), _windowing_ progresif `> 50` item, & pustaka penuh Hartadi 1980 (304) + Kearl 1982 (82) + NRC 1988 (24) beserta arsip `docs/references/` lulus uji.
-- [ ] **(Fase 4)** Modul presisi lanjutan (Stokastik $\sigma$, Matriks Enzim, Ruminansia CNCPS/NASEM, Emisi $\text{eCH}_4$) dan ekosistem pabrik (_Multi-Blend_, _Moisture Shrink_, QC/FT-NIR, VFD Compliance, _IOFC_, _Auto-Crawler_) terintegrasi sesuai spesifikasi di Bagian 4 tanpa merusak kesederhanaan aplikasi inti.
+- [ ] **(Fase 4)** Aplikasi ter-deploy publik di GitHub Pages & GitHub Releases, dapat dipasang sebagai PWA offline di Desktop & Mobile, menu Modul Lanjutan (_Coming Soon_ 15 modul) aktif, dan kamus `ID / EN` lengkap.
+- [ ] **(Fase 4A–6)** Seluruh modul presisi (`PR-01`–`PR-05`), pabrik & ekologi (`ML-01`–`ML-05`), dan enterprise (`EN-01`–`EN-05`) diimplementasikan bertahap sesuai [docs/advanced-feature-research-plan.md](docs/advanced-feature-research-plan.md) tanpa merusak kesederhanaan antarmuka inti.
 - [x] **(Dokumentasi)** Sinkronisasi [README.md](README.md), [ROADMAP.md](ROADMAP.md), [prd.md](prd.md), dan folder [docs/](docs/data-schema.md) diperbarui mengikuti status implementasi terkini sesuai `docs-sync-maintainer`.

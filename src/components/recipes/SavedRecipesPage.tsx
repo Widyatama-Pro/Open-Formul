@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from "react";
+import { memo, useRef, useState, type ChangeEvent } from "react";
 import { BookmarkCheck, Download, FileCode2, FolderOpen, Plus, Trash2, Upload } from "lucide-react";
 import {
   FEED_FILE_EXTENSION,
@@ -26,7 +26,7 @@ export interface SavedRecipesPageProps {
   readonly onDeleteRecipe?: (id: string) => void;
 }
 
-export function SavedRecipesPage({
+export const SavedRecipesPage = memo(function SavedRecipesPage({
   recipes,
   language,
   onLoadRecipe,
@@ -209,4 +209,4 @@ export function SavedRecipesPage({
       )}
     </div>
   );
-}
+});

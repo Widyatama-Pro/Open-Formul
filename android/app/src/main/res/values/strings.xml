@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Open Formul</string>
-    <string name="title_activity_main">Open Formul</string>
+    <string name="app_name">OpenFormul</string>
+    <string name="title_activity_main">OpenFormul</string>
     <string name="package_name">io.github.widyatamapro.openformul</string>
     <string name="custom_url_scheme">io.github.widyatamapro.openformul</string>
 </resources>

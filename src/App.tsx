@@ -24,7 +24,7 @@ export function App() {
   const handleExportAllBackup = () => {
     const json = store.exportAllBackupJson();
     const dateStamp = new Date().toISOString().slice(0, 10);
-    downloadTextFile(json, `open-formul-backup-${dateStamp}.json`, FEED_JSON_MIME);
+    downloadTextFile(json, `openformul-backup-${dateStamp}.json`, FEED_JSON_MIME);
   };
 
   return (

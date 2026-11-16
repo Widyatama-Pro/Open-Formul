@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -194,8 +194,8 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
     stage: "enterprise",
     phaseId: "Fase 6",
     phaseEn: "Phase 6",
-    titleId: "Paket Engine Riset (@open-formul/core) & Crawler Data",
-    titleEn: "Decoupled Core Package (@open-formul/core) & Data Crawler",
+    titleId: "Paket Engine Riset (@openformul/core) & Crawler Data",
+    titleEn: "Decoupled Core Package (@openformul/core) & Data Crawler",
     tone: "sky",
     summaryId:
       "Memisahkan mesin hitung matematika agar bisa dipakai langsung untuk riset kampus, skrip otomatis, dan pembaruan katalog bahan pakan terbuka.",
@@ -292,7 +292,9 @@ function renderModuleIcon(id: string) {
   }
 }
 
-export function AdvancedModulesPreview({ language = "id" }: AdvancedModulesPreviewProps) {
+export const AdvancedModulesPreview = memo(function AdvancedModulesPreview({
+  language = "id",
+}: AdvancedModulesPreviewProps) {
   const [selectedStage, setSelectedStage] = useState<ModuleStageKey>("all");
 
   const visibleModules = useMemo(() => {
@@ -348,7 +350,7 @@ export function AdvancedModulesPreview({ language = "id" }: AdvancedModulesPrevi
       <div
         role="tablist"
         aria-label={language === "id" ? "Filter tahap modul lanjutan" : "Filter advanced modules"}
-        className="flex flex-wrap gap-2"
+        className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-0.5"
       >
         {STAGE_TABS.map((tab) => {
           const active = selectedStage === tab.key;
@@ -360,10 +362,10 @@ export function AdvancedModulesPreview({ language = "id" }: AdvancedModulesPrevi
               aria-selected={active}
               onClick={() => setSelectedStage(tab.key)}
               className={cn(
-                "inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold transition-[transform,box-shadow,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
+                "inline-flex min-h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold whitespace-nowrap transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
                 active
-                  ? "neu-cta-btn border border-white/15 text-white"
-                  : "neu-pill-btn text-[#123340] dark:text-slate-100",
+                  ? "neu-cta-btn border border-transparent text-white"
+                  : "neu-pill-btn text-[#0F172A] dark:text-slate-100",
               )}
             >
               {tab.key === "all" && <Layers className="h-3.5 w-3.5" />}
@@ -417,4 +419,4 @@ export function AdvancedModulesPreview({ language = "id" }: AdvancedModulesPrevi
       </Card>
     </div>
   );
-}
+});

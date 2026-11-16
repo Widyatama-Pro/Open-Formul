@@ -1,119 +1,89 @@
-# 🌾 Open Formul
+# OpenFormul 🌾 — Offline-first least-cost feed formulation in your browser
 
-> Aplikasi web open-source dan _offline-capable_ (PWA) untuk **formulasi pakan ternak presisi**: _least-cost ration formulation_ dengan pemenuhan kebutuhan nutrien otomatis via _Linear Programming_ langsung di browser.
+<p align="center">
+  <img src="assets/banner.jpg" alt="OpenFormul — Precision Feed Optimization" width="100%">
+</p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-![Status](https://img.shields.io/badge/status-early%20development-orange)
-![PWA](https://img.shields.io/badge/PWA-offline--first-blue)
+<p align="center">
+  <a href="https://github.com/Widyatama-Pro/OpenFormul/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Widyatama-Pro/OpenFormul/ci.yml?branch=main&style=flat-square&label=CI" alt="CI Status"></a>
+  <a href="https://github.com/Widyatama-Pro/OpenFormul/releases"><img src="https://img.shields.io/github/v/release/Widyatama-Pro/OpenFormul?include_prereleases&style=flat-square" alt="Releases"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-059669?style=flat-square" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/Solver-HiGHS%20WASM-0F3D3E?style=flat-square" alt="HiGHS WASM">
+  <img src="https://img.shields.io/badge/TypeScript-Strict-3178C6?style=flat-square" alt="TypeScript Strict">
+  <img src="https://img.shields.io/badge/PWA-Offline--First-059669?style=flat-square" alt="PWA Offline-First">
+</p>
+
+**OpenFormul** is a client-side least-cost ration formulation engine powered by Linear Programming (HiGHS WebAssembly). It runs as an installable PWA in any modern browser, a native Windows desktop app via Tauri v2, and an offline Android app via Capacitor 8. Drop straight into existing spreadsheet and mill workflows with multi-cell TSV paste, CSV partial-merge, multi-sheet `.xlsx`, print-ready PDF 1.4 (`full` and `batch_only`), and portable `.feed.json` files. Under the hood, a pure TypeScript model builder compiles nutrient, ratio, and inclusion constraints into LP strings and solves them off the main thread in a Web Worker.
+
+**Yours, with no catch.** Every ingredient catalog, custom price override, nutrient standard, and saved ration stays on your device in IndexedDB (`openformul-db`) with a precached `.wasm` Service Worker for zero-connectivity field work. No cloud account, no external solver API, and zero telemetry leave your machine. Open-source MIT code you can audit, fork, and run in air-gapped feed mills or research labs.
 
 ---
 
-## 🎯 Masalah yang Diselesaikan
+## Quick Start
 
-Biaya pakan mencapai **60–70% biaya produksi** peternakan. Peternak kecil, mahasiswa, dan penyuluh sering menyusun ransum dengan metode _trial-and-error_, _Pearson Square_, atau spreadsheet manual yang:
+Requires **Node.js >= 20** and **npm >= 10**.
 
-- hanya bisa menyeimbangkan 1–2 nutrien sekaligus,
-- tidak menjamin biaya termurah,
-- rawan salah hitung (basis _As-Fed_ vs Bahan Kering tercampur),
-- sering membutuhkan perangkat lunak berbayar dan koneksi internet.
+```bash
+git clone https://github.com/Widyatama-Pro/OpenFormul.git
+cd OpenFormul
+npm install
+npm run dev
+```
 
-**Open Formul** menyelesaikan ini dengan solver LP (HiGHS WebAssembly) yang berjalan **sepenuhnya di sisi klien**, gratis, dan tetap bekerja tanpa internet di lapangan.
+Verification suite:
 
-## ✨ Fitur Utama
+```bash
+npm run format:check
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
 
-| Fitur                              | Deskripsi                                                                                                           |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| ⚙️ **Kalkulasi otomatis**          | Menghitung komposisi ransum termurah yang memenuhi semua batasan nutrien (min/max).                                 |
-| 🧪 **Kustomisasi bahan & nutrien** | Tambah bahan lokal, ubah harga, definisikan nutrien sendiri (PK, EM, TDN, SK, Ca, P, Lisin, Metionin, dll).         |
-| 📏 **Batas inklusi bahan**         | Atur persentase minimum/maksimum tiap bahan (mis. dedak ≤ 20%).                                                     |
-| 🔄 **As-Fed ↔ Bahan Kering**       | Konversi basis nutrien yang konsisten.                                                                              |
-| 🚫 **Deteksi _infeasible_**        | Memberi tahu bila target mustahil dicapai beserta petunjuk kendala penyebabnya.                                     |
-| 📴 **Mode offline**                | PWA + IndexedDB: data dan formulasi tersimpan lokal.                                                                |
-| 📤 **Ekspor/impor**                | `.feed.json` (v1), CSV partial-merge, Excel `.xlsx` (OOXML), PDF 1.4 (lengkap & batch), serta TSV Multi-Cell Paste. |
+## Live App & Installers
 
-## 🏗️ Arsitektur Teknologi
+- **Web / PWA (GitHub Pages):** [`https://widyatama-pro.github.io/OpenFormul/`](https://widyatama-pro.github.io/OpenFormul/)
+- **Windows Desktop (`.exe`):** `OpenFormul-Windows-x64-setup.exe` via [GitHub Releases](https://github.com/Widyatama-Pro/OpenFormul/releases) (Tauri v2 + WebView2, native file save dialogs)
+- **Android (`.apk`):** `OpenFormul-Android.apk` via [GitHub Releases](https://github.com/Widyatama-Pro/OpenFormul/releases) (Capacitor 8, local HiGHS WASM + native share/export)
+- **Portable Offline ZIP:** `openformul-offline-portable.zip` (`start-windows.bat` / `start-mac-linux.sh`)
 
-| Lapisan     | Teknologi                                                                                       |
-| ----------- | ----------------------------------------------------------------------------------------------- |
-| UI          | React + TypeScript + Tailwind CSS + Fontsource offline (`Plus Jakarta Sans` & `JetBrains Mono`) |
-| Build       | Vite                                                                                            |
-| Solver      | [HiGHS](https://highs.dev) WebAssembly (paket npm `highs`) — dijalankan di Web Worker           |
-| Penyimpanan | IndexedDB                                                                                       |
-| Offline     | Service Worker (PWA)                                                                            |
+## Core Capabilities
+
+- **HiGHS LP Solver in Web Worker:** 5 optimization modes (including goal programming / precision targeting), optional L1 elastic relaxation (`near_feasible`), post-solve verification (`1e-6`), shadow prices, opportunity costs, and safe price ranges.
+- **Consistent Nutritional Basis:** Automatic As-Fed ↔ Dry Matter (BK/DM) normalization, linearized nutrient ratios (such as `Ca:P`), strict `0` vs `N/A` (`null`) distinction, and full custom nutrient definitions.
+- **Built-in Reference Libraries:** 304 feeds from Hartadi 1980, 82 Kearl 1982 profiles, and 24 NRC 1988 dairy profiles archived under [`docs/references/`](docs/references/).
+- **Spreadsheet & Mill I/O:** Excel/Sheets TSV block paste directly into the ingredient grid, non-destructive CSV/JSON merge, `.feed.json` (v1) recipe portability, `.xlsx` workbooks, and operator-safe `batch_only` PDFs gated on `optimal` solver status.
+
+## Architecture
 
 ```mermaid
 flowchart LR
-  UI["UI: Grid Bahan & Target"] --> B["Model Builder (src/solver)"]
-  B --> W["Web Worker: HiGHS WASM"]
-  W --> R["FormulationResult"]
-  R --> UI
-  UI <--> DB[("IndexedDB")]
+  UI["React UI (Grid & Targets)"] --> Builder["Pure LP Builder (src/solver)"]
+  Builder --> Worker["Web Worker: HiGHS WASM"]
+  Worker --> Result["Verified FormulationResult"]
+  Result --> UI
+  UI <--> IDB[("IndexedDB (openformul-db)")]
 ```
 
-Detail: [docs/prd.md](docs/prd.md) · [docs/architecture.md](docs/architecture.md) · [docs/formulation-math.md](docs/formulation-math.md) · [docs/data-schema.md](docs/data-schema.md) · [docs/advanced-feature-research-plan.md](docs/advanced-feature-research-plan.md)
-
-## 📁 Struktur Repositori
-
-```
-.
-├── .github/              # Template issue, PR, & workflow GitHub Actions
-├── android/              # Pembungkus aplikasi native Android (Capacitor 8)
-├── docs/                 # Dokumentasi teknis, PRD, Desain, Roadmap, & arsip referensi
-│   ├── DESIGN.md         # Referensi sistem desain (Linear-style)
-│   ├── ROADMAP.md        # Peta jalan pengembangan & rilis
-│   ├── prd.md            # Dokumen PRD & panduan lengkap seluruh fitur Open Formul
-│   └── references/       # Arsip PDF & transkripsi lengkap tervalidasi (Hartadi 1980 JSON/MD & Kearl 1982 / NRC 1988 JSON/MD)
-├── public/               # Aset publik PWA & ikon
-├── src/
-│   ├── components/       # Komponen React
-│   ├── data/             # Sampel JSON, mock-state, pustaka penuh Hartadi 1980 (304 bahan), Kearl 1982 (82), & NRC 1988 (24)
-│   ├── hooks/            # Custom React hooks (usePrototypeStore, usePwaStatus)
-│   ├── solver/           # Engine optimasi LP murni + HiGHS WASM Web Worker (`ENG-01`–`ENG-08`)
-│   ├── storage/          # Persistensi IndexedDB (`idb`), transfer `.feed.json`, ekspor CSV/`.xlsx`/PDF 1.4
-│   ├── types/            # Tipe domain TypeScript
-│   └── utils/            # Utilitas murni (basis, persamaan ruminansia/monogastrik, validator batas, impor/ekspor CSV, TSV paste)
-├── src-tauri/            # Pembungkus aplikasi desktop Windows `.exe` (Tauri v2)
-└── CONTRIBUTING.md
+```text
+src/
+├── components/   # Precision Agritech UI, formulation grid, analytics, export dialogs
+├── data/         # Sample JSON, Hartadi 1980 (304), Kearl 1982 (82), NRC 1988 (24)
+├── hooks/        # Store orchestration & PWA lifecycle hooks
+├── solver/       # Pure LP model builder, HiGHS WASM worker, post-solve verifier
+├── storage/      # IndexedDB (idb), .feed.json, CSV/OOXML .xlsx, PDF 1.4 generators
+├── types/        # Canonical domain TypeScript types
+└── utils/        # Basis math, nutrition equations, validators, TSV paste
 ```
 
-## 🌐 Akses Aplikasi & Unduh Lintas Platform (PC `.exe`, Android `.apk`, & PWA)
+## Documentation & Contributing
 
-- **Unduh Installer Langsung ([GitHub Releases](https://github.com/Widyatama-Pro/Open-Formul/releases)):**
-  - **Windows Desktop (`.exe`):** Unduh `Open-Formul-Windows-x64-setup.exe` (dibangun via **Tauri v2**, ringan memakai WebView2, 100% offline dengan dialog simpan file native).
-  - **Android Mobile (`.apk`):** Unduh `Open-Formul-Android.apk` (dibangun via **Capacitor 8**, offline penuh dengan HiGHS WASM lokal serta tombol berbagi/simpan file ekspor ke perangkat).
-  - **Portable Offline ZIP (Windows / macOS / Linux):** Unduh `open-formul-offline-portable.zip` lalu jalankan `start-windows.bat` / `start-mac-linux.sh`.
-- **Aplikasi Web / PWA Langsung (GitHub Pages):** [`https://widyatama-pro.github.io/Open-Formul/`](https://widyatama-pro.github.io/Open-Formul/) _(aktif via workflow [deploy-pages.yml](.github/workflows/deploy-pages.yml) setelah Pages diset ke sumber **GitHub Actions** — dapat dipasang ke Desktop Chrome/Edge maupun Android Chrome / Safari iOS)._
+- **Docs:** [docs/architecture.md](docs/architecture.md) · [docs/formulation-math.md](docs/formulation-math.md) · [docs/data-schema.md](docs/data-schema.md) · [docs/prd.md](docs/prd.md) · [docs/ROADMAP.md](docs/ROADMAP.md)
+- **Contributing:** Read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before opening a PR.
+- **Security:** Report client-side, parser, or WASM issues privately via [SECURITY.md](SECURITY.md).
 
-> 🚀 **Fokus Rilis Saat Ini:** Seluruh **15 modul formulasi presisi, pabrik, dan keberlanjutan** (`PR-01..PR-05`, `ML-01..ML-05`, `EN-01..EN-05`) telah tersedia di menu **Modul Lanjutan (Advance)** dengan label **Coming Soon** & penjelasan fungsi sederhana sambil menuntaskan deploy publik terlebih dahulu. Rencana bedah teknis & dasar jurnalnya ada di [docs/advanced-feature-research-plan.md](docs/advanced-feature-research-plan.md).
+> **Disclaimer:** Formulation outputs depend on the accuracy of entered nutrient and price data. Validate rations against laboratory assays and qualified animal nutritionists before commercial mixing.
 
-## 🚀 Instalasi Lokal & Pengembang
+## License
 
-> 💡 **Status Saat Ini (Fase 3 Selesai ✅):** Antarmuka Glass-Neumorphism responsif dengan _windowing_ progresif (`> 50` item), **engine LP HiGHS WASM di Web Worker** (`ENG-01`–`ENG-08`), **nutrien kustom penuh** (nama, satuan, basis dinamis pengguna), **persistensi offline IndexedDB (`open-formul-db` v1) + PWA (`vite-plugin-pwa` precache `.wasm`)**, **pustaka penuh Hartadi 1980 (304 bahan), Kearl 1982 (82 profil), & NRC 1988 (24 profil sapi perah)** beserta arsip lokal di [`docs/references/`](docs/references/), serta **ekspor/impor `.feed.json`, CSV partial-merge, Excel `.xlsx`, PDF 1.4 (`full` & `batch_only`), dan TSV Multi-Cell Paste** telah aktif. Item tersisa (internasionalisasi penuh & fitur lanjutan Fase 4) dipantau di [docs/ROADMAP.md](docs/ROADMAP.md).
-
-Prasyarat pengembangan lokal: **Node.js ≥ 20** dan **npm ≥ 10**.
-
-```bash
-git clone https://github.com/Widyatama-Pro/Open-Formul.git
-cd Open-Formul
-npm install
-npm run dev          # server pengembangan di http://localhost:5173
-npm run typecheck    # verifikasi TypeScript ketat (tsc --noEmit)
-npm run lint         # pemeriksaan ESLint + React Hooks
-npm run format:check # cek format kode dengan Prettier
-npm run test         # jalankan Vitest (unit + UI prototype flow)
-npm run build        # build produksi TypeScript + Vite
-```
-
-## 🤝 Berkontribusi
-
-Kami menyambut **programmer** maupun **ahli nutrisi ternak**! Baca [CONTRIBUTING.md](CONTRIBUTING.md), patuhi [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), dan lihat [docs/ROADMAP.md](docs/ROADMAP.md) untuk prioritas. Kontribusi data bahan pakan dapat diajukan via template issue **Feed Ingredient Data**.
-
-Kerentanan keamanan: lihat [SECURITY.md](SECURITY.md).
-
-## ⚠️ Disclaimer
-
-Hasil formulasi bergantung pada akurasi data nutrien yang dimasukkan. Selalu validasi ransum dengan ahli nutrisi dan analisis laboratorium sebelum digunakan secara komersial.
-
-## 📄 Lisensi
-
-[MIT](LICENSE) © 2026 Reza Widya Utama dan kontributor.
+[MIT](LICENSE) © 2026 Reza Widya Utama and contributors.

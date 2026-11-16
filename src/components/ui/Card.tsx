@@ -15,12 +15,12 @@ const HIGHLIGHT_CLASS: Record<CardHighlight, string> = {
   amber: "glass-card-amber",
 };
 
-/** Permukaan kartu kaca-neumorfik dengan elevasi halus saat hover. */
+/** Permukaan Pure Crisp White (#FFFFFF) dengan border #E2E8F0 dan shadow statis ringan. */
 export function Card({ interactive = true, highlight = "none", className, ...rest }: CardProps) {
   return (
     <div
       className={cn(
-        "glass-card rounded-[20px]",
+        "glass-card rounded-xl",
         interactive && "glass-card-interactive",
         HIGHLIGHT_CLASS[highlight],
         className,
@@ -34,7 +34,7 @@ export function CardHeader({ className, ...rest }: HTMLAttributes<HTMLDivElement
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-4 border-b border-white/60 px-4 py-3 dark:border-cyan-200/10",
+        "flex items-center justify-between gap-4 border-b border-[#E2E8F0] px-4 py-2.5 dark:border-[#1E333D]",
         className,
       )}
       {...rest}

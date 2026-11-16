@@ -96,7 +96,7 @@ function renderPageStream(lines: readonly DrawLine[], pageNum: number, totalPage
 
   ops.push(
     `BT /F1 8 Tf 44 28 Td (${escapePdfString(
-      `Open Formul (Offline Least-Cost Feed Formulation) | Halaman ${pageNum}/${totalPages}`,
+      `OpenFormul (Offline Least-Cost Feed Formulation) | Halaman ${pageNum}/${totalPages}`,
     )}) Tj ET`,
   );
   return ops.join("\n");
@@ -176,8 +176,8 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
   lines.push({
     text:
       mode === "batch_only"
-        ? "OPEN FORMUL — LEMBAR TIMBANG BATCH PRODUKSI"
-        : "OPEN FORMUL — LAPORAN FORMULASI PAKAN LENGKAP",
+        ? "OPENFORMUL — LEMBAR TIMBANG BATCH PRODUKSI"
+        : "OPENFORMUL — LAPORAN FORMULASI PAKAN LENGKAP",
     bold: true,
     size: 13,
     gapAfter: 6,

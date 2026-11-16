@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -42,7 +42,7 @@ function formatBytes(bytes: number): string {
   return `${(kb / 1024).toFixed(2)} MB`;
 }
 
-export function SettingsPage({
+export const SettingsPage = memo(function SettingsPage({
   preferences,
   onUpdate,
   storageStats,
@@ -236,8 +236,8 @@ export function SettingsPage({
                     if (outcome === "accepted") {
                       setActionNotice(
                         preferences.language === "id"
-                          ? "Open Formul berhasil dipasang ke perangkat Anda."
-                          : "Open Formul has been installed on your device.",
+                          ? "OpenFormul berhasil dipasang ke perangkat Anda."
+                          : "OpenFormul has been installed on your device.",
                       );
                     }
                   });
@@ -251,7 +251,7 @@ export function SettingsPage({
             )}
 
             <a
-              href="https://github.com/Widyatama-Pro/Open-Formul/releases"
+              href="https://github.com/Widyatama-Pro/OpenFormul/releases"
               target="_blank"
               rel="noreferrer"
               className="neu-pill-btn inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm font-semibold text-[#123340] md:min-h-8 md:px-3 md:text-xs dark:text-slate-100"
@@ -284,8 +284,8 @@ export function SettingsPage({
               </div>
               <p className="mt-1 leading-relaxed text-[#466270] dark:text-slate-300">
                 {preferences.language === "id"
-                  ? "Unduh file Open-Formul-android.apk di GitHub Releases (izinkan pasang dari sumber tidak dikenal), atau instal PWA lewat Chrome/Safari."
-                  : "Download Open-Formul-android.apk from GitHub Releases (allow unknown sources), or install the PWA via Chrome/Safari."}
+                  ? "Unduh file OpenFormul-Android.apk di GitHub Releases (izinkan pasang dari sumber tidak dikenal), atau instal PWA lewat Chrome/Safari."
+                  : "Download OpenFormul-Android.apk from GitHub Releases (allow unknown sources), or install the PWA via Chrome/Safari."}
               </p>
             </div>
           </div>
@@ -467,4 +467,4 @@ export function SettingsPage({
       )}
     </div>
   );
-}
+});

@@ -1,5 +1,5 @@
 {
-  "name": "open-formul",
+  "name": "openformul",
   "private": true,
   "version": "0.1.0",
   "description": "Aplikasi web open-source offline-first (PWA) untuk formulasi pakan ternak presisi.",
@@ -29,6 +29,7 @@
     "highs": "^1.15.4",
     "idb": "^8.0.4",
     "lucide-react": "^1.0.0",
+    "motion": "^14.14.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

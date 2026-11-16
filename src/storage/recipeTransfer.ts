@@ -11,7 +11,7 @@ export function sanitizeFilenameSlug(name: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  return cleaned.slice(0, 64) || "open-formul-resep";
+  return cleaned.slice(0, 64) || "openformul-resep";
 }
 
 export function serializeRecipeToFeedJson(recipe: Recipe, pretty = true): string {

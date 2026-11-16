@@ -80,7 +80,7 @@ export function generateFormulationCsv(input: FormulationExportInput): string {
   const batchKg = result.batchSizeKg ?? 100;
 
   const lines: CellValue[][] = [
-    ["OPEN FORMUL — LAPORAN FORMULASI PAKAN"],
+    ["OPENFORMUL — LAPORAN FORMULASI PAKAN"],
     ["Nama Formula", recipeName],
     ["Standar Kebutuhan", requirement.name],
     ["Basis Model", result.basis === "dry_matter" ? "BK (Dry Matter)" : "As-Fed"],
@@ -357,7 +357,7 @@ export function generateFormulationXlsx(input: FormulationExportInput): Uint8Arr
 
   // Sheet 1: Komposisi & Timbang Batch
   const sheet1Rows: CellValue[][] = [
-    ["Open Formul — Lembar Komposisi & Penimbangan Batch"],
+    ["OpenFormul — Lembar Komposisi & Penimbangan Batch"],
     ["Nama Formula", recipeName, "Standar", requirement.name],
     [
       "Basis Model",

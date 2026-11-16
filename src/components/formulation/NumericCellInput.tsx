@@ -22,7 +22,7 @@ export interface NumericCellInputProps {
 }
 
 /**
- * Input sel numerik bergaya recessed neumorphic well yang menerima koma (,) maupun titik (.),
+ * Input sel numerik presisi yang menerima koma (,) maupun titik (.),
  * rata kanan tabular-nums, dan mendukung navigasi keyboard antar-baris.
  */
 export function NumericCellInput({
@@ -130,9 +130,9 @@ export function NumericCellInput({
       }}
       onKeyDown={handleKeyDown}
       className={cn(
-        "neu-well min-h-10 w-full rounded-lg px-2 py-1 text-right text-sm font-medium tabular-nums text-[#122B36] placeholder:text-[#869EA9] transition-[box-shadow,border-color,background-color] duration-150 focus-visible:bg-white/95 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[#0891B2] disabled:opacity-55 md:min-h-8 md:text-xs dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus-visible:bg-[#0D303D]",
+        "min-h-10 w-full rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-2 py-1 text-right text-sm font-medium tabular-nums text-[#0F172A] placeholder:text-[#94A3B8] transition-[border-color,background-color] duration-150 focus-visible:border-[#059669] focus-visible:bg-white focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[#059669]/30 disabled:opacity-55 md:min-h-7 md:py-0.5 md:text-xs dark:border-[#1E333D] dark:bg-[#0B1519] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus-visible:bg-[#111F26]",
         isError &&
-          "border-[#EC6453] bg-rose-50/75 text-rose-900 focus-visible:outline-rose-600 dark:border-rose-500 dark:bg-rose-950/35 dark:text-rose-100",
+          "border-rose-500 bg-rose-50 text-rose-900 focus-visible:outline-rose-600 dark:border-rose-500 dark:bg-rose-950/35 dark:text-rose-100",
         className,
       )}
     />

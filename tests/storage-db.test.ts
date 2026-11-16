@@ -32,7 +32,7 @@ describe("Task 3 — IndexedDB Persistence & Non-Destructive Store Integration (
   });
 
   it("membuat DB v1 dengan 5 object store & melakukan seed idempoten dataset bawaan termasuk Hartadi + Kearl", async () => {
-    const dbName = makeUniqueDbName("open-formul-seed");
+    const dbName = makeUniqueDbName("openformul-seed");
     const first = await hydrateOrSeedDatabase(dbName);
 
     expect(first.storageMode).toBe("indexeddb");
@@ -58,7 +58,7 @@ describe("Task 3 — IndexedDB Persistence & Non-Destructive Store Integration (
   });
 
   it("menyimpan & memuat ulang perubahan bahan, sesi aktif (override), resep, dan preferensi lintas instansi DB", async () => {
-    const dbName = makeUniqueDbName("open-formul-persist");
+    const dbName = makeUniqueDbName("openformul-persist");
     const initial = await hydrateOrSeedDatabase(dbName);
 
     const modifiedIngredients = initial.ingredients.map((item) =>
@@ -111,7 +111,7 @@ describe("Task 3 — IndexedDB Persistence & Non-Destructive Store Integration (
   });
 
   it("tahan terhadap record korup di IndexedDB & tetap fallback aman saat indexedDB tidak tersedia", async () => {
-    const dbName = makeUniqueDbName("open-formul-corrupt");
+    const dbName = makeUniqueDbName("openformul-corrupt");
     await hydrateOrSeedDatabase(dbName);
 
     // Sisipkan record rusak langsung ke store IndexedDB
@@ -133,7 +133,7 @@ describe("Task 3 — IndexedDB Persistence & Non-Destructive Store Integration (
   });
 
   it("resetAllSampleData menjaga resep tersimpan pengguna, sedangkan clearAllUserData menghapus bersih lalu seed ulang", async () => {
-    const dbName = makeUniqueDbName("open-formul-reset");
+    const dbName = makeUniqueDbName("openformul-reset");
     const seeded = await hydrateOrSeedDatabase(dbName);
 
     await saveIngredientsToDb(

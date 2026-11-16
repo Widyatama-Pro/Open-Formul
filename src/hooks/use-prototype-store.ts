@@ -771,7 +771,7 @@ export function usePrototypeStore(): PrototypeStore {
       {
         schemaVersion: 1,
         exportedAt: new Date().toISOString(),
-        app: "Open Formul",
+        app: "OpenFormul",
         ingredients,
         requirements,
         recipes,

@@ -10,20 +10,19 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "neu-cta-btn text-white border border-white/15",
-  secondary: "neu-pill-btn text-[#123340] dark:text-slate-100",
+  primary: "neu-cta-btn text-white border border-transparent",
+  secondary: "neu-pill-btn text-[#0F172A] dark:text-slate-100",
   ghost:
-    "text-[#375563] hover:bg-white/65 hover:shadow-[0_4px_12px_rgba(14,68,82,0.08)] active:scale-[0.97] dark:text-slate-200 dark:hover:bg-[#133D4E]/70",
-  danger:
-    "bg-gradient-to-br from-[#F26E58] to-rose-600 text-white shadow-[0_8px_18px_-4px_rgba(225,29,72,0.34)] hover:-translate-y-0.5 hover:brightness-105 active:scale-[0.97]",
+    "text-[#475569] hover:bg-[#F1F5F9] hover:text-[#0F172A] active:scale-[0.97] dark:text-slate-300 dark:hover:bg-[#162831] dark:hover:text-white",
+  danger: "bg-rose-600 text-white border border-transparent hover:bg-rose-700 active:scale-[0.97]",
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: "min-h-11 px-3.5 text-sm md:min-h-8 md:px-3 md:text-xs",
-  md: "min-h-11 px-4 text-sm md:min-h-9",
+  sm: "min-h-10 px-3 text-xs md:min-h-8 md:px-2.5",
+  md: "min-h-10 px-4 text-sm md:min-h-9",
 };
 
-/** Tombol neumorfik-kaca dengan animasi tekan taktil & area sentuh minimal 44px di mobile. */
+/** Tombol taktil Precision Agritech dengan animasi tekan GPU-composited. */
 export function Button({
   variant = "secondary",
   size = "md",
@@ -35,7 +34,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl font-semibold transition-[transform,box-shadow,background-color,border-color,filter] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0891B2] disabled:pointer-events-none disabled:opacity-50 motion-reduce:transform-none",
+        "inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg font-semibold transition-[transform,background-color,border-color,opacity] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#059669] disabled:pointer-events-none disabled:opacity-50 motion-reduce:transform-none",
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],
         className,

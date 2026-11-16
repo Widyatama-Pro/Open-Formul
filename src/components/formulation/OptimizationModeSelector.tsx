@@ -17,33 +17,26 @@ export function OptimizationModeSelector({
 }: OptimizationModeSelectorProps) {
   const activeMeta = OPTIMIZATION_MODE_META[value];
   return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <Select
-        aria-label={language === "id" ? "Mode Optimasi" : "Optimization Mode"}
-        value={String(value)}
-        onChange={(e) => {
-          const parsed = Number(e.target.value);
-          if (parsed >= 1 && parsed <= 5) {
-            onChange(parsed as OptimizationMode);
-          }
-        }}
-        className="md:min-w-44"
-      >
-        {MODES.map((m) => {
-          const meta = OPTIMIZATION_MODE_META[m];
-          return (
-            <option key={m} value={m}>
-              {m}. {language === "id" ? meta.name : meta.nameEn}
-            </option>
-          );
-        })}
-      </Select>
-      <p
-        className="truncate text-[11px] font-medium text-[#54707E] dark:text-slate-300"
-        title={activeMeta.hint}
-      >
-        {activeMeta.hint}
-      </p>
-    </div>
+    <Select
+      aria-label={language === "id" ? "Mode Optimasi" : "Optimization Mode"}
+      title={activeMeta.hint}
+      value={String(value)}
+      onChange={(e) => {
+        const parsed = Number(e.target.value);
+        if (parsed >= 1 && parsed <= 5) {
+          onChange(parsed as OptimizationMode);
+        }
+      }}
+      className="h-7 min-h-7 py-0 text-[11px] md:min-w-40"
+    >
+      {MODES.map((m) => {
+        const meta = OPTIMIZATION_MODE_META[m];
+        return (
+          <option key={m} value={m}>
+            {m}. {language === "id" ? meta.name : meta.nameEn}
+          </option>
+        );
+      })}
+    </Select>
   );
 }

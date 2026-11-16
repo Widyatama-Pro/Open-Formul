@@ -1,5 +1,5 @@
 /**
- * Tipe domain kanonik Open Formul.
+ * Tipe domain kanonik OpenFormul.
  * Sinkronkan setiap perubahan dengan docs/data-schema.md.
  */
 

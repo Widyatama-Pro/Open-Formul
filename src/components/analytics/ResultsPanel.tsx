@@ -1,11 +1,9 @@
-import { useState } from "react";
-import { Coins, Scale } from "lucide-react";
+import { memo, useState } from "react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
 import type { FormulationConfig, FormulationResult, Ingredient, Nutrient } from "../../types";
 import { formatCurrencyIdr } from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
-import { GlossySquircleIcon } from "../ui/GlossySquircleIcon";
 import { SegmentedTabs } from "../ui/SegmentedTabs";
 import { Switch } from "../ui/Switch";
 import { BatchMixerCalculator } from "./BatchMixerCalculator";
@@ -19,6 +17,7 @@ export interface ResultsPanelProps {
   readonly ingredients: readonly Ingredient[];
   readonly allNutrients?: readonly Nutrient[];
   readonly config: FormulationConfig;
+  readonly hideKpiStrip?: boolean;
   readonly onSetBatchSize: (kg: number) => void;
   readonly onToggleElastic: (enabled: boolean) => void;
   readonly onSetManualLock: (id: string, pct: number | null) => void;
@@ -27,11 +26,12 @@ export interface ResultsPanelProps {
 
 type ResultSubTab = "batch" | "charts" | "dual" | "whatif";
 
-export function ResultsPanel({
+export const ResultsPanel = memo(function ResultsPanel({
   result,
   ingredients,
   allNutrients,
   config,
+  hideKpiStrip = false,
   onSetBatchSize,
   onToggleElastic,
   onSetManualLock,
@@ -55,50 +55,65 @@ export function ResultsPanel({
       highlight={result.status === "infeasible" ? "coral" : "none"}
       className="flex h-full flex-col overflow-hidden"
     >
-      {/* Strip KPI Ringkas bergaya kartu hero kaca-neumorfik */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/65 px-4 py-3 dark:border-cyan-200/10">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2.5">
-            <GlossySquircleIcon tone="sky" size="sm" icon={<Coins className="h-4 w-4" />} />
+      {!hideKpiStrip && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] px-4 py-2.5 dark:border-[#1E333D]">
+          <div className="flex flex-wrap items-center gap-4">
             <div>
-              <span className="block text-[11px] font-semibold text-[#54707E] dark:text-slate-300">
+              <span className="block text-[11px] font-semibold text-[#475569] dark:text-slate-300">
                 Biaya / kg ({result.basis === "as_fed" ? "As-Fed" : "BK"})
               </span>
-              <span className="text-lg font-bold tracking-tight tabular-nums text-[#122B36] dark:text-white">
+              <span className="text-base font-bold tracking-tight tabular-nums text-[#D97706] dark:text-amber-400">
                 {result.costPerKg !== null ? formatCurrencyIdr(result.costPerKg) : "—"}
               </span>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2.5 border-l border-white/75 pl-4 dark:border-cyan-200/15">
-            <GlossySquircleIcon tone="mint" size="sm" icon={<Scale className="h-4 w-4" />} />
-            <div>
-              <span className="block text-[11px] font-semibold text-[#54707E] dark:text-slate-300">
+            <div className="border-l border-[#E2E8F0] pl-4 dark:border-[#1E333D]">
+              <span className="block text-[11px] font-semibold text-[#475569] dark:text-slate-300">
                 Biaya / {config.batchSizeKg} kg
               </span>
-              <span className="text-lg font-bold tracking-tight tabular-nums text-emerald-700 dark:text-emerald-300">
+              <span className="text-base font-bold tracking-tight tabular-nums text-[#059669] dark:text-emerald-400">
                 {result.batchTotalCost !== null && result.batchTotalCost !== undefined
                   ? formatCurrencyIdr(result.batchTotalCost)
                   : "—"}
               </span>
             </div>
           </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-[#375563] dark:text-slate-200">
-            <Switch
-              checked={config.enableElasticFallback}
-              onCheckedChange={onToggleElastic}
-              label="Aktifkan mode toleransi elastik saat target mustahil"
-            />
-            <span>Relaksasi Elastik</span>
-          </label>
-          {statusBadge}
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-[#475569] dark:text-slate-200">
+              <Switch
+                checked={config.enableElasticFallback}
+                onCheckedChange={onToggleElastic}
+                label="Aktifkan mode toleransi elastik saat target mustahil"
+              />
+              <span>Relaksasi Elastik</span>
+            </label>
+            {statusBadge}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+      {result.status !== "infeasible" && (
+        <div className="border-b border-[#E2E8F0] px-3 py-2 dark:border-[#1E333D]">
+          <SegmentedTabs
+            ariaLabel="Sub-tampilan hasil formulasi"
+            value={subTab}
+            onChange={setSubTab}
+            options={[
+              { value: "batch", label: "Komposisi & Batch", badge: result.composition.length },
+              { value: "charts", label: "Grafik" },
+              { value: "dual", label: "Shadow Price" },
+              {
+                value: "whatif",
+                label: "What-If",
+                badge: Object.keys(config.manualLocks ?? {}).length || undefined,
+              },
+            ]}
+          />
+        </div>
+      )}
+
+      <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto p-3.5">
         <ConflictDiagnosticsBanner
           status={result.status}
           conflicts={result.conflicts ?? []}
@@ -107,22 +122,6 @@ export function ResultsPanel({
 
         {result.status !== "infeasible" && (
           <>
-            <SegmentedTabs
-              ariaLabel="Sub-tampilan hasil formulasi"
-              value={subTab}
-              onChange={setSubTab}
-              options={[
-                { value: "batch", label: "Komposisi & Batch", badge: result.composition.length },
-                { value: "charts", label: "Grafik" },
-                { value: "dual", label: "Shadow Price" },
-                {
-                  value: "whatif",
-                  label: "What-If",
-                  badge: Object.keys(config.manualLocks ?? {}).length || undefined,
-                },
-              ]}
-            />
-
             {subTab === "batch" && (
               <BatchMixerCalculator
                 batchSizeKg={config.batchSizeKg}
@@ -168,4 +167,4 @@ export function ResultsPanel({
       </div>
     </Card>
   );
-}
+});

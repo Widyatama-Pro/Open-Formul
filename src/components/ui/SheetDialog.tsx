@@ -13,7 +13,7 @@ export interface SheetDialogProps {
   readonly variant?: "bottom-sheet" | "dialog" | "responsive";
 }
 
-/** Dialog adaptif bergaya frosted glass: Bottom Sheet di layar sempit dan Modal di desktop. */
+/** Dialog adaptif crisp surface (#FFFFFF) tanpa backdrop blur agar tetap 60fps. */
 export function SheetDialog({
   open,
   onClose,
@@ -43,14 +43,14 @@ export function SheetDialog({
 
   const panelRadius =
     variant === "bottom-sheet"
-      ? "rounded-t-[26px] max-h-[90dvh]"
+      ? "rounded-t-2xl max-h-[90dvh]"
       : variant === "dialog"
-        ? "rounded-[24px] max-w-2xl max-h-[85dvh]"
-        : "rounded-t-[26px] max-h-[90dvh] md:max-w-2xl md:rounded-[24px] md:max-h-[85dvh]";
+        ? "rounded-2xl max-w-2xl max-h-[85dvh]"
+        : "rounded-t-2xl max-h-[90dvh] md:max-w-2xl md:rounded-2xl md:max-h-[85dvh]";
 
   return (
     <div
-      className={cn("fixed inset-0 z-50 flex bg-[#07232C]/45 backdrop-blur-sm", containerMode)}
+      className={cn("fixed inset-0 z-50 flex bg-[#0F172A]/45", containerMode)}
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -58,34 +58,34 @@ export function SheetDialog({
     >
       <div
         className={cn(
-          "flex w-full flex-col overflow-hidden overscroll-contain border border-white/80 bg-[#F4F9FC]/92 shadow-[0_24px_60px_-12px_rgba(7,41,51,0.34)] backdrop-blur-2xl dark:border-cyan-200/15 dark:bg-[#0B2632]/92",
+          "flex w-full flex-col overflow-hidden overscroll-contain border border-[#E2E8F0] bg-white shadow-[0_20px_48px_-12px_rgba(15,23,42,0.22)] dark:border-[#1E333D] dark:bg-[#111F26]",
           panelRadius,
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-white/70 px-5 py-4 dark:border-cyan-200/10">
+        <div className="flex items-start justify-between gap-4 border-b border-[#E2E8F0] px-5 py-3.5 dark:border-[#1E333D]">
           <div className="min-w-0">
-            <h2 className="truncate text-base font-bold tracking-tight text-[#122B36] dark:text-slate-100">
+            <h2 className="truncate text-base font-bold tracking-tight text-[#0F172A] dark:text-slate-100">
               {title}
             </h2>
             {subtitle !== undefined && (
-              <p className="mt-0.5 text-xs text-[#54707E] dark:text-slate-300">{subtitle}</p>
+              <p className="mt-0.5 text-xs text-[#475569] dark:text-slate-300">{subtitle}</p>
             )}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Tutup panel"
-            className="neu-pill-btn inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full text-[#375563] md:min-h-8 md:min-w-8 dark:text-slate-200"
+            className="neu-pill-btn inline-flex min-h-10 min-w-10 cursor-pointer items-center justify-center rounded-full text-[#475569] md:min-h-8 md:min-w-8 dark:text-slate-200"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5">{children}</div>
+        <div className="custom-scrollbar flex-1 overflow-y-auto p-5">{children}</div>
 
         {footer !== undefined && (
-          <div className="border-t border-white/70 bg-white/55 px-5 py-3.5 dark:border-cyan-200/10 dark:bg-[#08202A]/70">
+          <div className="border-t border-[#E2E8F0] bg-[#F8FAFC] px-5 py-3 dark:border-[#1E333D] dark:bg-[#0B1519]">
             {footer}
           </div>
         )}

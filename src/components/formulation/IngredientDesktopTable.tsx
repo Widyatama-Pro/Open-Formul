@@ -1,9 +1,15 @@
-import { memo, useState, type ClipboardEvent } from "react";
+import { memo, useCallback, useMemo, useState, type ClipboardEvent } from "react";
 import { RotateCcw, Sliders } from "lucide-react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
-import type { AppLanguage, Ingredient, IngredientCategory, Nutrient } from "../../types";
+import type {
+  AppLanguage,
+  CompositionItem,
+  Ingredient,
+  IngredientCategory,
+  Nutrient,
+} from "../../types";
 import { cn } from "../../utils/cn";
-import { formatCurrencyIdr } from "../../utils/locale-number";
+import { formatCurrencyIdr, formatNumberLocale } from "../../utils/locale-number";
 import { applyTsvGridPaste, type PasteColumnKey } from "../../utils/tsvPaste";
 import { Badge } from "../ui/Badge";
 import { NumericCellInput } from "./NumericCellInput";
@@ -12,6 +18,7 @@ export interface IngredientDesktopTableProps {
   readonly ingredients: readonly Ingredient[];
   readonly allIngredients?: readonly Ingredient[];
   readonly allNutrients?: readonly Nutrient[];
+  readonly composition?: readonly CompositionItem[];
   readonly showAdvanceColumns: boolean;
   readonly globalAntiNol: boolean;
   readonly language: AppLanguage;
@@ -24,19 +31,252 @@ export interface IngredientDesktopTableProps {
 const BASIC_NUTRIENT_IDS = new Set(["cp", "me_poultry", "tdn", "ee", "cf", "ca", "p"]);
 
 const CATEGORY_DOT: Record<IngredientCategory, string> = {
-  energy: "bg-gradient-to-br from-[#FFA27F] to-[#F26E58]",
-  protein: "bg-gradient-to-br from-[#5BC8FF] to-[#0E74C9]",
-  mineral: "bg-gradient-to-br from-[#9DA8FF] to-[#4745D6]",
-  premix: "bg-gradient-to-br from-[#F69AD0] to-[#B83286]",
-  forage: "bg-gradient-to-br from-[#43E6B5] to-[#04936E]",
-  additive: "bg-gradient-to-br from-[#FCD35D] to-[#D97706]",
-  enzyme: "bg-gradient-to-br from-[#22B8CF] to-[#0B4657]",
+  energy: "bg-[#D97706]",
+  protein: "bg-[#0284C7]",
+  mineral: "bg-[#6366F1]",
+  premix: "bg-[#DB2777]",
+  forage: "bg-[#059669]",
+  additive: "bg-[#EA580C]",
+  enzyme: "bg-[#0F3D3E]",
 };
+
+interface IngredientTableRowProps {
+  readonly ing: Ingredient;
+  readonly rowIdx: number;
+  readonly inclusionPct: number;
+  readonly visibleNutrients: readonly Nutrient[];
+  readonly globalAntiNol: boolean;
+  readonly language: AppLanguage;
+  readonly onUpdateIngredient: (id: string, patch: Partial<Ingredient>) => void;
+  readonly onResetPriceOverride: (id: string) => void;
+  readonly onOpenDetail: (ingredient: Ingredient) => void;
+  readonly onCellPaste: (
+    rowIdx: number,
+    colKey: PasteColumnKey,
+    event: ClipboardEvent<HTMLInputElement>,
+  ) => void;
+}
+
+const IngredientTableRow = memo(function IngredientTableRow({
+  ing,
+  rowIdx,
+  inclusionPct,
+  visibleNutrients,
+  globalAntiNol,
+  language,
+  onUpdateIngredient,
+  onResetPriceOverride,
+  onOpenDetail,
+  onCellPaste,
+}: IngredientTableRowProps) {
+  const isActive = ing.isActive !== false;
+  const min = ing.inclusion?.min ?? 0;
+  const max = ing.inclusion?.max ?? 100;
+  const invalidBounds = min > max;
+  const hasOverride = ing.priceOverride !== undefined;
+  const effectiveAntiNol = ing.zeroInclusionRule?.enforceNonZero ?? globalAntiNol;
+  const hasInclusion = inclusionPct > 0.005;
+
+  return (
+    <tr
+      className={cn(
+        "transition-colors duration-100 hover:bg-[#F8FAFC] dark:hover:bg-[#162831]",
+        !isActive && "opacity-55",
+      )}
+    >
+      <td className="sticky left-0 z-10 border-r border-[#E2E8F0] bg-white px-1.5 py-1.5 text-center dark:border-[#1E333D] dark:bg-[#111F26]">
+        <input
+          type="checkbox"
+          checked={isActive}
+          aria-label={`Aktifkan ${ing.name}`}
+          onChange={(e) => onUpdateIngredient(ing.id, { isActive: e.target.checked })}
+          className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-[#059669]"
+        />
+      </td>
+
+      <td className="sticky left-10 z-10 border-r border-[#E2E8F0] bg-white px-2.5 py-1.5 dark:border-[#1E333D] dark:bg-[#111F26]">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span
+              aria-hidden="true"
+              className={cn("h-2.5 w-2.5 shrink-0 rounded-xs", CATEGORY_DOT[ing.category])}
+            />
+            <span className="truncate font-semibold text-[#0F172A] dark:text-slate-100">
+              {language === "id" ? ing.name : (ing.nameEn ?? ing.name)}
+            </span>
+          </div>
+          <Badge tone={ing.basis === "as_fed" ? "neutral" : "emerald"}>
+            {ing.basis === "as_fed" ? "AF" : "BK"}
+          </Badge>
+        </div>
+      </td>
+
+      <td className="px-2 py-1">
+        <div className="flex items-center gap-1">
+          <NumericCellInput
+            value={ing.priceOverride ?? ing.pricePerKg}
+            treatSingleThousandDot
+            fractionDigits={0}
+            gridRow={rowIdx}
+            gridCol="price"
+            onPaste={(e) => onCellPaste(rowIdx, "price", e)}
+            ariaLabel={`Harga/kg ${ing.name}`}
+            className={cn(
+              hasOverride &&
+                "border-[#D97706] bg-amber-50 text-[#B45309] dark:border-amber-500/70 dark:bg-amber-950/30 dark:text-amber-200",
+            )}
+            onCommit={(next) => {
+              if (next === null) return;
+              if (Math.abs(next - ing.pricePerKg) < 0.01) {
+                onResetPriceOverride(ing.id);
+              } else {
+                onUpdateIngredient(ing.id, { priceOverride: next });
+              }
+            }}
+          />
+          {hasOverride && (
+            <button
+              type="button"
+              onClick={() => onResetPriceOverride(ing.id)}
+              title={`Reset ke harga pasar (${formatCurrencyIdr(ing.pricePerKg)})`}
+              aria-label={`Reset harga pasar ${ing.name}`}
+              className="neu-pill-btn cursor-pointer rounded-md p-1 text-[#D97706] dark:text-amber-300"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </td>
+
+      <td className="px-2 py-1">
+        <NumericCellInput
+          value={ing.dryMatter}
+          fractionDigits={1}
+          gridRow={rowIdx}
+          gridCol="dm"
+          onPaste={(e) => onCellPaste(rowIdx, "dm", e)}
+          invalid={ing.dryMatter <= 0 || ing.dryMatter > 100}
+          errorTooltip="BK harus antara > 0 dan 100%"
+          ariaLabel={`BK % ${ing.name}`}
+          onCommit={(next) => {
+            if (next !== null && next > 0 && next <= 100) {
+              onUpdateIngredient(ing.id, { dryMatter: next });
+            }
+          }}
+        />
+      </td>
+
+      <td className="px-2 py-1">
+        <NumericCellInput
+          value={min}
+          fractionDigits={1}
+          gridRow={rowIdx}
+          gridCol="min"
+          onPaste={(e) => onCellPaste(rowIdx, "min", e)}
+          invalid={invalidBounds}
+          errorTooltip={`Min (${min}%) > Max (${max}%)`}
+          ariaLabel={`Min % ${ing.name}`}
+          onCommit={(next) =>
+            onUpdateIngredient(ing.id, {
+              inclusion: { ...ing.inclusion, min: next ?? 0 },
+            })
+          }
+        />
+      </td>
+
+      <td className="px-2 py-1">
+        <NumericCellInput
+          value={max}
+          fractionDigits={1}
+          gridRow={rowIdx}
+          gridCol="max"
+          onPaste={(e) => onCellPaste(rowIdx, "max", e)}
+          invalid={invalidBounds}
+          errorTooltip={`Max (${max}%) < Min (${min}%)`}
+          ariaLabel={`Max % ${ing.name}`}
+          onCommit={(next) =>
+            onUpdateIngredient(ing.id, {
+              inclusion: { ...ing.inclusion, max: next ?? 100 },
+            })
+          }
+        />
+      </td>
+
+      <td
+        className={cn(
+          "px-2 py-1 text-right tabular-nums",
+          hasInclusion
+            ? "bg-emerald-50/45 font-bold text-[#059669] dark:bg-emerald-950/25 dark:text-emerald-400"
+            : "text-[#475569] dark:text-slate-400",
+        )}
+      >
+        {formatNumberLocale(inclusionPct, 2)}%
+      </td>
+
+      <td className="px-2 py-1 text-center">
+        <input
+          type="checkbox"
+          checked={effectiveAntiNol}
+          aria-label={`Aturan Anti-Nol ${ing.name}`}
+          onChange={(e) =>
+            onUpdateIngredient(ing.id, {
+              zeroInclusionRule: {
+                enforceNonZero: e.target.checked,
+                minIfSelected: ing.zeroInclusionRule?.minIfSelected ?? 1,
+              },
+            })
+          }
+          className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-[#059669]"
+        />
+      </td>
+
+      {visibleNutrients.map((nut) => {
+        const val = ing.nutrients[nut.id];
+        const isNull = val === null || val === undefined;
+        return (
+          <td key={nut.id} className="px-2 py-1">
+            <NumericCellInput
+              value={val ?? null}
+              allowNull
+              fractionDigits={nut.unit === "kcal/kg" ? 0 : 2}
+              gridRow={rowIdx}
+              gridCol={nut.id}
+              onPaste={(e) => onCellPaste(rowIdx, nut.id, e)}
+              placeholder="N/A"
+              ariaLabel={`${nut.name} ${ing.name}`}
+              className={cn(
+                isNull &&
+                  "border-dashed border-amber-400 bg-amber-50/50 dark:border-amber-700/70 dark:bg-amber-950/20",
+              )}
+              onCommit={(next) =>
+                onUpdateIngredient(ing.id, {
+                  nutrients: { ...ing.nutrients, [nut.id]: next },
+                })
+              }
+            />
+          </td>
+        );
+      })}
+
+      <td className="px-2 py-1 text-center">
+        <button
+          type="button"
+          onClick={() => onOpenDetail(ing)}
+          aria-label={`Edit detail ${ing.name}`}
+          className="neu-pill-btn inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-[#475569] dark:text-slate-200"
+        >
+          <Sliders className="h-3.5 w-3.5" />
+        </button>
+      </td>
+    </tr>
+  );
+});
 
 export const IngredientDesktopTable = memo(function IngredientDesktopTable({
   ingredients,
   allIngredients,
   allNutrients = MOCK_NUTRIENTS,
+  composition,
   showAdvanceColumns,
   globalAntiNol,
   language,
@@ -50,21 +290,26 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
     readonly warnings: readonly string[];
   } | null>(null);
 
-  const visibleNutrients: readonly Nutrient[] = allNutrients.filter(
-    (n) => showAdvanceColumns || BASIC_NUTRIENT_IDS.has(n.id) || n.isCustom === true,
+  const compositionMap = useMemo(
+    () => new Map((composition ?? []).map((c) => [c.ingredientId, c.fraction * 100])),
+    [composition],
   );
 
-  const orderedCols: PasteColumnKey[] = [
-    "price",
-    "dm",
-    "min",
-    "max",
-    ...visibleNutrients.map((n) => n.id),
-  ];
+  const visibleNutrients: readonly Nutrient[] = useMemo(
+    () =>
+      allNutrients.filter(
+        (n) => showAdvanceColumns || BASIC_NUTRIENT_IDS.has(n.id) || n.isCustom === true,
+      ),
+    [allNutrients, showAdvanceColumns],
+  );
 
-  const handleCellPaste =
-    (startRowIdx: number, startColKey: PasteColumnKey) =>
-    (event: ClipboardEvent<HTMLInputElement>) => {
+  const orderedCols: PasteColumnKey[] = useMemo(
+    () => ["price", "dm", "min", "max", ...visibleNutrients.map((n) => n.id)],
+    [visibleNutrients],
+  );
+
+  const handleCellPaste = useCallback(
+    (startRowIdx: number, startColKey: PasteColumnKey, event: ClipboardEvent<HTMLInputElement>) => {
       if (!onBatchIngredientsUpdate) return;
       const clipboardText =
         event.clipboardData.getData("text/plain") || event.clipboardData.getData("text") || "";
@@ -89,14 +334,16 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
         text: `${outcome.appliedCells} sel ditempel dari spreadsheet.`,
         warnings: outcome.warnings,
       });
-    };
+    },
+    [allIngredients, ingredients, onBatchIngredientsUpdate, orderedCols],
+  );
 
   return (
     <div className="flex h-full w-full flex-col gap-1.5">
       {pasteNotice && (
         <div
           role="status"
-          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-300/70 bg-emerald-50/90 px-3 py-1.5 text-[11px] font-medium text-emerald-900 dark:border-emerald-700/60 dark:bg-emerald-950/50 dark:text-emerald-200"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-medium text-[#047857] dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-200"
         >
           <span>
             {pasteNotice.text}
@@ -111,244 +358,69 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
           </button>
         </div>
       )}
-      <div className="relative min-h-0 flex-1 overflow-auto rounded-2xl border border-white/80 bg-white/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-sm dark:border-cyan-200/12 dark:bg-[#0B2632]/70">
+      <div className="custom-scrollbar relative min-h-0 flex-1 overflow-auto rounded-lg border border-[#E2E8F0] bg-white dark:border-[#1E333D] dark:bg-[#111F26]">
         <table className="w-max min-w-full border-collapse text-left text-xs">
-          <thead className="sticky top-0 z-20 bg-[#EAF2F7]/95 text-[11px] font-bold tracking-wide text-[#466270] backdrop-blur-md dark:bg-[#0D303E]/95 dark:text-cyan-100/85">
+          <thead className="sticky top-0 z-20 bg-[#F1F5F9] text-[11px] font-bold tracking-wide text-[#475569] dark:bg-[#162831] dark:text-slate-300">
             <tr>
-              <th className="sticky left-0 z-30 w-11 border-r border-b border-white/75 bg-[#EAF2F7]/95 px-2 py-2.5 text-center dark:border-cyan-200/10 dark:bg-[#0D303E]/95">
+              <th className="sticky left-0 z-30 w-10 border-r border-b border-[#E2E8F0] bg-[#F1F5F9] px-1.5 py-2 text-center dark:border-[#1E333D] dark:bg-[#162831]">
                 Aktif
               </th>
-              <th className="sticky left-11 z-30 min-w-46 border-r border-b border-white/75 bg-[#EAF2F7]/95 px-3 py-2.5 dark:border-cyan-200/10 dark:bg-[#0D303E]/95">
+              <th className="sticky left-10 z-30 min-w-40 border-r border-b border-[#E2E8F0] bg-[#F1F5F9] px-2.5 py-2 dark:border-[#1E333D] dark:bg-[#162831]">
                 {language === "id" ? "Nama Bahan" : "Ingredient"}
               </th>
-              <th className="min-w-28 border-b border-white/75 px-2 py-2.5 text-right dark:border-cyan-200/10">
+              <th className="w-24 min-w-24 border-b border-[#E2E8F0] px-2 py-2 text-right dark:border-[#1E333D]">
                 Harga/kg
               </th>
-              <th className="w-20 border-b border-white/75 px-2 py-2.5 text-right dark:border-cyan-200/10">
+              <th className="w-16 border-b border-[#E2E8F0] px-1.5 py-2 text-right dark:border-[#1E333D]">
                 BK %
               </th>
-              <th className="w-20 border-b border-white/75 px-2 py-2.5 text-right dark:border-cyan-200/10">
+              <th className="w-16 border-b border-[#E2E8F0] px-1.5 py-2 text-right dark:border-[#1E333D]">
                 Min %
               </th>
-              <th className="w-20 border-b border-white/75 px-2 py-2.5 text-right dark:border-cyan-200/10">
+              <th className="w-16 border-b border-[#E2E8F0] px-1.5 py-2 text-right dark:border-[#1E333D]">
                 Max %
               </th>
-              <th className="w-16 border-b border-white/75 px-2 py-2.5 text-center dark:border-cyan-200/10">
+              <th className="w-20 min-w-20 border-b border-[#E2E8F0] bg-emerald-50/70 px-2 py-2 text-right text-[#0F3D3E] dark:border-[#1E333D] dark:bg-emerald-950/35 dark:text-emerald-300">
+                Inklusi %
+              </th>
+              <th className="w-14 border-b border-[#E2E8F0] px-2 py-2 text-center dark:border-[#1E333D]">
                 Anti-0
               </th>
               {visibleNutrients.map((nut) => (
                 <th
                   key={nut.id}
-                  className="min-w-22 border-b border-white/75 px-2 py-2.5 text-right whitespace-nowrap dark:border-cyan-200/10"
+                  className="min-w-20 border-b border-[#E2E8F0] px-2 py-2 text-right whitespace-nowrap dark:border-[#1E333D]"
                 >
-                  <div>{language === "id" ? nut.name : (nut.nameEn ?? nut.name)}</div>
-                  <div className="text-[10px] font-medium lowercase text-[#6C8693] dark:text-slate-400">
+                  <div className="text-[#0F172A] dark:text-slate-100">
+                    {language === "id" ? nut.name : (nut.nameEn ?? nut.name)}
+                  </div>
+                  <div className="text-[10px] font-medium lowercase text-[#475569] dark:text-slate-400">
                     {nut.unit}
                   </div>
                 </th>
               ))}
-              <th className="w-12 border-b border-white/75 px-2 py-2.5 text-center dark:border-cyan-200/10">
+              <th className="w-12 border-b border-[#E2E8F0] px-2 py-2 text-center dark:border-[#1E333D]">
                 Detail
               </th>
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-white/65 dark:divide-cyan-200/10">
-            {ingredients.map((ing, rowIdx) => {
-              const isActive = ing.isActive !== false;
-              const min = ing.inclusion?.min ?? 0;
-              const max = ing.inclusion?.max ?? 100;
-              const invalidBounds = min > max;
-              const hasOverride = ing.priceOverride !== undefined;
-              const effectiveAntiNol = ing.zeroInclusionRule?.enforceNonZero ?? globalAntiNol;
-
-              return (
-                <tr
-                  key={ing.id}
-                  className={cn(
-                    "transition-colors duration-150 hover:bg-white/70 dark:hover:bg-[#113A4A]/60",
-                    !isActive && "opacity-55",
-                  )}
-                >
-                  <td className="sticky left-0 z-10 border-r border-white/70 bg-white/85 px-2 py-2 text-center backdrop-blur-xs dark:border-cyan-200/10 dark:bg-[#0D2E3B]/90">
-                    <input
-                      type="checkbox"
-                      checked={isActive}
-                      aria-label={`Aktifkan ${ing.name}`}
-                      onChange={(e) => onUpdateIngredient(ing.id, { isActive: e.target.checked })}
-                      className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-[#0E7490]"
-                    />
-                  </td>
-
-                  <td className="sticky left-11 z-10 border-r border-white/70 bg-white/85 px-3 py-2 backdrop-blur-xs dark:border-cyan-200/10 dark:bg-[#0D2E3B]/90">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span
-                          aria-hidden="true"
-                          className={cn(
-                            "h-2.5 w-2.5 shrink-0 rounded-[4px] shadow-xs",
-                            CATEGORY_DOT[ing.category],
-                          )}
-                        />
-                        <span className="truncate font-semibold text-[#122B36] dark:text-slate-100">
-                          {language === "id" ? ing.name : (ing.nameEn ?? ing.name)}
-                        </span>
-                      </div>
-                      <Badge tone={ing.basis === "as_fed" ? "neutral" : "emerald"}>
-                        {ing.basis === "as_fed" ? "AF" : "BK"}
-                      </Badge>
-                    </div>
-                  </td>
-
-                  <td className="px-2 py-1.5">
-                    <div className="flex items-center gap-1">
-                      <NumericCellInput
-                        value={ing.priceOverride ?? ing.pricePerKg}
-                        treatSingleThousandDot
-                        fractionDigits={0}
-                        gridRow={rowIdx}
-                        gridCol="price"
-                        onPaste={handleCellPaste(rowIdx, "price")}
-                        ariaLabel={`Harga/kg ${ing.name}`}
-                        className={cn(
-                          hasOverride &&
-                            "border-amber-400/80 bg-amber-50/75 dark:border-amber-500/70 dark:bg-amber-950/30",
-                        )}
-                        onCommit={(next) => {
-                          if (next === null) return;
-                          if (Math.abs(next - ing.pricePerKg) < 0.01) {
-                            onResetPriceOverride(ing.id);
-                          } else {
-                            onUpdateIngredient(ing.id, { priceOverride: next });
-                          }
-                        }}
-                      />
-                      {hasOverride && (
-                        <button
-                          type="button"
-                          onClick={() => onResetPriceOverride(ing.id)}
-                          title={`Reset ke harga pasar (${formatCurrencyIdr(ing.pricePerKg)})`}
-                          aria-label={`Reset harga pasar ${ing.name}`}
-                          className="neu-pill-btn cursor-pointer rounded-lg p-1 text-amber-700 dark:text-amber-300"
-                        >
-                          <RotateCcw className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="px-2 py-1.5">
-                    <NumericCellInput
-                      value={ing.dryMatter}
-                      fractionDigits={1}
-                      gridRow={rowIdx}
-                      gridCol="dm"
-                      onPaste={handleCellPaste(rowIdx, "dm")}
-                      invalid={ing.dryMatter <= 0 || ing.dryMatter > 100}
-                      errorTooltip="BK harus antara > 0 dan 100%"
-                      ariaLabel={`BK % ${ing.name}`}
-                      onCommit={(next) => {
-                        if (next !== null && next > 0 && next <= 100) {
-                          onUpdateIngredient(ing.id, { dryMatter: next });
-                        }
-                      }}
-                    />
-                  </td>
-
-                  <td className="px-2 py-1.5">
-                    <NumericCellInput
-                      value={min}
-                      fractionDigits={1}
-                      gridRow={rowIdx}
-                      gridCol="min"
-                      onPaste={handleCellPaste(rowIdx, "min")}
-                      invalid={invalidBounds}
-                      errorTooltip={`Min (${min}%) > Max (${max}%)`}
-                      ariaLabel={`Min % ${ing.name}`}
-                      onCommit={(next) =>
-                        onUpdateIngredient(ing.id, {
-                          inclusion: { ...ing.inclusion, min: next ?? 0 },
-                        })
-                      }
-                    />
-                  </td>
-
-                  <td className="px-2 py-1.5">
-                    <NumericCellInput
-                      value={max}
-                      fractionDigits={1}
-                      gridRow={rowIdx}
-                      gridCol="max"
-                      onPaste={handleCellPaste(rowIdx, "max")}
-                      invalid={invalidBounds}
-                      errorTooltip={`Max (${max}%) < Min (${min}%)`}
-                      ariaLabel={`Max % ${ing.name}`}
-                      onCommit={(next) =>
-                        onUpdateIngredient(ing.id, {
-                          inclusion: { ...ing.inclusion, max: next ?? 100 },
-                        })
-                      }
-                    />
-                  </td>
-
-                  <td className="px-2 py-1.5 text-center">
-                    <input
-                      type="checkbox"
-                      checked={effectiveAntiNol}
-                      aria-label={`Aturan Anti-Nol ${ing.name}`}
-                      onChange={(e) =>
-                        onUpdateIngredient(ing.id, {
-                          zeroInclusionRule: {
-                            enforceNonZero: e.target.checked,
-                            minIfSelected: ing.zeroInclusionRule?.minIfSelected ?? 1,
-                          },
-                        })
-                      }
-                      className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-[#0E7490]"
-                    />
-                  </td>
-
-                  {visibleNutrients.map((nut) => {
-                    const val = ing.nutrients[nut.id];
-                    const isNull = val === null || val === undefined;
-                    return (
-                      <td key={nut.id} className="px-2 py-1.5">
-                        <NumericCellInput
-                          value={val ?? null}
-                          allowNull
-                          fractionDigits={nut.unit === "kcal/kg" ? 0 : 2}
-                          gridRow={rowIdx}
-                          gridCol={nut.id}
-                          onPaste={handleCellPaste(rowIdx, nut.id)}
-                          placeholder="N/A"
-                          ariaLabel={`${nut.name} ${ing.name}`}
-                          className={cn(
-                            isNull &&
-                              "border-dashed border-amber-400/70 bg-amber-50/45 dark:border-amber-700/70 dark:bg-amber-950/20",
-                          )}
-                          onCommit={(next) =>
-                            onUpdateIngredient(ing.id, {
-                              nutrients: { ...ing.nutrients, [nut.id]: next },
-                            })
-                          }
-                        />
-                      </td>
-                    );
-                  })}
-
-                  <td className="px-2 py-1.5 text-center">
-                    <button
-                      type="button"
-                      onClick={() => onOpenDetail(ing)}
-                      aria-label={`Edit detail ${ing.name}`}
-                      className="neu-pill-btn inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[#466270] dark:text-slate-200"
-                    >
-                      <Sliders className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+          <tbody className="divide-y divide-[#E2E8F0] dark:divide-[#1E333D]">
+            {ingredients.map((ing, rowIdx) => (
+              <IngredientTableRow
+                key={ing.id}
+                ing={ing}
+                rowIdx={rowIdx}
+                inclusionPct={compositionMap.get(ing.id) ?? 0}
+                visibleNutrients={visibleNutrients}
+                globalAntiNol={globalAntiNol}
+                language={language}
+                onUpdateIngredient={onUpdateIngredient}
+                onResetPriceOverride={onResetPriceOverride}
+                onOpenDetail={onOpenDetail}
+                onCellPaste={handleCellPaste}
+              />
+            ))}
           </tbody>
         </table>
       </div>

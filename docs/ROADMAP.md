@@ -1,4 +1,4 @@
-# 🗺️ Roadmap Open Formul
+# 🗺️ Roadmap OpenFormul
 
 Status: ⬜ belum dimulai · 🟨 berjalan · ✅ selesai · 🕒 _Coming Soon_ di menu **Modul Lanjutan (Advance)**
 
@@ -11,7 +11,7 @@ Status: ⬜ belum dimulai · 🟨 berjalan · ✅ selesai · 🕒 _Coming Soon_ 
 - ✅ ESLint, Prettier, Vitest (`@testing-library/react`), dan GitHub Actions CI ([ci.yml](../.github/workflows/ci.yml))
 - ✅ Skema data kanonik `Ingredient`, `Nutrient`, `Requirement`, `FormulationConfig`, `FormulationResult`, `Recipe`, `UserPreferences` ([data-schema](data-schema.md))
 - ✅ Sampel database bahan pakan JSON (`src/data/*.sample.json`) & dataset kerja interaktif (`src/data/mock-state.ts`)
-- ✅ **UI Prototype Lintas Perangkat (`CORE-01` s/d `FE-10`):** Adaptive AppShell (Desktop Sidebar + Mobile Bottom Nav/Drawer), 3-Panel Workbench, 3-Step Mobile Stepper, Input Desimal Lokal (`locale-number`), Mode Optimasi 1–5, Advance (AA/NDF/ANF + SID/AvP), Anti-Nol, Batch Mixer, Grafik SVG, Shadow Price/What-If, Database Bahan/Ternak, Resep/Ekspor, & Pengaturan Bahasa/Tema
+- ✅ **UI Prototype Lintas Perangkat (`CORE-01` s/d `FE-10`):** Precision Agritech Light Mode (`#0F3D3E` / `#F8FAFC` / `#059669` / `#D97706`), 64px Liquid Concave Cutout Sidebar (`motion/react`), intro reveal `380ms`, workspace utama `70%–75%` + kolom `Inklusi %` + inspector Target Nutrien `310px` _collapsible_, header `52px` + bar KPI `76px`, custom scrollbar `5px`, Mobile Bottom Nav/Drawer & 3-Step Stepper, Input Desimal Lokal (`locale-number`), Mode Optimasi 1–5, Advance (AA/NDF/ANF + SID/AvP), Anti-Nol, Batch Mixer, Grafik SVG, Shadow Price/What-If, Database Bahan/Ternak, Resep/Ekspor, & Pengaturan Bahasa/Tema
 - ✅ Integrasi HiGHS WASM (`highs`) di Web Worker (`ENG-01` s/d `ENG-08`)
 - ✅ Model builder LP, L1 elastik, & verifikasi pasca-solve (`1e-6`) terhadap hitungan manual
 
@@ -37,7 +37,7 @@ Status: ⬜ belum dimulai · 🟨 berjalan · ✅ selesai · 🕒 _Coming Soon_ 
 - ✅ Service Worker + manifest adaptif (`start_url: "./"`, `scope: "./"`), instalable via `beforeinstallprompt` & panduan Desktop/Android/iOS (`SettingsPage`), offline penuh (`vite-plugin-pwa`, _precache_ aset + `highs-*.wasm`)
 - ✅ Workflow deploy otomatis ke **GitHub Pages** ([deploy-pages.yml](../.github/workflows/deploy-pages.yml)) & **Bundel Offline Portabel GitHub Releases** ([release-offline.yml](../.github/workflows/release-offline.yml))
 - ✅ Halaman **Modul Lanjutan (Advance)** menampilkan seluruh 15 modul riset berstatus **Coming Soon** dengan penjelasan fungsi sederhana (`AdvancedModulesPreview.tsx`)
-- ✅ Penyimpanan IndexedDB via `idb` (`open-formul-db` v1) + fallback memori
+- ✅ Penyimpanan IndexedDB via `idb` (`openformul-db` v1) + fallback memori
 - ✅ Ekspor/impor `.feed.json`, CSV partial-merge, Excel `.xlsx` (OOXML), TSV Multi-Cell Paste, & PDF 1.4 offline
 - ✅ Pembungkus aplikasi native lintas platform siap rilis otomatis di [GitHub Releases](../.github/workflows/release-offline.yml): **PC Windows `.exe` (Tauri v2)** + **Android `.apk` (Capacitor 8)** + dialog simpan/berbagi file ekspor native ([download.ts](../src/utils/download.ts)) & mode build `build:native`
 - 🟨 Internasionalisasi penuh seluruh label & pesan diagnostik (`ID / EN`) serta penandatanganan _keystore_ rilis Play Store / Microsoft Store opsional di fase publikasi lanjutan
@@ -68,7 +68,7 @@ Status: ⬜ belum dimulai · 🟨 berjalan · ✅ selesai · 🕒 _Coming Soon_ 
 
 > _Dependensi:_ Solver MILP Fase 5, model blok Multi-Plant/Batch, serta paket inti terpisah (_decoupled core_).
 
-- 🕒 **`EN-01` Paket Engine Terpisah (`@open-formul/core`) & Dataset Crawler:** Rilis CLI/NPM bebas DOM untuk riset Python/Jupyter/Node + skrip kurasi dataset pakan terbuka
+- 🕒 **`EN-01` Paket Engine Terpisah (`@openformul/core`) & Dataset Crawler:** Rilis CLI/NPM bebas DOM untuk riset Python/Jupyter/Node + skrip kurasi dataset pakan terbuka
 - 🕒 **`EN-02` Multi-Blend, Multi-Plant, Silo Allocation & Multi-Lot Blending:** Optimasi blok diagonal lintas formula dengan konservasi stok multi-periode $I_{j,p,t}$, _tight Big-M_ bin/silo, serta pencampuran _multi-lot_
 - 🕒 **`EN-03` Cross-Formula Procurement Matrix (Purchase Assistant):** Evaluasi harga penawaran pemasok secara serentak di seluruh formula aktif pabrik untuk menentukan tonase & harga beli paling optimal
 - 🕒 **`EN-04` Loop Tertutup QC Lab / FT-NIR ke Stokastik (EWMA):** _Base vs Overlay Ingredients_, _Sample Basket_, pembaruan $\hat{\mu}_t, \hat{\sigma}_t^2$ secara EWMA langsung ke matriks stokastik, dan evaluator DAG bebas _circular dependency_

@@ -9,7 +9,7 @@ import {
   evaluateMockFormulation,
 } from "../../src/data/mock-state";
 
-describe("Open Formul Fase 1 UI Prototype Flow", () => {
+describe("OpenFormul Fase 1 UI Prototype Flow", () => {
   it("merender workbench formulasi default beserta daftar bahan aktif dan KPI biaya", () => {
     render(<App />);
 
@@ -192,5 +192,27 @@ describe("Open Formul Fase 1 UI Prototype Flow", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Desktop PC \(Windows \.exe \/ Tauri & PWA\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Mobile \(Android \.apk \/ Capacitor & PWA\)/i)).toBeInTheDocument();
+  });
+
+  it("menampilkan kolom Inklusi % pada tabel bahan dan mendukung collapse/expand panel Target Nutrien", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(screen.getAllByRole("columnheader", { name: "Inklusi %" }).length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("Panel Target Nutrien")).toBeInTheDocument();
+
+    const collapseBtn = screen.getByRole("button", {
+      name: /Sembunyikan panel target nutrien/i,
+    });
+    await user.click(collapseBtn);
+
+    expect(screen.queryByLabelText("Panel Target Nutrien")).not.toBeInTheDocument();
+
+    const expandBtn = screen.getByRole("button", {
+      name: /Tampilkan panel target nutrien/i,
+    });
+    await user.click(expandBtn);
+
+    expect(screen.getByLabelText("Panel Target Nutrien")).toBeInTheDocument();
   });
 });

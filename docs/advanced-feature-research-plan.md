@@ -1,6 +1,6 @@
-# Rencana Riset & Bedah Teknis Fitur Lanjutan — Open Formul
+# Rencana Riset & Bedah Teknis Fitur Lanjutan — OpenFormul
 
-Dokumen ini menjadi panduan cetak biru (**Research & Dissection Plan**) pasca-deploy untuk membedah, memverifikasi secara matematis terhadap literatur _peer-reviewed_, lalu mengimplementasikan **15 modul formulasi presisi, operasional pabrik, dan ekosistem enterprise** secara bertahap pada engine **Open Formul** (`src/solver/`, `src/utils/`, `src/storage/`, dan UI _Advance_).
+Dokumen ini menjadi panduan cetak biru (**Research & Dissection Plan**) pasca-deploy untuk membedah, memverifikasi secara matematis terhadap literatur _peer-reviewed_, lalu mengimplementasikan **15 modul formulasi presisi, operasional pabrik, dan ekosistem enterprise** secara bertahap pada engine **OpenFormul** (`src/solver/`, `src/utils/`, `src/storage/`, dan UI _Advance_).
 
 > **Status Publikasi Saat Ini:** Seluruh 15 modul telah ditampilkan di halaman **Modul Lanjutan (`src/components/formulation/AdvancedModulesPreview.tsx`)** dengan status **Coming Soon** dan penjelasan fungsi sederhana agar pengguna versi publik (Desktop & Mobile PWA) memahami kapabilitas yang sedang dibangun.
 
@@ -9,7 +9,7 @@ Dokumen ini menjadi panduan cetak biru (**Research & Dissection Plan**) pasca-de
 ## Urutan Eksekusi Strategis
 
 1. **Tahap 1 — Deploy & Instalasi Lintas Platform (Prioritas Aktif):**
-   - Publikasi PWA _offline-first_ ke GitHub Pages (`/Open-Formul/`) + bundel portabel GitHub Releases agar langsung dapat dipasang di **Desktop (Windows/macOS/Linux)** dan **Mobile (Android/iOS)** lengkap dengan halaman **Modul Lanjutan (`Coming Soon`)**.
+   - Publikasi PWA _offline-first_ ke GitHub Pages (`/OpenFormul/`) + bundel portabel GitHub Releases agar langsung dapat dipasang di **Desktop (Windows/macOS/Linux)** dan **Mobile (Android/iOS)** lengkap dengan halaman **Modul Lanjutan (`Coming Soon`)**.
 2. **Tahap 2 — Riset & Bedah Cara Kerja Fitur (Per Modul):**
    - Untuk tiap modul (`PR-01` s/d `EN-05`), menyusun skenario uji numerik terhadap kasus jurnal acuan sebelum menulis kode solver, memverifikasi kecocokan solver HiGHS WASM (`LP` / `SLP` / `MILP`), serta menentukan kontrak tipe di `src/types/index.ts`.
 3. **Tahap 3 — Implementasi Bertahap & Validasi:**
@@ -31,7 +31,7 @@ Dokumen ini menjadi panduan cetak biru (**Research & Dissection Plan**) pasca-de
 | **`ML-03`** | Matriks Kontraindikasi Aditif (_Ionophore–Tiamulin_), Rotasi Koksidiostat, & Beban Mikotoksin Kumulatif                       | Keamanan Obat & Toksikologi   | Baru (`F-37`)                                | MILP Biner + LP Toksikologi              |
 | **`ML-04`** | LCA _Cradle-to-Mill-Gate_ (GFLI/ECOALIM), Neraca Retensi N/P Monogastrik, & Kurva Pareto $\epsilon$-Constraint                | Eco-Nutrition & Emisi         | Ada–Dangkal (`F-31`) + Baru (`F-40`)         | Multi-Objective $\epsilon$-Constraint LP |
 | **`ML-05`** | Optimasi Profit Karkas / Susu (_IOFC_, Gompertz GRG, & Algoritma Genetika Ruminansia)                                         | Model Pertumbuhan & Profit    | Ada–Dangkal (`F-25`, `F-26`)                 | NLP (GRG / Genetic Algorithm)            |
-| **`EN-01`** | Paket Mesin Terpisah (`@open-formul/core` CLI/NPM) & _Auto-Crawler_ Database Terbuka                                          | Ekosistem Riset & Kontributor | Ada–Terjadwal (`F-19`, `F-35`)               | Core Engine Bundling                     |
+| **`EN-01`** | Paket Mesin Terpisah (`@openformul/core` CLI/NPM) & _Auto-Crawler_ Database Terbuka                                           | Ekosistem Riset & Kontributor | Ada–Terjadwal (`F-19`, `F-35`)               | Core Engine Bundling                     |
 | **`EN-02`** | _Multi-Blend_ Multi-Pabrik, Konservasi Stok $I_{j,p,t}$, Tight Big-M Silo, & _Multi-Lot Blending_                             | Rantai Pasok & Silo Pabrik    | Ada–Dangkal (`F-27`) + Baru (`F-38`)         | Block-Angular MILP                       |
 | **`EN-03`** | _Cross-Formula Procurement Valuation Matrix_ (Evaluasi Harga Pemasok Lintas Formula)                                          | Pengadaan Strategis           | Baru (`F-38`)                                | Multi-LP / Block LP                      |
 | **`EN-04`** | _Closed-Loop_ QC FT-NIR ($\hat{\sigma}_{\text{EWMA}}$) ke Stokastik + _DAG Equation Topological Sort_                         | QC / LIMS Terintegrasi        | Ada–Dangkal (`F-21`, `F-29`) + Baru (`F-41`) | EWMA + DAG Evaluator                     |
@@ -91,7 +91,7 @@ Dokumen ini menjadi panduan cetak biru (**Research & Dissection Plan**) pasca-de
 
 ### Fase 6 — Enterprise Feed Mill Suite & Ekosistem Terbuka (`EN-01` s/d `EN-05`)
 
-- **`EN-01`:** Paket NPM/CLI `@open-formul/core` + alat kurasi dataset terbuka.
+- **`EN-01`:** Paket NPM/CLI `@openformul/core` + alat kurasi dataset terbuka.
 - **`EN-02` & `EN-03`:** _Block-Angular Multi-Blend MILP_ lintas pabrik & periode ($I_{j,p,t} = (1-\gamma)I_{j,p,t-1} + \text{Masuk} - \sum_f T_{f,p,t} x_{j,f,p,t}$), _tight Big-M_ $x_{j,f,p,t} \le \frac{U_{j,f}}{100} y_{j,p}$, _Multi-Lot Blending_, dan matriks valuasi pengadaan lintas formula.
 - **`EN-04`:** _Sample Basket_ FT-NIR memperbarui $\hat{\mu}_t, \hat{\sigma}_t^2$ secara EWMA dan mengevaluasi persamaan energi dalam urutan DAG _topological sort_.
 - **`EN-05`:** Penjadwalan urutan batch anti-carryover berbasis ATSP/GLSP (Toso, Morabito & Clark, 2009; Clark et al., 2010) serta generator label regulasi **SNI / Permentan RI**, **AAFCO**, dan **EU Reg 767/2009**.

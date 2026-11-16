@@ -26,4 +26,4 @@ Gunakan fitur [GitHub Private Vulnerability Reporting](../../security/advisories
 
 ## Ruang Lingkup Khusus
 
-Karena Open Formul berjalan sepenuhnya di sisi klien, area yang relevan meliputi: XSS melalui data impor (JSON/CSV), _supply-chain_ dependensi npm, integritas file WASM, dan cache Service Worker.
+Karena OpenFormul berjalan sepenuhnya di sisi klien, area yang relevan meliputi: XSS melalui data impor (JSON/CSV), _supply-chain_ dependensi npm, integritas file WASM, dan cache Service Worker.

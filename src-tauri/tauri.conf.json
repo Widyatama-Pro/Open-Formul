@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Open Formul",
+  "productName": "OpenFormul",
   "version": "0.1.0",
   "identifier": "io.github.widyatamapro.openformul",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Open Formul — Formulasi Pakan Ternak Presisi",
+        "title": "OpenFormul — Formulasi Pakan Ternak Presisi",
         "width": 1280,
         "height": 820,
         "minWidth": 390,

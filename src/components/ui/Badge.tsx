@@ -9,21 +9,21 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
   neutral:
-    "border-white/80 bg-[#EAF2F6]/85 text-[#3F5B68] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-cyan-200/15 dark:bg-[#0D3240]/80 dark:text-slate-200",
+    "border-[#E2E8F0] bg-[#F1F5F9] text-[#475569] dark:border-[#1E333D] dark:bg-[#162831] dark:text-slate-300",
   emerald:
-    "border-emerald-300/70 bg-emerald-100/75 text-emerald-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-emerald-700/60 dark:bg-emerald-950/65 dark:text-emerald-300",
+    "border-emerald-200 bg-emerald-50 text-[#047857] dark:border-emerald-800/70 dark:bg-emerald-950/65 dark:text-emerald-300",
   amber:
-    "border-amber-300/75 bg-amber-100/75 text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-amber-700/60 dark:bg-amber-950/65 dark:text-amber-200",
-  rose: "border-[#F27D6B]/70 bg-rose-100/75 text-rose-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-rose-700/60 dark:bg-rose-950/65 dark:text-rose-200",
-  sky: "border-sky-300/75 bg-[#DDF4FD]/85 text-[#0B5A78] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-cyan-600/50 dark:bg-cyan-950/65 dark:text-cyan-200",
+    "border-amber-200 bg-amber-50 text-[#B45309] dark:border-amber-800/70 dark:bg-amber-950/65 dark:text-amber-200",
+  rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800/70 dark:bg-rose-950/65 dark:text-rose-200",
+  sky: "border-teal-200 bg-teal-50 text-[#0F3D3E] dark:border-teal-800/70 dark:bg-teal-950/65 dark:text-teal-200",
 };
 
-/** Lencana status kapsul bergaya frosted glass (selalu dipasangkan dengan teks/ikon eksplisit). */
+/** Lencana status kapsul kontras tinggi tanpa backdrop blur (selalu berpasangan teks/ikon). */
 export function Badge({ tone = "neutral", className, ...rest }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap backdrop-blur-xs",
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap",
         TONE_CLASSES[tone],
         className,
       )}

@@ -1,10 +1,10 @@
 [package]
-name = "open-formul"
+name = "openformul"
 version = "0.1.0"
-description = "Open Formul — Formulasi Pakan Ternak Presisi"
+description = "OpenFormul — Formulasi Pakan Ternak Presisi"
 authors = ["Reza Widya Utama"]
 license = "MIT"
-repository = "https://github.com/Widyatama-Pro/Open-Formul"
+repository = "https://github.com/Widyatama-Pro/OpenFormul"
 edition = "2021"
 rust-version = "1.77.2"
 

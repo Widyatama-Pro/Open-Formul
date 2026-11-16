@@ -15,7 +15,7 @@ import {
   validateUserPreferences,
 } from "../utils/validators";
 
-export const OPEN_FORMUL_DB_NAME = "open-formul-db";
+export const OPEN_FORMUL_DB_NAME = "openformul-db";
 export const OPEN_FORMUL_DB_VERSION = 1;
 
 export interface ActiveSessionRecord {

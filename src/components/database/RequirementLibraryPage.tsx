@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { memo, useMemo, useState, type ReactNode } from "react";
 import { Beef, Bird, Check, Egg, Milk, Plus, Search, Target } from "lucide-react";
 import type { AppLanguage, Basis, Requirement } from "../../types";
 import { Badge } from "../ui/Badge";
@@ -45,7 +45,7 @@ export interface RequirementLibraryPageProps {
   readonly onCreateProfile: (req: Requirement) => void;
 }
 
-export function RequirementLibraryPage({
+export const RequirementLibraryPage = memo(function RequirementLibraryPage({
   requirements,
   activeRequirementId,
   language,
@@ -253,4 +253,4 @@ export function RequirementLibraryPage({
       </SheetDialog>
     </div>
   );
-}
+});

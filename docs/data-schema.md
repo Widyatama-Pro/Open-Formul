@@ -117,6 +117,6 @@ Output hasil formulasi yang dihasilkan oleh engine LP HiGHS WASM di Web Worker (
 
 ## Penyimpanan IndexedDB & Validasi Batas Sistem
 
-- **Database:** `"open-formul-db"` v1 (`src/storage/db.ts` via `idb`) dengan 5 _object store_: `ingredients`, `requirements`, `recipes`, `active_session` (`id: "current"`), dan `preferences` (`id: "user"`), lengkap dengan pemulihan baris rusak dan fallback memori otomatis jika IndexedDB tidak tersedia.
+- **Database:** `"openformul-db"` v1 (`src/storage/db.ts` via `idb`) dengan 5 _object store_: `ingredients`, `requirements`, `recipes`, `active_session` (`id: "current"`), dan `preferences` (`id: "user"`), lengkap dengan pemulihan baris rusak dan fallback memori otomatis jika IndexedDB tidak tersedia.
 - **Validasi Batas Sistem (`src/utils/validators.ts`):** memastikan `dryMatter ∈ (0, 100]`, `pricePerKg >= 0`, nilai nutrien/inklusi berhingga & valid (`null` tetap dibedakan dari `0`), serta sanitasi karakter kontrol sebelum masuk ke state/domain.
 - **Impor & Ekspor Offline:** transfer portabel `.feed.json` (`schemaVersion: 1`), impor CSV partial-merge (`src/utils/ingredientCsvImport.ts` dengan alias header seperti `Harga/kg`, `PK (%)`, `BK %`), TSV Multi-Cell Paste (`src/utils/tsvPaste.ts`), generator OOXML `.xlsx` & CSV UTF-8 BOM (`src/storage/exportCsvXlsx.ts`), serta PDF 1.4 offline (`src/storage/exportPdf.ts` dengan _safety status gate_ pada mode `batch_only`).

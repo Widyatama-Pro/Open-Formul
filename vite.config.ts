@@ -30,8 +30,8 @@ export default defineConfig(({ mode }) => {
               includeAssets: ["apple-touch-icon.png", "pwa-192x192.png", "pwa-512x512.png"],
               manifest: {
                 id: "./",
-                name: "Open Formul — Formulasi Pakan Ternak Presisi",
-                short_name: "Open Formul",
+                name: "OpenFormul — Formulasi Pakan Ternak Presisi",
+                short_name: "OpenFormul",
                 description:
                   "Aplikasi PWA offline-first lintas platform (Desktop & Mobile) untuk formulasi pakan ternak presisi berbasis Linear Programming (HiGHS WASM).",
                 theme_color: "#0E5E6F",

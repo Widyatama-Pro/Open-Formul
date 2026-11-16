@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { AlertTriangle, Plus, Trash2, X } from "lucide-react";
+import { memo, useState } from "react";
+import { AlertTriangle, PanelRightClose, Plus, Trash2, X } from "lucide-react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
 import type { ConstraintPatch } from "../../hooks/use-prototype-store";
 import type {
@@ -11,6 +11,7 @@ import type {
   NutrientUnit,
   Requirement,
 } from "../../types";
+import { cn } from "../../utils/cn";
 import { formatNumberLocale, parseLocaleDecimal } from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -42,6 +43,7 @@ export interface NutrientTargetsPanelProps {
   }) => { readonly ok: boolean; readonly error?: string };
   readonly onRemoveCustomNutrient?: (nutrientId: string) => void;
   readonly onUpdateCustomNutrientBasis?: (nutrientId: string, defaultBasis: Basis) => void;
+  readonly onCollapse?: () => void;
 }
 
 const NUTRIENT_UNITS: readonly NutrientUnit[] = [
@@ -53,7 +55,11 @@ const NUTRIENT_UNITS: readonly NutrientUnit[] = [
   "mEq/kg",
 ];
 
-export function NutrientTargetsPanel({
+/**
+ * Panel inspector Target Nutrien ramping (maks 310px di desktop) dengan scrollbar ultra-tipis
+ * dan tata letak ringkas bebas overflow horizontal.
+ */
+export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
   requirement,
   allNutrients = MOCK_NUTRIENTS,
   activeBasis,
@@ -67,6 +73,7 @@ export function NutrientTargetsPanel({
   onAddCustomNutrient,
   onRemoveCustomNutrient,
   onUpdateCustomNutrientBasis,
+  onCollapse,
 }: NutrientTargetsPanelProps) {
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customName, setCustomName] = useState("");
@@ -124,54 +131,65 @@ export function NutrientTargetsPanel({
 
   return (
     <Card interactive={false} className="flex h-full flex-col overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/65 px-4 py-3 dark:border-cyan-200/10">
-        <div className="min-w-0">
-          <h2 className="truncate text-sm font-bold tracking-tight text-[#122B36] dark:text-white">
+      <div className="border-b border-[#E2E8F0] px-3 py-2.5 dark:border-[#1E333D]">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="truncate text-xs font-bold tracking-tight text-[#0F172A] dark:text-white">
             {language === "id" ? "Target Nutrien" : "Nutrient Targets"}
           </h2>
-          <p className="truncate text-[11px] font-medium text-[#54707E] dark:text-slate-300">
+          <div className="flex shrink-0 items-center gap-1">
+            {onAddCustomNutrient && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setCustomBasis(activeBasis);
+                  setShowCustomForm((prev) => !prev);
+                  setCustomError(null);
+                }}
+                aria-label="Tambah Nutrien Kustom"
+                className="min-h-7 px-2 text-[11px] md:min-h-7"
+              >
+                {showCustomForm ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                <span>{showCustomForm ? "Tutup" : "Kustom"}</span>
+              </Button>
+            )}
+            {onCollapse && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onCollapse}
+                aria-label="Tutup panel target nutrien"
+                title="Sembunyikan panel target nutrien"
+                className="hidden min-h-7 w-7 p-0 lg:inline-flex"
+              >
+                <PanelRightClose className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <p className="min-w-0 truncate text-[11px] font-medium text-[#475569] dark:text-slate-300">
             {requirement.name}
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {onAddCustomNutrient && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setCustomBasis(activeBasis);
-                setShowCustomForm((prev) => !prev);
-                setCustomError(null);
-              }}
-              aria-label="Tambah Nutrien Kustom"
-            >
-              {showCustomForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-              <span>{showCustomForm ? "Tutup" : "Nutrien Kustom"}</span>
-            </Button>
-          )}
           <Badge tone={activeBasis === "as_fed" ? "sky" : "emerald"}>
             Basis: {activeBasis === "as_fed" ? "As-Fed" : "BK (DM)"}
           </Badge>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3.5 md:p-4">
+      <div className="custom-scrollbar flex-1 overflow-y-auto p-3">
         {showCustomForm && onAddCustomNutrient && (
-          <div className="glass-card mb-3 space-y-2.5 rounded-2xl p-3 text-xs">
-            <div className="flex items-center justify-between">
-              <p className="font-bold text-[#122B36] dark:text-white">
-                {language === "id"
-                  ? "Tambah Nutrien Kustom (Nama, Satuan & Basis)"
-                  : "Add Custom Nutrient"}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <Input
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value)}
-                placeholder="Mis. Beta-Glukan / Na"
-                aria-label="Nama Nutrien Kustom"
-              />
+          <div className="mb-3 space-y-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 text-xs dark:border-[#1E333D] dark:bg-[#0B1519]">
+            <p className="font-bold text-[#0F172A] dark:text-white">
+              {language === "id" ? "Tambah Nutrien Kustom" : "Add Custom Nutrient"}
+            </p>
+            <Input
+              value={customName}
+              onChange={(e) => setCustomName(e.target.value)}
+              placeholder="Mis. Beta-Glukan / Na"
+              aria-label="Nama Nutrien Kustom"
+            />
+            <div className="grid grid-cols-2 gap-1.5">
               <Select
                 value={customUnit}
                 onChange={(e) => setCustomUnit(e.target.value as NutrientUnit)}
@@ -192,7 +210,7 @@ export function NutrientTargetsPanel({
                 <option value="dry_matter">Basis BK (DM)</option>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-1.5">
               <Input
                 value={customMinRaw}
                 onChange={(e) => setCustomMinRaw(e.target.value)}
@@ -205,15 +223,10 @@ export function NutrientTargetsPanel({
                 placeholder="Max (opsional)"
                 aria-label="Target Max Nutrien Kustom"
               />
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleSaveCustom}
-                className="col-span-2 sm:col-span-1"
-              >
-                Simpan Nutrien
-              </Button>
             </div>
+            <Button variant="primary" size="sm" onClick={handleSaveCustom} className="w-full">
+              Simpan Nutrien
+            </Button>
             {customError && (
               <p
                 role="alert"
@@ -224,14 +237,15 @@ export function NutrientTargetsPanel({
             )}
           </div>
         )}
+
         {enableAdvance && (
-          <div className="neu-well mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5">
-            <div>
-              <p className="text-xs font-semibold text-[#122B36] dark:text-white">
-                Basis Nutrisi Tercerna (SID &amp; AvP)
+          <div className="neu-well mb-3 flex items-center justify-between gap-2 rounded-lg px-2.5 py-2">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-[#0F172A] dark:text-white">
+                Basis Tercerna (SID &amp; AvP)
               </p>
-              <p className="text-[11px] text-[#54707E] dark:text-slate-300">
-                Aktifkan fraksi Standardized Ileal Digestible &amp; Available P
+              <p className="text-[10px] text-[#475569] dark:text-slate-300">
+                Standardized Ileal Digestible &amp; AvP
               </p>
             </div>
             <Switch
@@ -245,143 +259,20 @@ export function NutrientTargetsPanel({
         {advanceNullWarning && (
           <div
             role="alert"
-            className="mb-3 flex items-start gap-2.5 rounded-2xl border border-amber-300/80 bg-amber-50/80 p-3 text-xs text-amber-900 backdrop-blur-xs dark:border-amber-700/70 dark:bg-amber-950/45 dark:text-amber-100"
+            className="mb-3 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-[11px] text-[#B45309] dark:border-amber-700/70 dark:bg-amber-950/45 dark:text-amber-100"
           >
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#D97706] dark:text-amber-400" />
             <div>
               <p className="font-semibold">{advanceNullWarning.message}</p>
               {advanceNullWarning.suggestion && (
-                <p className="mt-0.5 text-[11px] opacity-90">{advanceNullWarning.suggestion}</p>
+                <p className="mt-0.5 text-[10px] opacity-90">{advanceNullWarning.suggestion}</p>
               )}
             </div>
           </div>
         )}
 
-        {/* Tampilan Tabel Desktop / Tablet */}
-        <div className="hidden md:block">
-          <table className="w-full border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-white/75 text-[11px] font-bold tracking-wide text-[#54707E] dark:border-cyan-200/10 dark:text-slate-300">
-                <th className="py-2 pr-2 text-left">Nutrien</th>
-                <th className="w-20 px-1 py-2 text-right">Min</th>
-                <th className="w-20 px-1 py-2 text-right">Max</th>
-                <th className="w-20 px-2 py-2 text-right">Aktual</th>
-                <th className="w-32 py-2 pl-2 text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/60 dark:divide-cyan-200/10">
-              {visibleNutrients.map((nut) => {
-                const c = requirement.constraints.find((item) => item.nutrientId === nut.id);
-                const res = resultMap.get(nut.id);
-                const isCustomRow = nut.isCustom === true;
-                const isAdvanceRow = !isCustomRow && (nut.tier ?? "basic") !== "basic";
-                const enabled = c?.enabled ?? (!isAdvanceRow || isCustomRow);
-                const invalidRange = c?.min !== undefined && c?.max !== undefined && c.min > c.max;
-                const digits = nut.unit === "kcal/kg" ? 0 : 2;
-
-                return (
-                  <tr key={nut.id} className={!enabled ? "opacity-55" : undefined}>
-                    <td className="py-1.5 pr-2">
-                      <div className="flex items-center gap-2">
-                        {(isAdvanceRow || isCustomRow) && (
-                          <input
-                            type="checkbox"
-                            checked={enabled}
-                            aria-label={`Kontrol ${nut.name}`}
-                            onChange={(e) =>
-                              onUpdateConstraint(nut.id, { enabled: e.target.checked })
-                            }
-                            className="h-3.5 w-3.5 cursor-pointer rounded border-slate-300 accent-[#0E7490]"
-                          />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <span className="font-semibold text-[#122B36] dark:text-slate-100">
-                            {language === "id" ? nut.name : (nut.nameEn ?? nut.name)}
-                          </span>{" "}
-                          <span className="text-[11px] text-[#6C8693] dark:text-slate-400">
-                            ({nut.unit})
-                          </span>
-                          {isCustomRow && (
-                            <span className="ml-1.5 inline-flex items-center gap-1">
-                              {onUpdateCustomNutrientBasis && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    onUpdateCustomNutrientBasis(
-                                      nut.id,
-                                      (nut.defaultBasis ?? activeBasis) === "as_fed"
-                                        ? "dry_matter"
-                                        : "as_fed",
-                                    )
-                                  }
-                                  className="cursor-pointer rounded-md bg-cyan-500/12 px-1.5 py-0.5 text-[10px] font-bold text-[#0E7490] transition-all duration-150 hover:bg-cyan-500/20 active:scale-95 dark:text-cyan-300"
-                                  title="Klik untuk ubah basis nutrien kustom"
-                                >
-                                  {(nut.defaultBasis ?? activeBasis) === "as_fed" ? "AF" : "BK"}
-                                </button>
-                              )}
-                              {onRemoveCustomNutrient && (
-                                <button
-                                  type="button"
-                                  onClick={() => onRemoveCustomNutrient(nut.id)}
-                                  aria-label={`Hapus ${nut.name}`}
-                                  className="cursor-pointer rounded p-0.5 text-rose-500 transition-transform duration-150 hover:bg-rose-500/15 active:scale-90 dark:text-rose-400"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              )}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-1 py-1.5">
-                      <NumericCellInput
-                        value={c?.min ?? null}
-                        allowNull
-                        disabled={!enabled}
-                        fractionDigits={digits}
-                        invalid={invalidRange}
-                        errorTooltip="Min tidak boleh > Max"
-                        ariaLabel={`Target Min ${nut.name}`}
-                        onCommit={(next) => onUpdateConstraint(nut.id, { min: next })}
-                      />
-                    </td>
-                    <td className="px-1 py-1.5">
-                      <NumericCellInput
-                        value={c?.max ?? null}
-                        allowNull
-                        disabled={!enabled}
-                        fractionDigits={digits}
-                        invalid={invalidRange}
-                        errorTooltip="Max harus >= Min"
-                        ariaLabel={`Target Max ${nut.name}`}
-                        onCommit={(next) => onUpdateConstraint(nut.id, { max: next })}
-                      />
-                    </td>
-                    <td className="px-2 py-1.5 text-right font-bold tabular-nums text-[#122B36] dark:text-white">
-                      {res ? formatNumberLocale(res.value, digits) : "—"}
-                    </td>
-                    <td className="py-1.5 pl-2 text-right">
-                      {res ? (
-                        <NutrientStatusBadge
-                          status={res.status}
-                          deviation={res.deviation}
-                          digits={digits}
-                        />
-                      ) : (
-                        <NutrientStatusBadge status="unconstrained" />
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Tampilan Priority Cards Mobile (<768px) */}
-        <div className="space-y-2.5 md:hidden">
+        {/* Daftar Kendala Nutrien Kompak (muat rapi di lebar inspector 300px–320px maupun mobile) */}
+        <div className="space-y-2">
           {visibleNutrients.map((nut) => {
             const c = requirement.constraints.find((item) => item.nutrientId === nut.id);
             const res = resultMap.get(nut.id);
@@ -395,37 +286,66 @@ export function NutrientTargetsPanel({
             return (
               <div
                 key={nut.id}
-                className={
+                className={cn(
+                  "rounded-lg border p-2 transition-colors duration-150",
                   isAlert || invalidRange
-                    ? "glass-card glass-card-coral rounded-2xl p-3"
-                    : "glass-card rounded-2xl p-3"
-                }
+                    ? "border-rose-300 bg-rose-50/60 dark:border-rose-700/70 dark:bg-rose-950/25"
+                    : "border-[#E2E8F0] bg-[#F8FAFC] dark:border-[#1E333D] dark:bg-[#0B1519]",
+                  !enabled && "opacity-55",
+                )}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <label className="flex min-w-0 items-center gap-2 text-xs font-bold text-[#122B36] dark:text-white">
+                <div className="flex items-center justify-between gap-1.5">
+                  <div className="flex min-w-0 items-center gap-1.5">
                     {(isAdvanceRow || isCustomRow) && (
                       <input
                         type="checkbox"
                         checked={enabled}
                         aria-label={`Kontrol ${nut.name}`}
                         onChange={(e) => onUpdateConstraint(nut.id, { enabled: e.target.checked })}
-                        className="h-4 w-4 rounded border-slate-300 accent-[#0E7490]"
+                        className="h-3.5 w-3.5 shrink-0 cursor-pointer rounded border-slate-300 accent-[#059669]"
                       />
                     )}
-                    <span className="truncate">
-                      {language === "id" ? nut.name : (nut.nameEn ?? nut.name)} ({nut.unit})
-                    </span>
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    {isCustomRow && onRemoveCustomNutrient && (
-                      <button
-                        type="button"
-                        onClick={() => onRemoveCustomNutrient(nut.id)}
-                        aria-label={`Hapus ${nut.name}`}
-                        className="cursor-pointer rounded p-1 text-rose-500 transition-transform duration-150 hover:bg-rose-500/15 active:scale-90 dark:text-rose-400"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                    <div className="min-w-0 truncate text-xs">
+                      <span className="font-semibold text-[#0F172A] dark:text-slate-100">
+                        {language === "id" ? nut.name : (nut.nameEn ?? nut.name)}
+                      </span>{" "}
+                      <span className="text-[10px] text-[#475569] dark:text-slate-400">
+                        ({nut.unit})
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-1">
+                    {isCustomRow && (
+                      <>
+                        {onUpdateCustomNutrientBasis && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onUpdateCustomNutrientBasis(
+                                nut.id,
+                                (nut.defaultBasis ?? activeBasis) === "as_fed"
+                                  ? "dry_matter"
+                                  : "as_fed",
+                              )
+                            }
+                            className="cursor-pointer rounded bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold text-[#0F3D3E] transition-colors hover:bg-teal-100 dark:bg-teal-950 dark:text-teal-300"
+                            title="Klik untuk ubah basis nutrien kustom"
+                          >
+                            {(nut.defaultBasis ?? activeBasis) === "as_fed" ? "AF" : "BK"}
+                          </button>
+                        )}
+                        {onRemoveCustomNutrient && (
+                          <button
+                            type="button"
+                            onClick={() => onRemoveCustomNutrient(nut.id)}
+                            aria-label={`Hapus ${nut.name}`}
+                            className="cursor-pointer rounded p-0.5 text-rose-600 hover:bg-rose-100 dark:text-rose-400 dark:hover:bg-rose-950"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </>
                     )}
                     <NutrientStatusBadge
                       status={res?.status ?? "unconstrained"}
@@ -435,9 +355,9 @@ export function NutrientTargetsPanel({
                   </div>
                 </div>
 
-                <div className="mt-2.5 grid grid-cols-3 items-end gap-2">
+                <div className="mt-1.5 grid grid-cols-[1fr_1fr_auto] items-end gap-1.5">
                   <div>
-                    <span className="mb-1 block text-[11px] font-semibold text-[#54707E] dark:text-slate-300">
+                    <span className="mb-0.5 block text-[10px] font-medium text-[#475569] dark:text-slate-400">
                       Min
                     </span>
                     <NumericCellInput
@@ -446,12 +366,13 @@ export function NutrientTargetsPanel({
                       disabled={!enabled}
                       fractionDigits={digits}
                       invalid={invalidRange}
+                      errorTooltip="Min tidak boleh > Max"
                       ariaLabel={`Target Min ${nut.name}`}
                       onCommit={(next) => onUpdateConstraint(nut.id, { min: next })}
                     />
                   </div>
                   <div>
-                    <span className="mb-1 block text-[11px] font-semibold text-[#54707E] dark:text-slate-300">
+                    <span className="mb-0.5 block text-[10px] font-medium text-[#475569] dark:text-slate-400">
                       Max
                     </span>
                     <NumericCellInput
@@ -460,15 +381,16 @@ export function NutrientTargetsPanel({
                       disabled={!enabled}
                       fractionDigits={digits}
                       invalid={invalidRange}
+                      errorTooltip="Max harus >= Min"
                       ariaLabel={`Target Max ${nut.name}`}
                       onCommit={(next) => onUpdateConstraint(nut.id, { max: next })}
                     />
                   </div>
-                  <div className="neu-well rounded-xl px-2.5 py-1.5 text-right">
-                    <span className="block text-[10px] font-medium text-[#6C8693] dark:text-slate-400">
+                  <div className="min-w-14 rounded-md border border-[#E2E8F0] bg-white px-2 py-1 text-right dark:border-[#1E333D] dark:bg-[#111F26]">
+                    <span className="block text-[9px] font-medium text-[#475569] dark:text-slate-400">
                       Aktual
                     </span>
-                    <span className="text-sm font-bold tabular-nums text-[#122B36] dark:text-white">
+                    <span className="text-xs font-bold tabular-nums text-[#0F172A] dark:text-white">
                       {res ? formatNumberLocale(res.value, digits) : "—"}
                     </span>
                   </div>
@@ -486,4 +408,4 @@ export function NutrientTargetsPanel({
       </div>
     </Card>
   );
-}
+});

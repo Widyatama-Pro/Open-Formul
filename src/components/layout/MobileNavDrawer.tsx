@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   Calculator,
   ClipboardList,
@@ -42,7 +43,7 @@ function renderIcon(id: AppRoute) {
   }
 }
 
-export function MobileNavDrawer({
+export const MobileNavDrawer = memo(function MobileNavDrawer({
   open,
   onClose,
   route,
@@ -56,14 +57,14 @@ export function MobileNavDrawer({
     <SheetDialog
       open={open}
       onClose={onClose}
-      title="Open Formul"
+      title="OpenFormul"
       subtitle={
         language === "id" ? "Navigasi Modul & Preferensi" : "Module Navigation & Preferences"
       }
       variant="responsive"
     >
       <div className="space-y-4">
-        <div className="space-y-1.5 rounded-2xl bg-gradient-to-b from-[#0E4756] to-[#082B35] p-2.5 shadow-inner">
+        <div className="space-y-1.5 rounded-xl bg-[#0F3D3E] p-2.5 dark:bg-[#072223]">
           {NAV_ITEMS.map((item) => {
             const active = item.id === route;
             return (
@@ -75,10 +76,10 @@ export function MobileNavDrawer({
                   onClose();
                 }}
                 className={cn(
-                  "flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-xl px-3.5 text-left text-sm font-semibold transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.98] motion-reduce:transform-none",
+                  "flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3.5 text-left text-sm font-semibold transition-[transform,background-color,color] duration-150 active:scale-[0.98] motion-reduce:transform-none",
                   active
-                    ? "neu-active-sidebar-tile"
-                    : "text-cyan-50/80 hover:bg-white/10 hover:text-white",
+                    ? "bg-[#F8FAFC] text-[#0F3D3E] dark:bg-[#111F26] dark:text-emerald-400"
+                    : "text-[#94A3B8] hover:bg-white/10 hover:text-white",
                 )}
               >
                 {renderIcon(item.id)}
@@ -92,7 +93,7 @@ export function MobileNavDrawer({
           <button
             type="button"
             onClick={onToggleTheme}
-            className="neu-pill-btn flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-semibold text-[#123340] dark:text-slate-100"
+            className="neu-pill-btn flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-semibold text-[#0F172A] dark:text-slate-100"
           >
             {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
             <span>{theme === "light" ? "Mode Gelap" : "Mode Terang"}</span>
@@ -100,7 +101,7 @@ export function MobileNavDrawer({
           <button
             type="button"
             onClick={onToggleLanguage}
-            className="neu-pill-btn flex min-h-11 cursor-pointer items-center justify-center rounded-xl text-sm font-bold uppercase text-[#123340] dark:text-slate-100"
+            className="neu-pill-btn flex min-h-11 cursor-pointer items-center justify-center rounded-xl text-sm font-bold uppercase text-[#0F172A] dark:text-slate-100"
           >
             {language === "id" ? "Bahasa: ID" : "Language: EN"}
           </button>
@@ -108,4 +109,4 @@ export function MobileNavDrawer({
       </div>
     </SheetDialog>
   );
-}
+});

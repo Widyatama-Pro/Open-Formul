@@ -1,4 +1,4 @@
-# Panduan Kontribusi Open Formul
+# Panduan Kontribusi OpenFormul
 
 Terima kasih telah tertarik berkontribusi! Proyek ini membutuhkan dua jenis keahlian: **rekayasa perangkat lunak** dan **ilmu nutrisi ternak**.
 

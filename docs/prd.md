@@ -1,6 +1,6 @@
-# Product Requirements Document (PRD) & Panduan Spesifikasi Fitur Lengkap — Open Formul
+# Product Requirements Document (PRD) & Panduan Spesifikasi Fitur Lengkap — OpenFormul
 
-Dokumen ini adalah **panduan induk (_Single Source of Truth_)** yang menyatukan seluruh fitur fungsional, aturan anti-bentrok, arsitektur lintas platform (_Desktop & Mobile PWA_), model data, formulasi matematis, hingga modul rekayasa kelas industri untuk repositori **Open Formul**.
+Dokumen ini adalah **panduan induk (_Single Source of Truth_)** yang menyatukan seluruh fitur fungsional, aturan anti-bentrok, arsitektur lintas platform (_Desktop & Mobile PWA_), model data, formulasi matematis, hingga modul rekayasa kelas industri untuk repositori **OpenFormul**.
 
 > **Sumber Primer (`project-brief/`):**
 >
@@ -24,7 +24,7 @@ Biaya pakan menyumbang **60–70% total biaya produksi peternakan**. Di lapangan
 
 ### 1.2 Visi Produk
 
-Membangun **Open Formul**: aplikasi formulasi pakan ternak **open-source** dengan arsitektur **offline-first (Desktop & Mobile Android/PWA)** yang memadukan pengalaman pakai yang ringkas untuk peternak harian dengan kekuatan optimasi matematis, analitik ekonomi, dan pemodelan biologis kelas industri—berjalan **100% di sisi klien** untuk lingkup inti (_HiGHS WebAssembly + IndexedDB_) serta siap diekspansi ke modul riset dan pabrik (_All-in-One Architecture_).
+Membangun **OpenFormul**: aplikasi formulasi pakan ternak **open-source** dengan arsitektur **offline-first (Desktop & Mobile Android/PWA)** yang memadukan pengalaman pakai yang ringkas untuk peternak harian dengan kekuatan optimasi matematis, analitik ekonomi, dan pemodelan biologis kelas industri—berjalan **100% di sisi klien** untuk lingkup inti (_HiGHS WebAssembly + IndexedDB_) serta siap diekspansi ke modul riset dan pabrik (_All-in-One Architecture_).
 
 ### 1.3 Persona & Target Pengguna
 
@@ -60,13 +60,13 @@ Untuk menyatukan paradigma **Manufaktur Pakan Komposit/Monogastrik** (Bestmix, B
 3. **Lapisan 3 — Hybrid Optimization Solver Engine:** Menggabungkan _Single-Mix LP_ (dengan 5 mode optimasi & _Elastic Fallback_), _Chance-Constrained Stochastic Solver_ ($\sigma$), _Multi-Blend MILP_ (silo & langkah produksi), dan _Non-Linear / Genetic IOFC Optimizer_.
 4. **Lapisan 4 — Mill Operations, Analytics & Compliance Output:** Kalkulator _batching_ (kg & kompensasi timbangan/_Mill Cost_), pelabelan regulasi & _premix explosion_, urutan produksi VFD _anti-carryover_, analitik _Shadow Price / Opportunity Cost_, dan ekspor portabel (`.feed.json`, CSV, XLSX, PDF).
 
-### 3.2 Pemisahan Lapisan Teknis Open Formul (Client-Side PWA vs Ekspansi)
+### 3.2 Pemisahan Lapisan Teknis OpenFormul (Client-Side PWA vs Ekspansi)
 
-| Lapisan                                       | Implementasi Wajib                                                                                                                 | Prinsip Teknis                                                                                                                                                |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Core Engine (`src/solver/`, `src/utils/`)** | TypeScript murni bebas React + **HiGHS WASM (`highs`)** di Web Worker                                                              | 100% offline-first, tipe `readonly`, validasi pasca-solve toleransi `1e-6`, pembatalan `requestId` usang                                                      |
-| **Penyimpanan Lokal (`src/storage/`)**        | **IndexedDB** (`open-formul-db`: `ingredients`, `requirements`, `recipes`, `preferences`) + **Service Worker** (`vite-plugin-pwa`) | Dilarang menyimpan katalog/riwayat di `localStorage`; aset `.wasm` wajib ter-_precache_                                                                       |
-| **UI Cross-Platform (`src/components/`)**     | React 19 + TypeScript ketat (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) + Tailwind CSS v4                 | Mematuhi `DESIGN.md`, `frontend-anti-slop` (8pt spacing grid, `tabular-nums`, palet netral + semantik `emerald/amber/rose`), target sentuh mobile `≥ 44×44px` |
+| Lapisan                                       | Implementasi Wajib                                                                                                                | Prinsip Teknis                                                                                                                                                |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Core Engine (`src/solver/`, `src/utils/`)** | TypeScript murni bebas React + **HiGHS WASM (`highs`)** di Web Worker                                                             | 100% offline-first, tipe `readonly`, validasi pasca-solve toleransi `1e-6`, pembatalan `requestId` usang                                                      |
+| **Penyimpanan Lokal (`src/storage/`)**        | **IndexedDB** (`openformul-db`: `ingredients`, `requirements`, `recipes`, `preferences`) + **Service Worker** (`vite-plugin-pwa`) | Dilarang menyimpan katalog/riwayat di `localStorage`; aset `.wasm` wajib ter-_precache_                                                                       |
+| **UI Cross-Platform (`src/components/`)**     | React 19 + TypeScript ketat (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) + Tailwind CSS v4                | Mematuhi `DESIGN.md`, `frontend-anti-slop` (8pt spacing grid, `tabular-nums`, palet netral + semantik `emerald/amber/rose`), target sentuh mobile `≥ 44×44px` |
 
 ### 3.3 Desain Navigasi & Transformasi Layout Adaptif (Desktop, Tablet & Mobile)
 
@@ -368,7 +368,7 @@ Ekstraksi variabel dual dari solusi Simplex akhir (Brill, Bestmix, WinFeed, Ara,
 #### `F-32` Penyimpanan Lokal Offline (_IndexedDB Projects & Preferences_)
 
 - **Tujuan:** Menyimpan katalog bahan, standar kebutuhan ternak, resep tersimpan, riwayat formulasi, dan preferensi pengguna secara persisten di **IndexedDB** (`idb`), disertai _Service Worker_ (`vite-plugin-pwa`) yang melakukan _precache_ aplikasi dan `highs.wasm` agar berjalan 100% tanpa jaringan di Desktop & Android.
-- **Status / Rilis:** Fase 3 ✅ (`STG-01`, `STG-02`: IndexedDB `open-formul-db` v1 di `src/storage/db.ts` + PWA offline `vite-plugin-pwa` precache `highs-*.wasm`).
+- **Status / Rilis:** Fase 3 ✅ (`STG-01`, `STG-02`: IndexedDB `openformul-db` v1 di `src/storage/db.ts` + PWA offline `vite-plugin-pwa` precache `highs-*.wasm`).
 
 #### `F-33` Resep Portabel & Reproduktif (`.feed.json`)
 
@@ -389,7 +389,7 @@ Ekstraksi variabel dual dari solusi Simplex akhir (Brill, Bestmix, WinFeed, Ara,
 - **Decoupled Core Engine:** Seluruh logika optimasi dan konversi domain (`src/solver`, `src/utils`) bebas DOM/React agar dapat diuji unit secara terisolasi maupun dikemas ulang di Fase 4B sebagai paket CLI/library/API riset (Jupyter Notebook).
 - **Internasionalisasi (`ID / EN`) & Tema (`Light / Dark`):** Switch bahasa antarmuka Bahasa Indonesia ↔ English dan Light/Dark mode.
 - **Input Desimal Lokal & Windowing Progresif:** Mendukung tanda koma (`,`) dan titik (`.`) (`src/utils/locale-number.ts`) serta _windowing_ progresif ketika tabel memuat `> 50` hingga `300+` bahan baku maupun profil kebutuhan ternak.
-- **Status / Rilis:** Parser angka lokal (Fase 1 ✅) · _windowing_ progresif `> 50` item (Fase 3 ✅) · Deploy PWA Desktop/Mobile & i18n penuh (Fase 4 🟨) → Paket `@open-formul/core` (Fase 6 `EN-01` ⬜).
+- **Status / Rilis:** Parser angka lokal (Fase 1 ✅) · _windowing_ progresif `> 50` item (Fase 3 ✅) · Deploy PWA Desktop/Mobile & i18n penuh (Fase 4 🟨) → Paket `@openformul/core` (Fase 6 `EN-01` ⬜).
 
 ---
 
@@ -459,12 +459,12 @@ Kontrak tipe kanonik didefinisikan secara ketat di [src/types/index.ts](../src/t
 | **Fase 4**  | Deploy, PWA & i18n    | Deploy GitHub Pages + Bundel Portabel GitHub Releases, tombol instal PWA lintas Desktop & Mobile (`beforeinstallprompt`), halaman Modul Lanjutan (_Coming Soon_ 15 modul), serta i18n penuh (`ID / EN`)                                                                                                                | **🟨 Berjalan (Prioritas Deploy Aktif)** — workflow GitHub Pages & Releases, PWA subpath-safe, serta katalog _Coming Soon_ siap; i18n & rilis publik diselesaikan                                                                                                                   |
 | **Fase 4A** | `PR-01` s/d `PR-05`   | _Precision Core & SLP:_ Minimal IIS _Deletion Filter_ + Priority Tiers, _RHS Validity Ranging_ & _Critical-Region Stepping_, _Charnes–Cooper Fractional LP_ & kendala aktif `dEB`, Stokastik SLP (Kovarians/Cantelli), & Multi-Enzim Sub-Aditif + Hybrid CNCPS SLP                                                     | **⬜ Pasca-Deploy** (pratinjau _Coming Soon_ di `AdvancedModulesPreview.tsx` & blueprint di `docs/advanced-feature-research-plan.md`)                                                                                                                                               |
 | **Fase 5**  | `ML-01` s/d `ML-05`   | _Mill-Floor MILP, Eco-Nutrition & IOFC:_ dukungan `Binaries`/`Generals` MILP untuk Anti-Nol _semi-continuous_ & step timbangan, koreksi _Moisture Shrink_ produk akhir + PDI, bentrok aditif & mikotoksin kumulatif, Pareto LCA (GFLI/ECOALIM) & N/P monogastrik, serta _Maximum Profit IOFC_ (Gompertz/GA)            | **⬜ Roadmap Pasca-4A**                                                                                                                                                                                                                                                             |
-| **Fase 6**  | `EN-01` s/d `EN-05`   | _Enterprise Feed Mill & Ecosystem:_ `@open-formul/core` & dataset crawler, _Multi-Blend / Silo / Multi-Lot MILP_, _Cross-Formula Procurement Matrix_, QC FT-NIR EWMA _closed-loop_, serta _Batch Sequencing_ (ATSP/GLSP) & pelabelan **SNI RI / EU / AAFCO**                                                           | **⬜ Roadmap Enterprise**                                                                                                                                                                                                                                                           |
+| **Fase 6**  | `EN-01` s/d `EN-05`   | _Enterprise Feed Mill & Ecosystem:_ `@openformul/core` & dataset crawler, _Multi-Blend / Silo / Multi-Lot MILP_, _Cross-Formula Procurement Matrix_, QC FT-NIR EWMA _closed-loop_, serta _Batch Sequencing_ (ATSP/GLSP) & pelabelan **SNI RI / EU / AAFCO**                                                            | **⬜ Roadmap Enterprise**                                                                                                                                                                                                                                                           |
 
 ### 7.2 Rencana Struktur Modul Target (Fase 1–3 Penuh)
 
 ```text
-Open-Formul/
+OpenFormul/
 ├── README.md
 ├── docs/                              # prd.md (dokumen ini), DESIGN.md, ROADMAP.md, architecture.md, data-schema.md, formulation-math.md
 ├── project-brief/                     # Dokumen sumber spesifikasi & analisis industri

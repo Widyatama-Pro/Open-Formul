@@ -38,11 +38,11 @@ jobs:
           New-Item -ItemType Directory -Force -Path release-artifacts | Out-Null
           $exe = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis" -Filter "*.exe" | Select-Object -First 1
           if (-not $exe) { throw "NSIS .exe installer tidak ditemukan" }
-          Copy-Item $exe.FullName -Destination "release-artifacts/Open-Formul-Windows-x64-setup.exe"
+          Copy-Item $exe.FullName -Destination "release-artifacts/OpenFormul-Windows-x64-setup.exe"
       - uses: actions/upload-artifact@v4
         with:
           name: windows-exe
-          path: release-artifacts/Open-Formul-Windows-x64-setup.exe
+          path: release-artifacts/OpenFormul-Windows-x64-setup.exe
 
   build-android-apk:
     name: Build Android APK (via Capacitor 8)
@@ -73,11 +73,11 @@ jobs:
       - name: Normalize Android APK filename
         run: |
           mkdir -p release-artifacts
-          cp android/app/build/outputs/apk/debug/app-debug.apk release-artifacts/Open-Formul-Android.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk release-artifacts/OpenFormul-Android.apk
       - uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: release-artifacts/Open-Formul-Android.apk
+          path: release-artifacts/OpenFormul-Android.apk
 
   build-portable-zip:
     name: Build Portable Offline Bundle (.zip)
@@ -136,29 +136,29 @@ jobs:
           });
 
           server.listen(port, "127.0.0.1", () => {
-            console.log(`Open Formul offline siap di http://127.0.0.1:${port}`);
+            console.log(`OpenFormul offline siap di http://127.0.0.1:${port}`);
           });
           EOF
           cat << 'EOF' > release-bundle/start-windows.bat
           @echo off
-          echo Menjalankan Open Formul Offline di http://127.0.0.1:4173 ...
+          echo Menjalankan OpenFormul Offline di http://127.0.0.1:4173 ...
           start "" http://127.0.0.1:4173
           node "%~dp0server.mjs"
           EOF
           cat << 'EOF' > release-bundle/start-mac-linux.sh
           #!/usr/bin/env bash
           cd "$(dirname "$0")"
-          echo "Menjalankan Open Formul Offline di http://127.0.0.1:4173 ..."
+          echo "Menjalankan OpenFormul Offline di http://127.0.0.1:4173 ..."
           (sleep 1 && (xdg-open http://127.0.0.1:4173 || open http://127.0.0.1:4173) 2>/dev/null) &
           node server.mjs
           EOF
           chmod +x release-bundle/start-mac-linux.sh
           mkdir -p release-artifacts
-          (cd release-bundle && zip -r ../release-artifacts/open-formul-offline-portable.zip .)
+          (cd release-bundle && zip -r ../release-artifacts/openformul-offline-portable.zip .)
       - uses: actions/upload-artifact@v4
         with:
           name: portable-zip
-          path: release-artifacts/open-formul-offline-portable.zip
+          path: release-artifacts/openformul-offline-portable.zip
 
   publish-release:
     name: Publish GitHub Release
@@ -174,7 +174,7 @@ jobs:
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
           files: |
-            release-assets/Open-Formul-Windows-x64-setup.exe
-            release-assets/Open-Formul-Android.apk
-            release-assets/open-formul-offline-portable.zip
+            release-assets/OpenFormul-Windows-x64-setup.exe
+            release-assets/OpenFormul-Android.apk
+            release-assets/openformul-offline-portable.zip
           generate_release_notes: true

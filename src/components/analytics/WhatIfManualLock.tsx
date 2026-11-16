@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Lock, Unlock } from "lucide-react";
 import type { CompositionItem, Ingredient } from "../../types";
 import { formatNumberLocale } from "../../utils/locale-number";
@@ -13,8 +14,8 @@ export interface WhatIfManualLockProps {
   readonly onClearLocks: () => void;
 }
 
-/** Simulasi "What-If" Manual Lock bergaya kartu kaca-neumorfik. */
-export function WhatIfManualLock({
+/** Simulasi "What-If" Manual Lock dengan elevasi crisp card. */
+export const WhatIfManualLock = memo(function WhatIfManualLock({
   ingredients,
   composition,
   manualLocks,
@@ -27,14 +28,14 @@ export function WhatIfManualLock({
 
   return (
     <div className="space-y-3 text-xs">
-      <div className="neu-well flex flex-wrap items-center justify-between gap-2 rounded-2xl p-3">
+      <div className="neu-well flex flex-wrap items-center justify-between gap-2 rounded-xl p-2.5">
         <div>
-          <p className="font-bold text-[#122B36] dark:text-white">
+          <p className="font-bold text-[#0F172A] dark:text-white">
             Simulasi Tukar Bahan Cepat (&ldquo;What-If&rdquo; Lock)
           </p>
-          <p className="text-[11px] text-[#54707E] dark:text-slate-300">
+          <p className="text-[11px] text-[#475569] dark:text-slate-300">
             Kunci persentase bahan tertentu (total terkunci:{" "}
-            <strong className="tabular-nums text-[#122B36] dark:text-white">
+            <strong className="tabular-nums text-[#0F172A] dark:text-white">
               {formatNumberLocale(totalLocked, 1)}%
             </strong>{" "}
             / 100%)
@@ -57,19 +58,19 @@ export function WhatIfManualLock({
             <Card
               key={ing.id}
               highlight={isLocked ? "amber" : "none"}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl p-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl p-2.5"
             >
               <button
                 type="button"
                 onClick={() =>
                   onSetManualLock(ing.id, isLocked ? null : Number(currentPct.toFixed(1)))
                 }
-                className="inline-flex min-h-9 cursor-pointer items-center gap-2 text-left font-semibold text-[#122B36] dark:text-white"
+                className="inline-flex min-h-8 cursor-pointer items-center gap-2 text-left font-semibold text-[#0F172A] dark:text-white"
               >
                 {isLocked ? (
-                  <Lock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                  <Lock className="h-3.5 w-3.5 text-[#D97706] dark:text-amber-400" />
                 ) : (
-                  <Unlock className="h-3.5 w-3.5 text-[#6C8693]" />
+                  <Unlock className="h-3.5 w-3.5 text-[#475569]" />
                 )}
                 <span>{ing.name}</span>
               </button>
@@ -83,7 +84,7 @@ export function WhatIfManualLock({
                   value={currentPct}
                   aria-label={`Slider What-If ${ing.name}`}
                   onChange={(e) => onSetManualLock(ing.id, Number(e.target.value))}
-                  className="w-24 cursor-pointer accent-[#0E7490] sm:w-32"
+                  className="w-24 cursor-pointer accent-[#059669] sm:w-32"
                 />
                 <div className="w-20">
                   <NumericCellInput
@@ -100,4 +101,4 @@ export function WhatIfManualLock({
       </div>
     </div>
   );
-}
+});

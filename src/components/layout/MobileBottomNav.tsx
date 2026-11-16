@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Calculator, FolderOpen, Menu, Wheat } from "lucide-react";
 import type { AppRoute } from "../../hooks/use-prototype-store";
 import type { AppLanguage } from "../../types";
@@ -26,8 +27,8 @@ function renderMobileIcon(id: AppRoute) {
   }
 }
 
-/** Navigasi bawah bergaya frosted glass dock untuk layar ponsel (< 768px) dengan target sentuh >= 44px. */
-export function MobileBottomNav({
+/** Navigasi bawah untuk layar ponsel (< 768px) dengan target sentuh >= 44px dan tanpa backdrop blur. */
+export const MobileBottomNav = memo(function MobileBottomNav({
   route,
   onNavigate,
   onOpenDrawer,
@@ -38,7 +39,7 @@ export function MobileBottomNav({
   return (
     <nav
       aria-label="Navigasi bawah mobile"
-      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-white/80 bg-[#F4F9FC]/88 px-2 pt-1 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] shadow-[0_-10px_28px_rgba(14,68,82,0.1)] backdrop-blur-xl md:hidden dark:border-cyan-200/15 dark:bg-[#08222D]/90"
+      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-[#E2E8F0] bg-white px-2 pt-1 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] shadow-[0_-4px_12px_rgba(15,23,42,0.06)] md:hidden dark:border-[#1E333D] dark:bg-[#111F26]"
     >
       {PRIMARY_MOBILE_ROUTES.map((id) => {
         const item = NAV_ITEMS.find((n) => n.id === id)!;
@@ -50,10 +51,10 @@ export function MobileBottomNav({
             onClick={() => onNavigate(id)}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex min-h-12 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-[11px] font-semibold transition-[transform,background-color,color,box-shadow] duration-150 active:scale-95 motion-reduce:transform-none",
+              "flex min-h-12 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-semibold transition-[transform,background-color,color] duration-150 active:scale-95 motion-reduce:transform-none",
               active
-                ? "bg-[#0E4756] text-white shadow-[0_6px_14px_rgba(14,71,86,0.28)] dark:bg-cyan-600"
-                : "text-[#54707E] hover:text-[#122B36] dark:text-slate-300 dark:hover:text-white",
+                ? "bg-[#0F3D3E] text-white dark:bg-[#059669]"
+                : "text-[#475569] hover:text-[#0F172A] dark:text-slate-300 dark:hover:text-white",
             )}
           >
             {renderMobileIcon(id)}
@@ -66,10 +67,10 @@ export function MobileBottomNav({
         onClick={onOpenDrawer}
         aria-label={language === "id" ? "Buka menu lainnya" : "Open more menu"}
         className={cn(
-          "flex min-h-12 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-[11px] font-semibold transition-[transform,background-color,color,box-shadow] duration-150 active:scale-95 motion-reduce:transform-none",
+          "flex min-h-12 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-semibold transition-[transform,background-color,color] duration-150 active:scale-95 motion-reduce:transform-none",
           isOverflowRoute
-            ? "bg-[#0E4756] text-white shadow-[0_6px_14px_rgba(14,71,86,0.28)] dark:bg-cyan-600"
-            : "text-[#54707E] hover:text-[#122B36] dark:text-slate-300 dark:hover:text-white",
+            ? "bg-[#0F3D3E] text-white dark:bg-[#059669]"
+            : "text-[#475569] hover:text-[#0F172A] dark:text-slate-300 dark:hover:text-white",
         )}
       >
         <Menu className="h-[18px] w-[18px]" />
@@ -77,4 +78,4 @@ export function MobileBottomNav({
       </button>
     </nav>
   );
-}
+});

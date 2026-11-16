@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent, type ReactNode } from "react";
+import { memo, useMemo, useState, type ChangeEvent, type ReactNode } from "react";
 import {
   Beef,
   Download,
@@ -45,7 +45,7 @@ export interface IngredientLibraryPageProps {
   readonly onImportIngredients?: (nextIngredients: readonly Ingredient[]) => void;
 }
 
-export function IngredientLibraryPage({
+export const IngredientLibraryPage = memo(function IngredientLibraryPage({
   ingredients,
   customNutrients = [],
   language,
@@ -202,7 +202,7 @@ export function IngredientLibraryPage({
             size="sm"
             onClick={() => {
               const csv = exportIngredientsToCsv(ingredients, customNutrients);
-              downloadTextFile(csv, "open-formul-bahan-pakan.csv", "text/csv;charset=utf-8");
+              downloadTextFile(csv, "openformul-bahan-pakan.csv", "text/csv;charset=utf-8");
             }}
           >
             <Download className="h-3.5 w-3.5" />
@@ -409,7 +409,7 @@ export function IngredientLibraryPage({
       </div>
 
       {isWindowed && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/75 bg-white/55 px-4 py-3 text-xs text-[#54707E] dark:border-cyan-200/10 dark:bg-[#0D2E3B]/60 dark:text-slate-300">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-xs text-[#475569] dark:border-[#1E333D] dark:bg-[#111F26] dark:text-slate-300">
           <span>
             Menampilkan {displayed.length} dari {filtered.length} bahan pakan dalam pustaka.
           </span>
@@ -420,4 +420,4 @@ export function IngredientLibraryPage({
       )}
     </div>
   );
-}
+});

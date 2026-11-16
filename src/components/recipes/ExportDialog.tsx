@@ -75,7 +75,7 @@ export function ExportDialog({
       schemaVersion: 1,
       id: `recipe-export-${slug}`,
       name: effectiveTitle,
-      notes: `Diekspor dari Open Formul (${config.activeBasis}, batch ${config.batchSizeKg} kg).`,
+      notes: `Diekspor dari OpenFormul (${config.activeBasis}, batch ${config.batchSizeKg} kg).`,
       ingredients,
       requirement,
       config,

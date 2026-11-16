@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
 import type { CompositionItem, Ingredient, Nutrient, NutrientResult } from "../../types";
 import { formatNumberLocale } from "../../utils/locale-number";
@@ -11,8 +12,8 @@ export interface FormulationChartsProps {
   readonly batchTotalCost: number | null;
 }
 
-/** Visualisasi SVG murni & indikator progres neumorfik: Radar Target vs Aktual, Bar Berat vs Biaya, dan Rentang Nutrien. */
-export function FormulationCharts({
+/** Visualisasi SVG murni & indikator progres: Radar Target vs Aktual, Bar Berat vs Biaya, dan Rentang Nutrien. */
+export const FormulationCharts = memo(function FormulationCharts({
   composition,
   nutrients,
   allNutrients = MOCK_NUTRIENTS,
@@ -52,30 +53,30 @@ export function FormulationCharts({
   const actualPolygon = getPolygonPoints(actualRatios);
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-2">
       {/* Radar Chart Target Ideal vs Hasil Aktual */}
-      <div className="glass-card rounded-2xl p-3.5">
+      <div className="glass-card rounded-xl p-3.5">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-xs font-bold text-[#122B36] dark:text-white">
+          <h3 className="text-xs font-bold text-[#0F172A] dark:text-white">
             Radar Target Ideal vs Aktual
           </h3>
           <div className="flex items-center gap-3 text-[11px] font-medium">
-            <span className="inline-flex items-center gap-1 text-[#54707E] dark:text-slate-300">
+            <span className="inline-flex items-center gap-1 text-[#475569] dark:text-slate-300">
               <span className="h-2 w-2 rounded-full bg-slate-400" /> Target (100%)
             </span>
-            <span className="inline-flex items-center gap-1 text-[#0E7490] dark:text-cyan-300">
-              <span className="h-2 w-2 rounded-full bg-[#0E7490] dark:bg-cyan-400" /> Aktual
+            <span className="inline-flex items-center gap-1 text-[#059669] dark:text-emerald-400">
+              <span className="h-2 w-2 rounded-full bg-[#059669] dark:bg-emerald-400" /> Aktual
             </span>
           </div>
         </div>
 
         {radarItems.length < 3 ? (
-          <p className="py-10 text-center text-xs text-[#54707E]">
+          <p className="py-10 text-center text-xs text-[#475569]">
             Aktifkan minimal 3 batasan nutrien untuk menampilkan Radar Chart.
           </p>
         ) : (
           <div className="flex justify-center">
-            <svg viewBox="0 0 220 220" className="h-52 w-52" role="img" aria-label="Radar nutrien">
+            <svg viewBox="0 0 220 220" className="h-48 w-48" role="img" aria-label="Radar nutrien">
               {[0.5, 1].map((ring) => (
                 <circle
                   key={ring}
@@ -84,7 +85,7 @@ export function FormulationCharts({
                   r={maxR * ring}
                   fill="none"
                   stroke="currentColor"
-                  className="text-cyan-900/15 dark:text-cyan-200/15"
+                  className="text-slate-300 dark:text-slate-700"
                   strokeDasharray={ring === 0.5 ? "3 3" : undefined}
                 />
               ))}
@@ -102,14 +103,14 @@ export function FormulationCharts({
                       x2={x2}
                       y2={y2}
                       stroke="currentColor"
-                      className="text-cyan-900/15 dark:text-cyan-200/15"
+                      className="text-slate-300 dark:text-slate-700"
                     />
                     <text
                       x={lx}
                       y={ly}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      className="fill-[#466270] text-[9px] font-bold uppercase dark:fill-cyan-100/80"
+                      className="fill-[#475569] text-[9px] font-bold uppercase dark:fill-slate-300"
                     >
                       {item.nutrientId}
                     </text>
@@ -119,14 +120,14 @@ export function FormulationCharts({
               <polygon
                 points={targetPolygon}
                 fill="none"
-                stroke="#94a3b8"
+                stroke="#94A3B8"
                 strokeWidth={1.5}
                 strokeDasharray="4 2"
               />
               <polygon
                 points={actualPolygon}
-                fill="rgba(14, 116, 144, 0.2)"
-                stroke="#0E7490"
+                fill="rgba(5, 150, 105, 0.18)"
+                stroke="#059669"
                 strokeWidth={2}
               />
             </svg>
@@ -135,17 +136,17 @@ export function FormulationCharts({
       </div>
 
       {/* Bar Chart Porsi Berat (%) vs Porsi Biaya (%) */}
-      <div className="glass-card rounded-2xl p-3.5">
+      <div className="glass-card rounded-xl p-3.5">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-xs font-bold text-[#122B36] dark:text-white">
+          <h3 className="text-xs font-bold text-[#0F172A] dark:text-white">
             Porsi Berat (%) vs Porsi Biaya (%)
           </h3>
           <div className="flex items-center gap-3 text-[11px] font-medium">
-            <span className="inline-flex items-center gap-1 text-[#54707E] dark:text-slate-300">
-              <span className="h-2 w-2 rounded-xs bg-[#0E7490]" /> Berat
+            <span className="inline-flex items-center gap-1 text-[#0F3D3E] dark:text-teal-300">
+              <span className="h-2 w-2 rounded-xs bg-[#0F3D3E] dark:bg-teal-400" /> Berat
             </span>
-            <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-300">
-              <span className="h-2 w-2 rounded-xs bg-emerald-500" /> Biaya
+            <span className="inline-flex items-center gap-1 text-[#059669] dark:text-emerald-300">
+              <span className="h-2 w-2 rounded-xs bg-[#059669]" /> Biaya
             </span>
           </div>
         </div>
@@ -162,10 +163,10 @@ export function FormulationCharts({
             return (
               <div key={item.ingredientId} className="space-y-1 text-[11px]">
                 <div className="flex justify-between gap-2">
-                  <span className="truncate font-semibold text-[#122B36] dark:text-slate-100">
+                  <span className="truncate font-semibold text-[#0F172A] dark:text-slate-100">
                     {ing?.name ?? item.ingredientId}
                   </span>
-                  <span className="shrink-0 tabular-nums text-[#54707E] dark:text-slate-300">
+                  <span className="shrink-0 tabular-nums text-[#475569] dark:text-slate-300">
                     {formatNumberLocale(weightPct, 1)}% berat · {formatNumberLocale(costPct, 1)}%
                     biaya
                   </span>
@@ -173,13 +174,13 @@ export function FormulationCharts({
                 <div className="space-y-1">
                   <div className="neu-well h-2 w-full overflow-hidden rounded-full">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-[#0E7490] to-[#38BDF8]"
+                      className="h-full rounded-full bg-[#0F3D3E] dark:bg-teal-400"
                       style={{ width: `${Math.min(100, weightPct)}%` }}
                     />
                   </div>
                   <div className="neu-well h-2 w-full overflow-hidden rounded-full">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
+                      className="h-full rounded-full bg-[#059669]"
                       style={{ width: `${Math.min(100, costPct)}%` }}
                     />
                   </div>
@@ -190,9 +191,9 @@ export function FormulationCharts({
         </div>
       </div>
 
-      {/* Bar Rentang Pencapaian Nutrien bergaya track cekung neumorfik */}
-      <div className="glass-card rounded-2xl p-3.5 xl:col-span-2">
-        <h3 className="mb-3 text-xs font-bold text-[#122B36] dark:text-white">
+      {/* Bar Rentang Pencapaian Nutrien */}
+      <div className="glass-card rounded-xl p-3.5 xl:col-span-2">
+        <h3 className="mb-3 text-xs font-bold text-[#0F172A] dark:text-white">
           Indikator Rentang Pencapaian Nutrien (Min–Max)
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -208,10 +209,10 @@ export function FormulationCharts({
             return (
               <div key={n.nutrientId} className="space-y-1.5 text-xs">
                 <div className="flex justify-between">
-                  <span className="font-semibold text-[#122B36] dark:text-slate-100">
+                  <span className="font-semibold text-[#0F172A] dark:text-slate-100">
                     {meta?.name ?? n.nutrientId}
                   </span>
-                  <span className="font-semibold tabular-nums text-[#375563] dark:text-slate-200">
+                  <span className="font-semibold tabular-nums text-[#475569] dark:text-slate-200">
                     {formatNumberLocale(n.value, meta?.unit === "kcal/kg" ? 0 : 2)}{" "}
                     {meta?.unit ?? ""}
                   </span>
@@ -230,4 +231,4 @@ export function FormulationCharts({
       </div>
     </div>
   );
-}
+});

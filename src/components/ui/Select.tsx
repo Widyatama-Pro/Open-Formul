@@ -10,8 +10,8 @@ export function Select({ invalid, className, children, ...rest }: SelectProps) {
     <select
       aria-invalid={invalid === true ? true : undefined}
       className={cn(
-        "neu-well min-h-11 w-full cursor-pointer rounded-xl px-3 py-1.5 text-sm font-medium text-[#122B36] transition-[box-shadow,border-color,background-color] duration-150 focus-visible:bg-white/95 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[#0891B2] md:min-h-8 md:px-2.5 md:py-1 dark:text-slate-100 dark:focus-visible:bg-[#0D303D]",
-        invalid === true && "border-[#EC6453]",
+        "min-h-10 w-full cursor-pointer rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-2.5 py-1.5 text-xs font-semibold text-[#0F172A] transition-[border-color,background-color] duration-150 focus-visible:border-[#059669] focus-visible:bg-white focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[#059669]/30 md:min-h-8 md:py-1 dark:border-[#1E333D] dark:bg-[#0B1519] dark:text-slate-100 dark:focus-visible:bg-[#111F26]",
+        invalid === true && "border-rose-500",
         className,
       )}
       {...rest}

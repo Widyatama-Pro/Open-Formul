@@ -50,11 +50,11 @@ const STAGE_TABS: ReadonlyArray<{
   readonly labelId: string;
   readonly labelEn: string;
 }> = [
-    { key: "all", labelId: "Semua Fitur (15)", labelEn: "All Features (15)" },
-    { key: "precision", labelId: "Presisi & Risiko (5)", labelEn: "Precision & Risk (5)" },
-    { key: "mill_eco", labelId: "Pabrik & Lingkungan (5)", labelEn: "Mill & Eco (5)" },
-    { key: "enterprise", labelId: "Skala Enterprise (5)", labelEn: "Enterprise Scale (5)" },
-  ];
+  { key: "all", labelId: "Semua Fitur (15)", labelEn: "All Features (15)" },
+  { key: "precision", labelId: "Presisi & Risiko (5)", labelEn: "Precision & Risk (5)" },
+  { key: "mill_eco", labelId: "Pabrik & Lingkungan (5)", labelEn: "Mill & Eco (5)" },
+  { key: "enterprise", labelId: "Skala Enterprise (5)", labelEn: "Enterprise Scale (5)" },
+];
 
 const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {

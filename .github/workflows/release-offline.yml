@@ -1,4 +1,4 @@
-name: Build Offline Portable Release Bundle
+name: Build & Publish Native Installers (.exe, .apk) & Offline Bundle
 
 on:
   push:
@@ -7,15 +7,80 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag rilis GitHub (contoh: v0.1.0)"
+        description: "Tag rilis GitHub (contoh: v0.1.1)"
         required: false
-        default: "v0.1.0"
+        default: "v0.1.1"
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  build-windows-exe:
+    name: Build Windows Installer (.exe via Tauri v2)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Build Tauri NSIS installer (.exe)
+        run: npx tauri build
+      - name: Normalize Windows installer filename
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-artifacts | Out-Null
+          $exe = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis" -Filter "*.exe" | Select-Object -First 1
+          if (-not $exe) { throw "NSIS .exe installer tidak ditemukan" }
+          Copy-Item $exe.FullName -Destination "release-artifacts/Open-Formul-Windows-x64-setup.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: release-artifacts/Open-Formul-Windows-x64-setup.exe
+
+  build-android-apk:
+    name: Build Android APK (via Capacitor 8)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-36 platform-tools build-tools;36.0.0"
+      - run: npm ci
+      - name: Build offline bundle for Capacitor WebView
+        run: npm run build:native
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+      - name: Build Android APK (debug-signed, installable offline)
+        working-directory: ./android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - name: Normalize Android APK filename
+        run: |
+          mkdir -p release-artifacts
+          cp android/app/build/outputs/apk/debug/app-debug.apk release-artifacts/Open-Formul-Android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: release-artifacts/Open-Formul-Android.apk
+
+  build-portable-zip:
+    name: Build Portable Offline Bundle (.zip)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +96,7 @@ jobs:
         env:
           VITE_BASE_PATH: /
         run: npm run build
-      - name: Package portable desktop & offline launcher
+      - name: Package portable offline launcher
         run: |
           mkdir -p release-bundle/dist
           cp -r dist/* release-bundle/dist/
@@ -88,10 +153,28 @@ jobs:
           node server.mjs
           EOF
           chmod +x release-bundle/start-mac-linux.sh
-          cd release-bundle && zip -r ../open-formul-offline-portable.zip .
-      - name: Publish Release Asset
+          mkdir -p release-artifacts
+          (cd release-bundle && zip -r ../release-artifacts/open-formul-offline-portable.zip .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portable-zip
+          path: release-artifacts/open-formul-offline-portable.zip
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-windows-exe, build-android-apk, build-portable-zip]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Attach .exe, .apk, and .zip to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
-          files: open-formul-offline-portable.zip
+          files: |
+            release-assets/Open-Formul-Windows-x64-setup.exe
+            release-assets/Open-Formul-Android.apk
+            release-assets/open-formul-offline-portable.zip
           generate_release_notes: true

@@ -186,9 +186,11 @@ describe("Open Formul Fase 1 UI Prototype Flow", () => {
     // Cek kartu unduh/instal lintas platform di Pengaturan
     await user.click(screen.getAllByRole("button", { name: /Pengaturan/i })[0]!);
     expect(
-      screen.getByRole("heading", { name: /Unduh & Instal Aplikasi \(Desktop & Mobile\)/i }),
+      screen.getByRole("heading", {
+        name: /Unduh & Instal Aplikasi \(PC \.exe, Android \.apk & PWA\)/i,
+      }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Desktop \(Windows \/ macOS \/ Linux\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/Mobile \(Android & iOS\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Desktop PC \(Windows \.exe \/ Tauri & PWA\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Mobile \(Android \.apk \/ Capacitor & PWA\)/i)).toBeInTheDocument();
   });
 });

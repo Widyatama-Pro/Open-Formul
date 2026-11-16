@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 
 export type PwaPlatformHint = "android" | "ios" | "desktop";
 
@@ -18,9 +19,15 @@ export interface PwaStatus {
   readonly swSupported: boolean;
   readonly canInstall: boolean;
   readonly isInstalled: boolean;
+  readonly isNativeApp: boolean;
   readonly platformHint: PwaPlatformHint;
   readonly applyUpdate: () => void;
   readonly installApp: () => Promise<"accepted" | "dismissed" | "unavailable">;
+}
+
+function detectNativeShell(): boolean {
+  if (typeof window === "undefined") return false;
+  return "__TAURI_INTERNALS__" in window || Capacitor.isNativePlatform();
 }
 
 function detectPlatformHint(): PwaPlatformHint {
@@ -33,6 +40,7 @@ function detectPlatformHint(): PwaPlatformHint {
 
 function detectStandaloneMode(): boolean {
   if (typeof window === "undefined") return false;
+  if (detectNativeShell()) return true;
   const mediaMatch =
     typeof window.matchMedia === "function" &&
     window.matchMedia("(display-mode: standalone)").matches;
@@ -53,6 +61,7 @@ export function usePwaStatus(): PwaStatus {
     null,
   );
   const [isInstalled, setIsInstalled] = useState<boolean>(() => detectStandaloneMode());
+  const [isNativeApp] = useState<boolean>(() => detectNativeShell());
   const [platformHint] = useState<PwaPlatformHint>(() => detectPlatformHint());
 
   const swSupported = typeof navigator !== "undefined" && "serviceWorker" in navigator;
@@ -164,11 +173,12 @@ export function usePwaStatus(): PwaStatus {
 
   return {
     isOnline,
-    offlineReady,
+    offlineReady: isNativeApp ? true : offlineReady,
     needRefresh,
     swSupported,
     canInstall: installPromptEvent !== null && !isInstalled,
     isInstalled,
+    isNativeApp,
     platformHint,
     applyUpdate,
     installApp,

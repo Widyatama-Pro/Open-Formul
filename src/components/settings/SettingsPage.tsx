@@ -193,13 +193,13 @@ export function SettingsPage({
               <div>
                 <h2 className="text-sm font-bold text-[#122B36] dark:text-slate-100">
                   {preferences.language === "id"
-                    ? "Unduh & Instal Aplikasi (Desktop & Mobile)"
-                    : "Download & Install App (Desktop & Mobile)"}
+                    ? "Unduh & Instal Aplikasi (PC .exe, Android .apk & PWA)"
+                    : "Download & Install App (PC .exe, Android .apk & PWA)"}
                 </h2>
                 <p className="text-xs text-[#54707E] dark:text-slate-400">
                   {preferences.language === "id"
-                    ? "Instal Open Formul langsung ke Windows, macOS, Linux, atau HP Android/iOS agar berjalan mandiri 100% offline."
-                    : "Install Open Formul directly on Windows, macOS, Linux, Android, or iOS for 100% offline standalone use."}
+                    ? "Unduh installer Windows (.exe) & Android (.apk) dari GitHub Releases atau pasang langsung sebagai PWA 100% offline."
+                    : "Download the Windows (.exe) & Android (.apk) installers from GitHub Releases or install directly as a 100% offline PWA."}
                 </p>
               </div>
             </div>
@@ -259,8 +259,8 @@ export function SettingsPage({
               <ExternalLink className="h-3.5 w-3.5" />
               <span>
                 {preferences.language === "id"
-                  ? "Bundel Offline di GitHub Releases"
-                  : "Offline Bundle on GitHub Releases"}
+                  ? "Unduh .exe & .apk di GitHub Releases"
+                  : "Download .exe & .apk on GitHub Releases"}
               </span>
             </a>
           </div>
@@ -269,23 +269,23 @@ export function SettingsPage({
             <div className="neu-well rounded-2xl p-3">
               <div className="flex items-center gap-1.5 font-bold text-[#122B36] dark:text-slate-100">
                 <Laptop className="h-3.5 w-3.5 text-[#0E7490] dark:text-cyan-300" />
-                <span>Desktop (Windows / macOS / Linux)</span>
+                <span>Desktop PC (Windows .exe / Tauri &amp; PWA)</span>
               </div>
               <p className="mt-1 leading-relaxed text-[#466270] dark:text-slate-300">
                 {preferences.language === "id"
-                  ? "Buka di Chrome atau Edge, lalu klik ikon Instal di ujung kanan kolom alamat browser (atau unduh bundel portabel di GitHub Releases)."
-                  : "Open in Chrome or Edge and click the Install icon in the address bar (or download the portable bundle from GitHub Releases)."}
+                  ? "Unduh installer Windows (.exe) di GitHub Releases, atau buka di Chrome/Edge lalu klik ikon Instal untuk memasang aplikasi desktop offline."
+                  : "Download the Windows (.exe) installer on GitHub Releases, or open in Chrome/Edge and click Install to add the offline desktop app."}
               </p>
             </div>
             <div className="neu-well rounded-2xl p-3">
               <div className="flex items-center gap-1.5 font-bold text-[#122B36] dark:text-slate-100">
                 <Smartphone className="h-3.5 w-3.5 text-[#059669] dark:text-emerald-300" />
-                <span>Mobile (Android &amp; iOS)</span>
+                <span>Mobile (Android .apk / Capacitor &amp; PWA)</span>
               </div>
               <p className="mt-1 leading-relaxed text-[#466270] dark:text-slate-300">
                 {preferences.language === "id"
-                  ? "Di Android Chrome ketuk menu ⋮ → Instal Aplikasi / Tambahkan ke Layar Utama. Di Safari iOS ketuk Share → Add to Home Screen."
-                  : "On Android Chrome tap menu ⋮ → Install App / Add to Home Screen. On iOS Safari tap Share → Add to Home Screen."}
+                  ? "Unduh file Open-Formul-android.apk di GitHub Releases (izinkan pasang dari sumber tidak dikenal), atau instal PWA lewat Chrome/Safari."
+                  : "Download Open-Formul-android.apk from GitHub Releases (allow unknown sources), or install the PWA via Chrome/Safari."}
               </p>
             </div>
           </div>

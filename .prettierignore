@@ -8,5 +8,7 @@ package-lock.json
 .obsidian
 graphify-out
 project-brief
+android
+src-tauri
 *.base
 *.canvas

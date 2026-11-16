@@ -282,6 +282,7 @@ describe("Task 5 — Fase 3 UI Wiring: Export Gates, CSV/Feed Import, TSV Paste 
           swSupported: true,
           canInstall: false,
           isInstalled: false,
+          isNativeApp: false,
           platformHint: "desktop",
           applyUpdate: vi.fn(),
           installApp: vi.fn(() => Promise.resolve("unavailable" as const)),

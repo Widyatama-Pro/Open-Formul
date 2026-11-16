@@ -39,7 +39,8 @@ Status: ⬜ belum dimulai · 🟨 berjalan · ✅ selesai · 🕒 _Coming Soon_ 
 - ✅ Halaman **Modul Lanjutan (Advance)** menampilkan seluruh 15 modul riset berstatus **Coming Soon** dengan penjelasan fungsi sederhana (`AdvancedModulesPreview.tsx`)
 - ✅ Penyimpanan IndexedDB via `idb` (`open-formul-db` v1) + fallback memori
 - ✅ Ekspor/impor `.feed.json`, CSV partial-merge, Excel `.xlsx` (OOXML), TSV Multi-Cell Paste, & PDF 1.4 offline
-- 🟨 Internasionalisasi penuh seluruh label & pesan diagnostik (`ID / EN`) serta _packaging_ installer biner opsional (`.exe`/`.apk`) jika diperlukan di luar PWA
+- ✅ Pembungkus aplikasi native lintas platform siap rilis otomatis di [GitHub Releases](.github/workflows/release-offline.yml): **PC Windows `.exe` (Tauri v2)** + **Android `.apk` (Capacitor 8)** + dialog simpan/berbagi file ekspor native ([download.ts](src/utils/download.ts)) & mode build `build:native`
+- 🟨 Internasionalisasi penuh seluruh label & pesan diagnostik (`ID / EN`) serta penandatanganan _keystore_ rilis Play Store / Microsoft Store opsional di fase publikasi lanjutan
 
 ---
 

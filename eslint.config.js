@@ -14,6 +14,8 @@ export default tseslint.config(
       ".agent",
       "export-ai-performance-skills",
       "coverage",
+      "android",
+      "src-tauri",
       "eslint.config.js",
     ],
   },

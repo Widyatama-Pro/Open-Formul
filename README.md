@@ -78,15 +78,13 @@ Detail: [prd.md](prd.md) · [docs/architecture.md](docs/architecture.md) · [doc
 └── CONTRIBUTING.md
 ```
 
-## 🌐 Akses Aplikasi & Unduh Lintas Platform (Desktop & Mobile)
+## 🌐 Akses Aplikasi & Unduh Lintas Platform (PC `.exe`, Android `.apk`, & PWA)
 
-- **Aplikasi Web / PWA Langsung (GitHub Pages):** [`https://widyatama-pro.github.io/Open-Formul/`](https://widyatama-pro.github.io/Open-Formul/) _(aktif otomatis via workflow [deploy-pages.yml](.github/workflows/deploy-pages.yml) pada setiap push ke `main` — pastikan Pages sumber diset ke **GitHub Actions** pada pengaturan repositori)._
-- **Desktop (Windows / macOS / Linux):**
-  - Buka URL di **Chrome** atau **Microsoft Edge**, lalu klik tombol **Instal App** di header/Pengaturan (atau ikon instalasi di bilah alamat browser) untuk memasang aplikasi mandiri **100% offline**.
-  - Atau unduh arsip siap pakai `open-formul-offline-portable.zip` di halaman [**GitHub Releases**](https://github.com/Widyatama-Pro/Open-Formul/releases) dan jalankan `start-windows.bat` / `start-mac-linux.sh`.
-- **Mobile (Android & iOS):**
-  - Buka URL di **Chrome Android**, ketuk menu **⋮ → Instal Aplikasi / Tambahkan ke Layar Utama** (atau gunakan tombol **Instal Aplikasi** di menu _Pengaturan_).
-  - Di **Safari iOS**, ketuk ikon **Share → Add to Home Screen**.
+- **Unduh Installer Langsung ([GitHub Releases](https://github.com/Widyatama-Pro/Open-Formul/releases)):**
+  - **Windows Desktop (`.exe`):** Unduh `Open-Formul-Windows-x64-setup.exe` (dibangun via **Tauri v2**, ringan memakai WebView2, 100% offline dengan dialog simpan file native).
+  - **Android Mobile (`.apk`):** Unduh `Open-Formul-Android.apk` (dibangun via **Capacitor 8**, offline penuh dengan HiGHS WASM lokal serta tombol berbagi/simpan file ekspor ke perangkat).
+  - **Portable Offline ZIP (Windows / macOS / Linux):** Unduh `open-formul-offline-portable.zip` lalu jalankan `start-windows.bat` / `start-mac-linux.sh`.
+- **Aplikasi Web / PWA Langsung (GitHub Pages):** [`https://widyatama-pro.github.io/Open-Formul/`](https://widyatama-pro.github.io/Open-Formul/) _(aktif via workflow [deploy-pages.yml](.github/workflows/deploy-pages.yml) setelah Pages diset ke sumber **GitHub Actions** — dapat dipasang ke Desktop Chrome/Edge maupun Android Chrome / Safari iOS)._
 
 > 🚀 **Fokus Rilis Saat Ini:** Seluruh **15 modul formulasi presisi, pabrik, dan keberlanjutan** (`PR-01..PR-05`, `ML-01..ML-05`, `EN-01..EN-05`) telah tersedia di menu **Modul Lanjutan (Advance)** dengan label **Coming Soon** & penjelasan fungsi sederhana sambil menuntaskan deploy publik terlebih dahulu. Rencana bedah teknis & dasar jurnalnya ada di [docs/advanced-feature-research-plan.md](docs/advanced-feature-research-plan.md).
 

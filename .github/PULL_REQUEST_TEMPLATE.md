@@ -42,4 +42,4 @@ Closes #
 
 ### Dokumentasi
 
-- [ ] `README.md` / `ROADMAP.md` / `docs/` diperbarui sesuai perubahan
+- [ ] `README.md` / `docs/ROADMAP.md` / `docs/` diperbarui sesuai perubahan

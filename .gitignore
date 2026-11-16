@@ -134,3 +134,15 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Local AI agent, Obsidian vault & analysis cache folders
+.agent/
+.gemini/
+.obsidian/
+.omc/
+graphify-out/
+project-brief/
+AGENTS.md
+*.base
+*.canvas
+Progress chart*.md

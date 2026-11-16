@@ -50,17 +50,20 @@ flowchart LR
   UI <--> DB[("IndexedDB")]
 ```
 
-Detail: [prd.md](prd.md) · [docs/architecture.md](docs/architecture.md) · [docs/formulation-math.md](docs/formulation-math.md) · [docs/data-schema.md](docs/data-schema.md) · [docs/advanced-feature-research-plan.md](docs/advanced-feature-research-plan.md)
+Detail: [docs/prd.md](docs/prd.md) · [docs/architecture.md](docs/architecture.md) · [docs/formulation-math.md](docs/formulation-math.md) · [docs/data-schema.md](docs/data-schema.md) · [docs/advanced-feature-research-plan.md](docs/advanced-feature-research-plan.md)
 
 ## 📁 Struktur Repositori
 
 ```
 .
-├── .agent/skills/        # Instruksi modular untuk AI agent (domain, UI/UX, & agency-agents)
-├── .gemini/GEMINI.md     # Aturan workspace & aktivasi ekosistem UI/UX untuk Gemini/Antigravity
-├── .github/              # Template issue & PR
-├── docs/                 # Dokumentasi teknis
-├── project-brief/        # Dokumen brief spesifikasi fitur & analisis arsitektur industri
+├── .github/              # Template issue, PR, & workflow GitHub Actions
+├── android/              # Pembungkus aplikasi native Android (Capacitor 8)
+├── docs/                 # Dokumentasi teknis, PRD, Desain, Roadmap, & arsip referensi
+│   ├── DESIGN.md         # Referensi sistem desain (Linear-style)
+│   ├── ROADMAP.md        # Peta jalan pengembangan & rilis
+│   ├── prd.md            # Dokumen PRD & panduan lengkap seluruh fitur Open Formul
+│   └── references/       # Arsip PDF & transkripsi lengkap tervalidasi (Hartadi 1980 JSON/MD & Kearl 1982 / NRC 1988 JSON/MD)
+├── public/               # Aset publik PWA & ikon
 ├── src/
 │   ├── components/       # Komponen React
 │   ├── data/             # Sampel JSON, mock-state, pustaka penuh Hartadi 1980 (304 bahan), Kearl 1982 (82), & NRC 1988 (24)
@@ -69,12 +72,7 @@ Detail: [prd.md](prd.md) · [docs/architecture.md](docs/architecture.md) · [doc
 │   ├── storage/          # Persistensi IndexedDB (`idb`), transfer `.feed.json`, ekspor CSV/`.xlsx`/PDF 1.4
 │   ├── types/            # Tipe domain TypeScript
 │   └── utils/            # Utilitas murni (basis, persamaan ruminansia/monogastrik, validator batas, impor/ekspor CSV, TSV paste)
-├── docs/
-│   ├── references/       # Arsip PDF & transkripsi lengkap tervalidasi (Hartadi 1980 JSON/MD & Kearl 1982 / NRC 1988 JSON/MD)
-├── AGENTS.md             # Aturan global & standar UI/UX wajib untuk AI agent
-├── DESIGN.md             # Referensi sistem desain root (Linear-style)
-├── prd.md                # Dokumen PRD & panduan lengkap seluruh fitur Open Formul
-├── ROADMAP.md
+├── src-tauri/            # Pembungkus aplikasi desktop Windows `.exe` (Tauri v2)
 └── CONTRIBUTING.md
 ```
 
@@ -90,7 +88,7 @@ Detail: [prd.md](prd.md) · [docs/architecture.md](docs/architecture.md) · [doc
 
 ## 🚀 Instalasi Lokal & Pengembang
 
-> 💡 **Status Saat Ini (Fase 3 Selesai ✅):** Antarmuka Glass-Neumorphism responsif dengan _windowing_ progresif (`> 50` item), **engine LP HiGHS WASM di Web Worker** (`ENG-01`–`ENG-08`), **nutrien kustom penuh** (nama, satuan, basis dinamis pengguna), **persistensi offline IndexedDB (`open-formul-db` v1) + PWA (`vite-plugin-pwa` precache `.wasm`)**, **pustaka penuh Hartadi 1980 (304 bahan), Kearl 1982 (82 profil), & NRC 1988 (24 profil sapi perah)** beserta arsip lokal di [`docs/references/`](docs/references/), serta **ekspor/impor `.feed.json`, CSV partial-merge, Excel `.xlsx`, PDF 1.4 (`full` & `batch_only`), dan TSV Multi-Cell Paste** telah aktif. Item tersisa (internasionalisasi penuh & fitur lanjutan Fase 4) dipantau di [ROADMAP.md](ROADMAP.md).
+> 💡 **Status Saat Ini (Fase 3 Selesai ✅):** Antarmuka Glass-Neumorphism responsif dengan _windowing_ progresif (`> 50` item), **engine LP HiGHS WASM di Web Worker** (`ENG-01`–`ENG-08`), **nutrien kustom penuh** (nama, satuan, basis dinamis pengguna), **persistensi offline IndexedDB (`open-formul-db` v1) + PWA (`vite-plugin-pwa` precache `.wasm`)**, **pustaka penuh Hartadi 1980 (304 bahan), Kearl 1982 (82 profil), & NRC 1988 (24 profil sapi perah)** beserta arsip lokal di [`docs/references/`](docs/references/), serta **ekspor/impor `.feed.json`, CSV partial-merge, Excel `.xlsx`, PDF 1.4 (`full` & `batch_only`), dan TSV Multi-Cell Paste** telah aktif. Item tersisa (internasionalisasi penuh & fitur lanjutan Fase 4) dipantau di [docs/ROADMAP.md](docs/ROADMAP.md).
 
 Prasyarat pengembangan lokal: **Node.js ≥ 20** dan **npm ≥ 10**.
 
@@ -108,7 +106,7 @@ npm run build        # build produksi TypeScript + Vite
 
 ## 🤝 Berkontribusi
 
-Kami menyambut **programmer** maupun **ahli nutrisi ternak**! Baca [CONTRIBUTING.md](CONTRIBUTING.md), patuhi [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), dan lihat [ROADMAP.md](ROADMAP.md) untuk prioritas. Kontribusi data bahan pakan dapat diajukan via template issue **Feed Ingredient Data**.
+Kami menyambut **programmer** maupun **ahli nutrisi ternak**! Baca [CONTRIBUTING.md](CONTRIBUTING.md), patuhi [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), dan lihat [docs/ROADMAP.md](docs/ROADMAP.md) untuk prioritas. Kontribusi data bahan pakan dapat diajukan via template issue **Feed Ingredient Data**.
 
 Kerentanan keamanan: lihat [SECURITY.md](SECURITY.md).
 

@@ -1,16 +1,25 @@
 import { AlertCircle, AlertTriangle } from "lucide-react";
-import type { ConflictDiagnostic, FormulationStatus } from "../../types";
+import { formatIisBound, pickLang, translateConflict } from "../../i18n";
+import type { AppLanguage, ConflictDiagnostic, FormulationStatus, IisItem } from "../../types";
+import { formatNumberLocale } from "../../utils/locale-number";
 
 export interface ConflictDiagnosticsBannerProps {
   readonly status: FormulationStatus;
   readonly conflicts: readonly ConflictDiagnostic[];
   readonly messages: readonly string[];
+  /** PR-01: subset kendala minimal pemicu infeasibility. */
+  readonly iis?: readonly IisItem[] | undefined;
+  readonly relaxationPenalty?: number | undefined;
+  readonly language?: AppLanguage;
 }
 
 export function ConflictDiagnosticsBanner({
   status,
   conflicts,
   messages,
+  iis,
+  relaxationPenalty,
+  language = "id",
 }: ConflictDiagnosticsBannerProps) {
   const errors = conflicts.filter((c) => c.severity === "error");
   const warnings = conflicts.filter(
@@ -32,20 +41,40 @@ export function ConflictDiagnosticsBanner({
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
             <div className="space-y-1">
               <p className="font-bold">
-                Formula Tidak Ditemukan (Infeasible) — Kendala Konflik Terdeteksi
+                {pickLang(
+                  language,
+                  "Formula Tidak Ditemukan (Infeasible) — Kendala Konflik Terdeteksi",
+                  "Infeasible Formulation — Conflicting Constraints Detected",
+                )}
               </p>
               <ul className="list-disc space-y-1 pl-4">
-                {errors.map((err, i) => (
-                  <li key={`${err.code}-${i}`}>
-                    <span>{err.message}</span>
-                    {err.suggestion && (
-                      <span className="block text-[11px] text-rose-700 dark:text-rose-300">
-                        Saran: {err.suggestion}
-                      </span>
-                    )}
-                  </li>
-                ))}
+                {errors.map((err, i) => {
+                  const localized = translateConflict(language, err);
+                  return (
+                    <li key={`${err.code}-${i}`}>
+                      <span>{localized.message}</span>
+                      {localized.suggestion && (
+                        <span className="block text-[11px] text-rose-700 dark:text-rose-300">
+                          {pickLang(language, "Saran", "Tip")}: {localized.suggestion}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
                 {errors.length === 0 && messages.map((msg, i) => <li key={`msg-${i}`}>{msg}</li>)}
+                {iis && iis.length > 0 && (
+                  <li key="iis-list">
+                    <span className="mt-1 block text-[10px] font-semibold text-rose-700 dark:text-rose-300">
+                      {pickLang(language, "IIS minimal (Chinneck)", "Minimal IIS (Chinneck)")}:{" "}
+                      {iis
+                        .map(
+                          (it) =>
+                            `${it.kind}:${it.targetId} ${formatIisBound(language, it.bound)}${it.tier ? ` [${it.tier}]` : ""}`,
+                        )
+                        .join(" · ")}
+                    </span>
+                  </li>
+                )}
               </ul>
             </div>
           </div>
@@ -62,18 +91,35 @@ export function ConflictDiagnosticsBanner({
             <div className="space-y-1">
               <p className="font-bold">
                 {status === "near_feasible"
-                  ? "Terpenuhi Sebagian (Near-Feasible / Mode Relaksasi Elastik)"
-                  : "Peringatan Batasan Formulasi"}
+                  ? pickLang(
+                      language,
+                      "Terpenuhi Sebagian (Near-Feasible / Mode Relaksasi Elastik)",
+                      "Partially Satisfied (Near-Feasible / Elastic Relaxation)",
+                    )
+                  : pickLang(language, "Peringatan Batasan Formulasi", "Formulation Warnings")}
+                {status === "near_feasible" &&
+                  relaxationPenalty !== undefined &&
+                  relaxationPenalty > 0 && (
+                    <span className="ml-2 text-[10px] font-medium opacity-80">
+                      ({pickLang(language, "Penalti", "Penalty")}:{" "}
+                      {formatNumberLocale(relaxationPenalty, 1)})
+                    </span>
+                  )}
               </p>
               <ul className="list-disc space-y-1 pl-4">
-                {warnings.map((w, i) => (
-                  <li key={`${w.code}-${i}`}>
-                    <span>{w.message}</span>
-                    {w.suggestion && (
-                      <span className="block text-[11px] opacity-85">Saran: {w.suggestion}</span>
-                    )}
-                  </li>
-                ))}
+                {warnings.map((w, i) => {
+                  const localized = translateConflict(language, w);
+                  return (
+                    <li key={`${w.code}-${i}`}>
+                      <span>{localized.message}</span>
+                      {localized.suggestion && (
+                        <span className="block text-[11px] opacity-85">
+                          {pickLang(language, "Saran", "Tip")}: {localized.suggestion}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
                 {warnings.length === 0 && messages.map((m, i) => <li key={`warn-m-${i}`}>{m}</li>)}
               </ul>
             </div>

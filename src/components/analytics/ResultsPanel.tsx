@@ -1,7 +1,16 @@
 import { memo, useState } from "react";
+import { Activity } from "lucide-react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
-import type { FormulationConfig, FormulationResult, Ingredient, Nutrient } from "../../types";
-import { formatCurrencyIdr } from "../../utils/locale-number";
+import { getFormulationStatusLabel, pickLang } from "../../i18n";
+import type {
+  AppLanguage,
+  FormulationConfig,
+  FormulationResult,
+  Ingredient,
+  Nutrient,
+  Requirement,
+} from "../../types";
+import { formatCurrencyIdr, formatNumberLocale } from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { SegmentedTabs } from "../ui/SegmentedTabs";
@@ -16,7 +25,9 @@ export interface ResultsPanelProps {
   readonly result: FormulationResult;
   readonly ingredients: readonly Ingredient[];
   readonly allNutrients?: readonly Nutrient[];
+  readonly requirement?: Requirement;
   readonly config: FormulationConfig;
+  readonly language?: AppLanguage;
   readonly hideKpiStrip?: boolean;
   readonly onSetBatchSize: (kg: number) => void;
   readonly onToggleElastic: (enabled: boolean) => void;
@@ -30,7 +41,9 @@ export const ResultsPanel = memo(function ResultsPanel({
   result,
   ingredients,
   allNutrients,
+  requirement,
   config,
+  language = "id",
   hideKpiStrip = false,
   onSetBatchSize,
   onToggleElastic,
@@ -42,12 +55,16 @@ export const ResultsPanel = memo(function ResultsPanel({
 
   const statusBadge =
     result.status === "optimal" ? (
-      <Badge tone="emerald">Optimal</Badge>
+      <Badge tone="emerald">{getFormulationStatusLabel(language, "optimal")}</Badge>
     ) : result.status === "near_feasible" ? (
-      <Badge tone="amber">Near-Feasible (Elastik)</Badge>
+      <Badge tone="amber">{getFormulationStatusLabel(language, "near_feasible")}</Badge>
     ) : (
-      <Badge tone="rose">Infeasible</Badge>
+      <Badge tone="rose">{getFormulationStatusLabel(language, result.status)}</Badge>
     );
+
+  const fracNutMeta = config.fractionalObjective
+    ? nutrientsCatalog.find((n) => n.id === config.fractionalObjective?.nutrientId)
+    : undefined;
 
   return (
     <Card
@@ -60,7 +77,8 @@ export const ResultsPanel = memo(function ResultsPanel({
           <div className="flex flex-wrap items-center gap-4">
             <div>
               <span className="block text-[11px] font-semibold text-[#475569] dark:text-slate-300">
-                Biaya / kg ({result.basis === "as_fed" ? "As-Fed" : "BK"})
+                {pickLang(language, "Biaya / kg", "Cost / kg")} (
+                {result.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK", "DM")})
               </span>
               <span className="text-base font-bold tracking-tight tabular-nums text-[#D97706] dark:text-amber-400">
                 {result.costPerKg !== null ? formatCurrencyIdr(result.costPerKg) : "—"}
@@ -69,7 +87,7 @@ export const ResultsPanel = memo(function ResultsPanel({
 
             <div className="border-l border-[#E2E8F0] pl-4 dark:border-[#1E333D]">
               <span className="block text-[11px] font-semibold text-[#475569] dark:text-slate-300">
-                Biaya / {config.batchSizeKg} kg
+                {pickLang(language, "Biaya", "Cost")} / {config.batchSizeKg} kg
               </span>
               <span className="text-base font-bold tracking-tight tabular-nums text-[#059669] dark:text-emerald-400">
                 {result.batchTotalCost !== null && result.batchTotalCost !== undefined
@@ -84,9 +102,13 @@ export const ResultsPanel = memo(function ResultsPanel({
               <Switch
                 checked={config.enableElasticFallback}
                 onCheckedChange={onToggleElastic}
-                label="Aktifkan mode toleransi elastik saat target mustahil"
+                label={pickLang(
+                  language,
+                  "Aktifkan mode toleransi elastik saat target mustahil",
+                  "Enable elastic relaxation mode when target is infeasible",
+                )}
               />
-              <span>Relaksasi Elastik</span>
+              <span>{pickLang(language, "Relaksasi Elastik", "Elastic Relaxation")}</span>
             </label>
             {statusBadge}
           </div>
@@ -94,14 +116,22 @@ export const ResultsPanel = memo(function ResultsPanel({
       )}
 
       {result.status !== "infeasible" && (
-        <div className="border-b border-[#E2E8F0] px-3 py-2 dark:border-[#1E333D]">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E2E8F0] px-3 py-2 dark:border-[#1E333D]">
           <SegmentedTabs
-            ariaLabel="Sub-tampilan hasil formulasi"
+            ariaLabel={pickLang(
+              language,
+              "Sub-tampilan hasil formulasi",
+              "Formulation result views",
+            )}
             value={subTab}
             onChange={setSubTab}
             options={[
-              { value: "batch", label: "Komposisi & Batch", badge: result.composition.length },
-              { value: "charts", label: "Grafik" },
+              {
+                value: "batch",
+                label: pickLang(language, "Komposisi & Batch", "Composition & Batch"),
+                badge: result.composition.length,
+              },
+              { value: "charts", label: pickLang(language, "Grafik", "Charts") },
               { value: "dual", label: "Shadow Price" },
               {
                 value: "whatif",
@@ -110,6 +140,22 @@ export const ResultsPanel = memo(function ResultsPanel({
               },
             ]}
           />
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            {result.fractionalCost !== undefined && result.fractionalCost !== null && (
+              <Badge tone="sky">
+                {formatCurrencyIdr(result.fractionalCost)} /{" "}
+                {fracNutMeta
+                  ? `${language === "id" ? fracNutMeta.name : (fracNutMeta.nameEn ?? fracNutMeta.name)}`
+                  : config.fractionalObjective?.nutrientId}
+              </Badge>
+            )}
+            {result.stochasticIterations !== undefined && (
+              <Badge tone="amber">
+                SLP {result.stochasticIterations} {pickLang(language, "iter", "iter")}
+              </Badge>
+            )}
+          </div>
         </div>
       )}
 
@@ -118,18 +164,96 @@ export const ResultsPanel = memo(function ResultsPanel({
           status={result.status}
           conflicts={result.conflicts ?? []}
           messages={result.messages}
+          iis={result.iis ?? []}
+          relaxationPenalty={result.relaxationPenalty}
+          language={language}
         />
 
         {result.status !== "infeasible" && (
           <>
             {subTab === "batch" && (
-              <BatchMixerCalculator
-                batchSizeKg={config.batchSizeKg}
-                onSetBatchSize={onSetBatchSize}
-                composition={result.composition}
-                ingredients={ingredients}
-                activeBasis={result.basis}
-              />
+              <>
+                <BatchMixerCalculator
+                  batchSizeKg={config.batchSizeKg}
+                  onSetBatchSize={onSetBatchSize}
+                  composition={result.composition}
+                  ingredients={ingredients}
+                  activeBasis={result.basis}
+                  language={language}
+                />
+
+                {result.rumenEvaluation && (
+                  <div className="glass-card rounded-xl p-3 text-xs">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="flex items-center gap-1.5 font-bold text-[#0F172A] dark:text-white">
+                        <Activity className="h-3.5 w-3.5 text-[#059669] dark:text-emerald-400" />
+                        <span>
+                          {pickLang(
+                            language,
+                            "PR-05 · Evaluator Rumen (CNCPS v6.5 / NASEM 2021)",
+                            "PR-05 · Rumen Biology Evaluator (CNCPS v6.5 / NASEM 2021)",
+                          )}
+                        </span>
+                      </h3>
+                      <Badge
+                        tone={
+                          result.rumenEvaluation.acidosisRisk === "low"
+                            ? "emerald"
+                            : result.rumenEvaluation.acidosisRisk === "moderate"
+                              ? "amber"
+                              : "rose"
+                        }
+                      >
+                        {pickLang(language, "Risiko Asidosis", "Acidosis Risk")}:{" "}
+                        {result.rumenEvaluation.acidosisRisk === "low"
+                          ? pickLang(language, "Rendah", "Low")
+                          : result.rumenEvaluation.acidosisRisk === "moderate"
+                            ? pickLang(language, "Sedang", "Moderate")
+                            : pickLang(language, "Tinggi", "High")}
+                      </Badge>
+                    </div>
+                    <div className="neu-well grid grid-cols-2 gap-2.5 rounded-lg p-2.5 tabular-nums sm:grid-cols-4">
+                      <div>
+                        <span className="block text-[10px] text-[#475569] dark:text-slate-400">
+                          {pickLang(language, "Hijauan / NDF", "Forage / NDF")}
+                        </span>
+                        <span className="font-bold text-[#0F172A] dark:text-white">
+                          {formatNumberLocale(result.rumenEvaluation.forageFractionPct, 1)}% /{" "}
+                          {formatNumberLocale(result.rumenEvaluation.ndfPct, 1)}%
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-[#475569] dark:text-slate-400">
+                          peuNDF240 / Est. DMI
+                        </span>
+                        <span className="font-bold text-[#0F172A] dark:text-white">
+                          {formatNumberLocale(result.rumenEvaluation.peuNdf240Pct, 1)}% /{" "}
+                          {formatNumberLocale(result.rumenEvaluation.estimatedDmiPctBw, 2)}% BW
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-[#475569] dark:text-slate-400">
+                          {pickLang(language, "Laju Alir kp (F/C)", "Passage kp (F/C)")}
+                        </span>
+                        <span className="font-bold text-[#0F172A] dark:text-white">
+                          {formatNumberLocale(result.rumenEvaluation.kpForagePctPerH, 2)} /{" "}
+                          {formatNumberLocale(result.rumenEvaluation.kpConcPctPerH, 2)} %/h
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-[#475569] dark:text-slate-400">
+                          {pickLang(language, "MCP / Metana eCH4", "MCP / Methane eCH4")}
+                        </span>
+                        <span className="font-bold text-[#0F172A] dark:text-white">
+                          {formatNumberLocale(result.rumenEvaluation.microbialProteinGPerKgDm, 0)} /{" "}
+                          {formatNumberLocale(result.rumenEvaluation.predictedMethaneGPerKgDm, 1)}{" "}
+                          g/kg
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {subTab === "charts" && (
@@ -139,6 +263,7 @@ export const ResultsPanel = memo(function ResultsPanel({
                 allNutrients={nutrientsCatalog}
                 ingredients={ingredients}
                 batchTotalCost={result.batchTotalCost ?? null}
+                language={language}
               />
             )}
 
@@ -150,6 +275,9 @@ export const ResultsPanel = memo(function ResultsPanel({
                 opportunityCosts={result.opportunityCosts ?? []}
                 boundDuals={result.boundDuals ?? []}
                 ingredients={ingredients}
+                {...(requirement ? { requirement } : {})}
+                config={config}
+                language={language}
               />
             )}
 
@@ -160,6 +288,7 @@ export const ResultsPanel = memo(function ResultsPanel({
                 manualLocks={config.manualLocks ?? {}}
                 onSetManualLock={onSetManualLock}
                 onClearLocks={onClearManualLocks}
+                language={language}
               />
             )}
           </>

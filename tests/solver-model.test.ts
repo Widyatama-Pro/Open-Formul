@@ -221,7 +221,7 @@ describe("ENG-02 & ENG-05: LP Model Builder (buildLpModel) & CPLEX Formatter (to
     expect(hasRatioRows).toBe(true);
   });
 
-  it("Mode 5 (Presisi Tinggi) memakai midpoint deviasi (w_cost = 0) bukan meminimalkan biaya", () => {
+  it("Mode 5 (Chebyshev minimax + ε-lexicographic) mempertahankan deviasi goal dan bobot biaya sangat kecil", () => {
     const { ingredients, requirement, config } = makeTwoFeedFixture();
     const model5 = buildLpModel(ingredients, requirement, {
       ...config,
@@ -229,9 +229,13 @@ describe("ENG-02 & ENG-05: LP Model Builder (buildLpModel) & CPLEX Formatter (to
     });
     const ingVars = model5.variables.filter((v) => v.role === "ingredient");
     const goalVars = model5.variables.filter((v) => v.role === "goal_pos" || v.role === "goal_neg");
-    expect(ingVars.every((v) => v.objectiveCoeff === 0)).toBe(true);
+    const chebVar = model5.variables.find((v) => v.role === "chebyshev");
+    // ε-lexicographic: biaya sangat kecil (bukan 0) agar dual/opportunity cost tetap bermakna.
+    expect(ingVars.every((v) => Math.abs(v.objectiveCoeff) < 1e-3)).toBe(true);
+    expect(ingVars.some((v) => v.objectiveCoeff > 0)).toBe(true);
     expect(goalVars.length).toBeGreaterThan(0);
-    expect(goalVars.every((v) => v.objectiveCoeff > 0)).toBe(true);
+    expect(chebVar?.objectiveCoeff).toBe(1);
+    expect(model5.rows.some((r) => r.meta.kind === "chebyshev")).toBe(true);
   });
 
   it("Mode Elastik L1 menambahkan variabel slack non-negatif berpenalti tinggi dan menjaga modelPricePerKg murni", () => {

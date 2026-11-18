@@ -9,6 +9,7 @@ import {
   Printer,
 } from "lucide-react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
+import { pickLang } from "../../i18n";
 import {
   FEED_FILE_EXTENSION,
   FEED_JSON_MIME,
@@ -19,6 +20,7 @@ import {
   serializeRecipeToFeedJson,
 } from "../../storage";
 import type {
+  AppLanguage,
   FormulationConfig,
   FormulationResult,
   Ingredient,
@@ -41,6 +43,7 @@ export interface ExportDialogProps {
   readonly config: FormulationConfig;
   readonly result: FormulationResult;
   readonly recipeName?: string;
+  readonly language?: AppLanguage;
 }
 
 export function ExportDialog({
@@ -52,6 +55,7 @@ export function ExportDialog({
   config,
   result,
   recipeName,
+  language = "id",
 }: ExportDialogProps) {
   const [notice, setNotice] = useState<{
     readonly tone: "success" | "error";
@@ -220,8 +224,12 @@ export function ExportDialog({
         setNotice(null);
         onClose();
       }}
-      title="Ekspor Resep & Lembar Kerja"
-      subtitle="Unduh dokumen siap cetak gudang, spreadsheet multi-sheet, atau resep portabel offline."
+      title={pickLang(language, "Ekspor Resep & Lembar Kerja", "Export Recipe & Worksheet")}
+      subtitle={pickLang(
+        language,
+        "Unduh dokumen siap cetak gudang, spreadsheet multi-sheet, atau resep portabel offline.",
+        "Download mill batch sheets, multi-sheet spreadsheets, or offline portable recipe files.",
+      )}
       footer={
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Button
@@ -234,7 +242,7 @@ export function ExportDialog({
             }}
           >
             <Printer className="h-3.5 w-3.5" />
-            <span>Cetak Browser</span>
+            <span>{pickLang(language, "Cetak Browser", "Browser Print")}</span>
           </Button>
           <Button
             variant="secondary"
@@ -243,7 +251,7 @@ export function ExportDialog({
               onClose();
             }}
           >
-            Tutup
+            {pickLang(language, "Tutup", "Close")}
           </Button>
         </div>
       }
@@ -257,11 +265,18 @@ export function ExportDialog({
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
             <div>
               <p className="font-bold">
-                Mode Relaksasi Elastik — dokumen bertanda kompromi nutrisi
+                {pickLang(
+                  language,
+                  "Mode Relaksasi Elastik — dokumen bertanda kompromi nutrisi",
+                  "Elastic Relaxation Mode — documents carry nutrient compromise notice",
+                )}
               </p>
               <p className="mt-0.5 text-[11px] opacity-90">
-                CSV, .xlsx, dan PDF Lengkap menyertakan penanda kompromi nutrisi. PDF Print Batch
-                Only dinonaktifkan hingga formula mencapai status Optimal penuh.
+                {pickLang(
+                  language,
+                  "CSV, .xlsx, dan PDF Lengkap menyertakan penanda kompromi nutrisi. PDF Print Batch Only dinonaktifkan hingga formula mencapai status Optimal penuh.",
+                  "CSV, .xlsx, and Full PDF include compromise warnings. Batch-Only PDF is locked until status is fully Optimal.",
+                )}
               </p>
             </div>
           </div>
@@ -275,11 +290,18 @@ export function ExportDialog({
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-300" />
             <div>
               <p className="font-bold">
-                Ekspor hasil produksi diblokir (Status Infeasible / Kosong)
+                {pickLang(
+                  language,
+                  "Ekspor hasil produksi diblokir (Status Infeasible / Kosong)",
+                  "Production exports blocked (Infeasible / Empty status)",
+                )}
               </p>
               <p className="mt-0.5 text-[11px] opacity-90">
-                Anda tetap dapat mengunduh <strong>.feed.json</strong> untuk berbagi atau debugging
-                target kendala bersama konsultan.
+                {pickLang(
+                  language,
+                  "Anda tetap dapat mengunduh .feed.json untuk berbagi atau debugging target kendala bersama konsultan.",
+                  "You can still download .feed.json to share or troubleshoot constraints.",
+                )}
               </p>
             </div>
           </div>
@@ -307,10 +329,14 @@ export function ExportDialog({
             <GlossySquircleIcon tone="mint" size="sm" icon={<FileCode2 className="h-4 w-4" />} />
             <div>
               <p className="font-bold text-[#122B36] dark:text-slate-100">
-                Resep Portabel (.feed.json)
+                {pickLang(language, "Resep Portabel (.feed.json)", "Portable Recipe (.feed.json)")}
               </p>
               <p className="mt-0.5 text-[11px] text-[#54707E] dark:text-slate-400">
-                Simpan bahan, harga custom &amp; batasan untuk reproduksi 100% identik offline.
+                {pickLang(
+                  language,
+                  "Simpan bahan, harga custom & batasan untuk reproduksi 100% identik offline.",
+                  "Stores feeds, custom prices & bounds for 100% reproducible offline sharing.",
+                )}
               </p>
             </div>
           </button>
@@ -327,7 +353,11 @@ export function ExportDialog({
                   Spreadsheet (CSV &amp; Excel)
                 </p>
                 <p className="mt-0.5 text-[11px] text-[#54707E] dark:text-slate-400">
-                  Komposisi As-Fed, bobot batch, profil nutrien &amp; analisis sensitivitas.
+                  {pickLang(
+                    language,
+                    "Komposisi As-Fed, bobot batch, profil nutrien & analisis sensitivitas.",
+                    "As-Fed composition, batch weights, nutrient profile & sensitivity analysis.",
+                  )}
                 </p>
               </div>
             </div>
@@ -339,7 +369,7 @@ export function ExportDialog({
                 onClick={handleDownloadCsv}
                 className="min-h-10 flex-1"
               >
-                Unduh CSV
+                {pickLang(language, "Unduh CSV", "Download CSV")}
               </Button>
               <Button
                 variant="primary"
@@ -348,7 +378,7 @@ export function ExportDialog({
                 onClick={handleDownloadXlsx}
                 className="min-h-10 flex-1"
               >
-                Unduh Excel (.xlsx)
+                {pickLang(language, "Unduh Excel (.xlsx)", "Download Excel (.xlsx)")}
               </Button>
             </div>
           </div>
@@ -362,10 +392,14 @@ export function ExportDialog({
             <GlossySquircleIcon tone="petrol" size="sm" icon={<FileText className="h-4 w-4" />} />
             <div>
               <p className="font-bold text-[#122B36] dark:text-slate-100">
-                PDF Lembar Formula Lengkap
+                {pickLang(language, "PDF Lembar Formula Lengkap", "PDF Full Formula Sheet")}
               </p>
               <p className="mt-0.5 text-[11px] text-[#54707E] dark:text-slate-400">
-                Laporan nutrisiwan, biaya batch, capaian nutrien &amp; shadow price.
+                {pickLang(
+                  language,
+                  "Laporan nutrisiwan, biaya batch, capaian nutrien & shadow price.",
+                  "Nutritionist report, batch cost, nutrient profile & shadow prices.",
+                )}
               </p>
             </div>
           </button>
@@ -376,8 +410,12 @@ export function ExportDialog({
             onClick={handleDownloadPdfBatch}
             title={
               isOptimal
-                ? "Unduh PDF instruksi penimbangan gudang tanpa harga & rahasia nutrisi"
-                : "Khusus status Optimal"
+                ? pickLang(
+                    language,
+                    "Unduh PDF instruksi penimbangan gudang tanpa harga & rahasia nutrisi",
+                    "Download warehouse weighing PDF without prices or nutrient secrets",
+                  )
+                : pickLang(language, "Khusus status Optimal", "Optimal status only")
             }
             className="glass-card glass-card-interactive flex min-h-16 cursor-pointer items-start gap-3 p-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F6E7F]/40 disabled:pointer-events-none disabled:opacity-50"
           >
@@ -385,12 +423,20 @@ export function ExportDialog({
             <div>
               <div className="flex flex-wrap items-center gap-1.5">
                 <p className="font-bold text-[#122B36] dark:text-slate-100">PDF Print Batch Only</p>
-                <Badge tone="amber">Gudang</Badge>
+                <Badge tone="amber">{pickLang(language, "Gudang", "Mill")}</Badge>
               </div>
               <p className="mt-0.5 text-[11px] text-[#54707E] dark:text-slate-400">
                 {isOptimal
-                  ? "Menyembunyikan harga & target nutrisi dari operator mixer."
-                  : "Terkunci — hanya tersedia bila status solver Optimal penuh."}
+                  ? pickLang(
+                      language,
+                      "Menyembunyikan harga & target nutrisi dari operator mixer.",
+                      "Hides costs & nutrient specs from mixer operators.",
+                    )
+                  : pickLang(
+                      language,
+                      "Terkunci — hanya tersedia bila status solver Optimal penuh.",
+                      "Locked — available only when solver status is Optimal.",
+                    )}
               </p>
             </div>
           </button>
@@ -399,7 +445,11 @@ export function ExportDialog({
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <p className="text-[11px] font-semibold text-[#54707E] dark:text-slate-400">
-              Pratinjau Skema Kanonik (.feed.json):
+              {pickLang(
+                language,
+                "Pratinjau Skema Kanonik (.feed.json):",
+                "Canonical Schema Preview (.feed.json):",
+              )}
             </p>
             <Button variant="ghost" size="sm" onClick={() => void handleCopyJson()}>
               {copied ? (
@@ -407,7 +457,11 @@ export function ExportDialog({
               ) : (
                 <Copy className="h-3.5 w-3.5" />
               )}
-              <span>{copied ? "Tersalin" : "Salin JSON"}</span>
+              <span>
+                {copied
+                  ? pickLang(language, "Tersalin", "Copied")
+                  : pickLang(language, "Salin JSON", "Copy JSON")}
+              </span>
             </Button>
           </div>
           <pre className="max-h-44 overflow-auto rounded-2xl border border-cyan-300/20 bg-[#0A2530] p-3.5 font-mono text-[11px] text-cyan-50 shadow-[inset_0_2px_8px_rgba(3,14,19,0.55)]">

@@ -1,12 +1,14 @@
 import { memo } from "react";
 import {
   BookmarkPlus,
+  Cpu,
   Download,
   PanelRightClose,
   PanelRightOpen,
   RotateCcw,
   SlidersHorizontal,
 } from "lucide-react";
+import { getFormulationStatusLabel, pickLang } from "../../i18n";
 import type {
   AppLanguage,
   Basis,
@@ -38,6 +40,7 @@ export interface WorkbenchToolbarProps {
   readonly onToggleAdvance: (enabled: boolean) => void;
   readonly onToggleZeroInclusion: (enabled: boolean, minPct?: number) => void;
   readonly onToggleElastic: (enabled: boolean) => void;
+  readonly onOpenPrecisionDialog?: () => void;
   readonly onSetDemoScenario: (s: "auto" | "optimal" | "near_feasible" | "infeasible") => void;
   readonly onOpenSaveDialog: () => void;
   readonly onOpenExportDialog: () => void;
@@ -63,6 +66,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
   onToggleAdvance,
   onToggleZeroInclusion,
   onToggleElastic,
+  onOpenPrecisionDialog,
   onSetDemoScenario,
   onOpenSaveDialog,
   onOpenExportDialog,
@@ -70,38 +74,44 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
 }: WorkbenchToolbarProps) {
   const statusBadge =
     result.status === "optimal" ? (
-      <Badge tone="emerald">Optimal</Badge>
+      <Badge tone="emerald">{getFormulationStatusLabel(language, "optimal")}</Badge>
     ) : result.status === "near_feasible" ? (
-      <Badge tone="amber">Near-Feasible (Elastik)</Badge>
+      <Badge tone="amber">{getFormulationStatusLabel(language, "near_feasible")}</Badge>
     ) : (
-      <Badge tone="rose">Infeasible</Badge>
+      <Badge tone="rose">{getFormulationStatusLabel(language, result.status)}</Badge>
     );
+
+  const activePrecisionCount =
+    (config.fractionalObjective ? 1 : 0) +
+    (config.enableStochasticSlp ? 1 : 0) +
+    ((config.enzymes?.length ?? 0) > 0 ? 1 : 0);
 
   return (
     <section
-      aria-label="Kontrol utama formulasi"
-      className="flex min-h-[76px] shrink-0 flex-col justify-center gap-1.5 border-b border-[#E2E8F0] bg-white px-3.5 py-1.5 lg:h-[76px] lg:gap-1 lg:px-5 lg:py-1 dark:border-[#1E333D] dark:bg-[#111F26]"
+      aria-label={pickLang(language, "Kontrol utama formulasi", "Main formulation controls")}
+      className="flex min-h-[76px] shrink-0 flex-col justify-center gap-2 border-b border-[#E2E8F0] bg-white px-3.5 py-2 lg:gap-1.5 lg:px-5 dark:border-[#1E333D] dark:bg-[#111F26]"
     >
       {/* Baris 1: Judul ringkas + KPI biaya ransum tipis + Aksi utama */}
-      <div className="flex flex-wrap items-center justify-between gap-2 lg:h-8 lg:flex-nowrap">
-        <div className="no-scrollbar flex min-w-0 items-center gap-3 overflow-x-auto">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
           <h1 className="shrink-0 text-sm font-bold tracking-tight text-[#0F172A] dark:text-white">
-            {language === "id" ? "Formulasi Ransum" : "Ration Formulation"}
+            {pickLang(language, "Formulasi Ransum", "Ration Formulation")}
           </h1>
 
-          <div className="flex shrink-0 items-center gap-3 border-l border-[#E2E8F0] pl-3 dark:border-[#1E333D]">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:border-l sm:border-[#E2E8F0] sm:pl-3 dark:sm:border-[#1E333D]">
             <div className="flex items-baseline gap-1.5">
               <span className="text-[11px] font-medium text-[#475569] dark:text-slate-400">
-                Biaya / kg ({result.basis === "as_fed" ? "As-Fed" : "BK"})
+                {pickLang(language, "Biaya / kg", "Cost / kg")} (
+                {result.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK", "DM")})
               </span>
               <span className="text-sm font-bold tabular-nums text-[#D97706] dark:text-amber-400">
                 {result.costPerKg !== null ? formatCurrencyIdr(result.costPerKg) : "—"}
               </span>
             </div>
 
-            <div className="flex items-baseline gap-1.5 border-l border-[#E2E8F0] pl-3 dark:border-[#1E333D]">
+            <div className="flex items-baseline gap-1.5 sm:border-l sm:border-[#E2E8F0] sm:pl-3 dark:sm:border-[#1E333D]">
               <span className="text-[11px] font-medium text-[#475569] dark:text-slate-400">
-                Biaya / {config.batchSizeKg} kg
+                {pickLang(language, "Biaya", "Cost")} / {config.batchSizeKg} kg
               </span>
               <span className="text-sm font-bold tabular-nums text-[#059669] dark:text-emerald-400">
                 {result.batchTotalCost !== null && result.batchTotalCost !== undefined
@@ -116,17 +126,25 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
                 <Switch
                   checked={config.enableElasticFallback}
                   onCheckedChange={onToggleElastic}
-                  label="Aktifkan mode toleransi elastik saat target mustahil"
+                  label={pickLang(
+                    language,
+                    "Aktifkan mode toleransi elastik saat target mustahil",
+                    "Enable elastic relaxation mode when target is infeasible",
+                  )}
                 />
-                <span>Elastik</span>
+                <span>{pickLang(language, "Elastik", "Elastic")}</span>
               </label>
             </div>
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+        <div className="flex max-w-full min-w-0 flex-wrap items-center gap-1.5 lg:shrink-0">
           <Select
-            aria-label="Simulasi kondisi hasil prototipe"
+            aria-label={pickLang(
+              language,
+              "Simulasi kondisi hasil prototipe",
+              "Prototype simulation scenario",
+            )}
             value={demoScenario}
             onChange={(e) =>
               onSetDemoScenario(
@@ -135,7 +153,9 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
             }
             className="h-7 min-h-7 w-auto py-0 text-[11px]"
           >
-            <option value="auto">Solver HiGHS (Live)</option>
+            <option value="auto">
+              {pickLang(language, "Solver HiGHS (Live)", "HiGHS Solver (Live)")}
+            </option>
             <option value="optimal">Demo: Optimal 100%</option>
             <option value="near_feasible">Demo: Near-Feasible (Elastik)</option>
             <option value="infeasible">Demo: Infeasible (Konflik)</option>
@@ -147,8 +167,8 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
             onClick={onOpenExportDialog}
             className="min-h-7 px-2.5 text-[11px] md:min-h-7"
           >
-            <Download className="h-3.5 w-3.5" />
-            <span>{language === "id" ? "Ekspor" : "Export"}</span>
+            <Download className="h-3.5 w-3.5 shrink-0" />
+            <span>{pickLang(language, "Ekspor", "Export")}</span>
           </Button>
           <Button
             variant="primary"
@@ -156,18 +176,18 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
             onClick={onOpenSaveDialog}
             className="min-h-7 px-2.5 text-[11px] md:min-h-7"
           >
-            <BookmarkPlus className="h-3.5 w-3.5" />
-            <span>{language === "id" ? "Simpan" : "Save"}</span>
+            <BookmarkPlus className="h-3.5 w-3.5 shrink-0" />
+            <span>{pickLang(language, "Simpan", "Save")}</span>
           </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={onResetMock}
-            aria-label="Reset data prototipe"
-            title="Reset data prototipe"
-            className="neu-pill-btn min-h-7 w-7 rounded-lg p-0 md:min-h-7"
+            aria-label={pickLang(language, "Reset data prototipe", "Reset sample data")}
+            title={pickLang(language, "Reset data prototipe", "Reset sample data")}
+            className="neu-pill-btn min-h-7 rounded-lg px-2 md:min-h-7"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
+            <RotateCcw className="h-3.5 w-3.5 shrink-0" />
           </Button>
           <Button
             variant="secondary"
@@ -175,31 +195,55 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
             onClick={onToggleInspector}
             aria-expanded={inspectorOpen}
             aria-label={
-              inspectorOpen ? "Sembunyikan panel target nutrien" : "Tampilkan panel target nutrien"
+              inspectorOpen
+                ? pickLang(
+                    language,
+                    "Sembunyikan panel target nutrien",
+                    "Hide nutrient targets panel",
+                  )
+                : pickLang(
+                    language,
+                    "Tampilkan panel target nutrien",
+                    "Show nutrient targets panel",
+                  )
             }
             title={
-              inspectorOpen ? "Sembunyikan panel target nutrien" : "Tampilkan panel target nutrien"
+              inspectorOpen
+                ? pickLang(
+                    language,
+                    "Sembunyikan panel target nutrien",
+                    "Hide nutrient targets panel",
+                  )
+                : pickLang(
+                    language,
+                    "Tampilkan panel target nutrien",
+                    "Show nutrient targets panel",
+                  )
             }
             className="hidden min-h-7 px-2 text-[11px] lg:inline-flex"
           >
             {inspectorOpen ? (
-              <PanelRightClose className="h-3.5 w-3.5 text-[#0F3D3E] dark:text-emerald-400" />
+              <PanelRightClose className="h-3.5 w-3.5 shrink-0 text-[#0F3D3E] dark:text-emerald-400" />
             ) : (
-              <PanelRightOpen className="h-3.5 w-3.5 text-[#059669] dark:text-emerald-400" />
+              <PanelRightOpen className="h-3.5 w-3.5 shrink-0 text-[#059669] dark:text-emerald-400" />
             )}
-            <span>{inspectorOpen ? "Tutup Target" : "Target Nutrien"}</span>
+            <span>
+              {inspectorOpen
+                ? pickLang(language, "Tutup Target", "Hide Targets")
+                : pickLang(language, "Target Nutrien", "Nutrient Targets")}
+            </span>
           </Button>
         </div>
       </div>
 
-      {/* Baris 2: Parameter formulasi dalam strip horizontal tanpa scrollbar */}
-      <div className="no-scrollbar flex items-center gap-3 overflow-x-auto lg:h-8">
+      {/* Baris 2: Parameter formulasi dalam strip fleksibel agar tidak terpotong di desktop/mobile */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <div className="flex shrink-0 items-center gap-1.5">
           <label
             htmlFor="preset-select"
             className="text-[11px] font-semibold whitespace-nowrap text-[#475569] dark:text-slate-300"
           >
-            {language === "id" ? "Standar Ternak" : "Livestock Preset"}
+            {pickLang(language, "Standar Ternak", "Livestock Preset")}
           </label>
           <Select
             id="preset-select"
@@ -217,7 +261,11 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
 
         <div
           role="group"
-          aria-label="Pilih basis As-Fed atau Bahan Kering"
+          aria-label={pickLang(
+            language,
+            "Pilih basis As-Fed atau Bahan Kering",
+            "Select As-Fed or Dry Matter basis",
+          )}
           className="inline-flex h-7 shrink-0 items-center rounded-lg border border-[#E2E8F0] bg-[#F1F5F9] p-0.5 dark:border-[#1E333D] dark:bg-[#0B1519]"
         >
           {(["as_fed", "dry_matter"] as const).map((basis) => {
@@ -235,7 +283,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
                     : "text-[#475569] hover:text-[#0F172A] dark:text-slate-300 dark:hover:text-white",
                 )}
               >
-                {basis === "as_fed" ? "As-Fed" : "BK (DM)"}
+                {basis === "as_fed" ? "As-Fed" : pickLang(language, "BK (DM)", "DM")}
               </button>
             );
           })}
@@ -243,7 +291,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
 
         <div className="flex shrink-0 items-center gap-1.5">
           <span className="text-[11px] font-semibold whitespace-nowrap text-[#475569] dark:text-slate-300">
-            {language === "id" ? "Mode" : "Mode"}
+            Mode
           </span>
           <OptimizationModeSelector
             value={config.optimizationMode}
@@ -256,7 +304,11 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
           <Switch
             checked={config.enableAdvanceNutrients}
             onCheckedChange={onToggleAdvance}
-            label="Aktifkan Mode Presisi Tinggi Advance"
+            label={pickLang(
+              language,
+              "Aktifkan Mode Presisi Tinggi Advance",
+              "Enable Advance High-Precision Mode",
+            )}
           />
           <span className="inline-flex items-center gap-1">
             <SlidersHorizontal className="h-3 w-3 text-[#059669] dark:text-emerald-400" />
@@ -270,10 +322,30 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
             onCheckedChange={(checked) =>
               onToggleZeroInclusion(checked, config.globalZeroInclusion.minIfSelected ?? 1)
             }
-            label="Aktifkan Aturan Anti-Nol Global"
+            label={pickLang(
+              language,
+              "Aktifkan Aturan Anti-Nol Global",
+              "Enable Global Anti-Zero Rule",
+            )}
           />
-          <span>Anti-Nol ({config.globalZeroInclusion.minIfSelected ?? 1}%)</span>
+          <span>
+            {pickLang(language, "Anti-Nol", "Anti-Zero")} (
+            {config.globalZeroInclusion.minIfSelected ?? 1}%)
+          </span>
         </label>
+
+        {onOpenPrecisionDialog && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onOpenPrecisionDialog}
+            className="min-h-7 shrink-0 px-2.5 text-[11px] md:min-h-7"
+          >
+            <Cpu className="h-3.5 w-3.5 text-[#0E7490] dark:text-cyan-300" />
+            <span>{pickLang(language, "Presisi LP", "Precision LP")}</span>
+            {activePrecisionCount > 0 && <Badge tone="emerald">{activePrecisionCount}</Badge>}
+          </Button>
+        )}
       </div>
     </section>
   );

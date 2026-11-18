@@ -5,6 +5,8 @@ export type { Highs, HighsSolution };
 export interface LpSolveRanging {
   readonly colCostUp: readonly number[];
   readonly colCostDown: readonly number[];
+  readonly rowBoundUp: readonly number[];
+  readonly rowBoundDown: readonly number[];
 }
 
 export interface LpSolveOutput {
@@ -38,6 +40,8 @@ export function executeHighsInstance(highs: Highs, lpString: string): LpSolveOut
       return {
         colCostUp: Array.from(rawRanging.colCostUp.value),
         colCostDown: Array.from(rawRanging.colCostDown.value),
+        rowBoundUp: Array.from(rawRanging.rowBoundUp.value),
+        rowBoundDown: Array.from(rawRanging.rowBoundDown.value),
       };
     });
     return ranging ? { solution, ranging } : { solution };

@@ -15,6 +15,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import type { PwaStatus } from "../../hooks/use-pwa-status";
+import { pickLang } from "../../i18n";
 import type { StorageStats } from "../../storage";
 import type { Basis, UserPreferences } from "../../types";
 import { Badge } from "../ui/Badge";
@@ -97,7 +98,11 @@ export const SettingsPage = memo(function SettingsPage({
             {preferences.language === "id" ? "Pengaturan Aplikasi" : "Application Settings"}
           </h1>
           <p className="mt-0.5 text-xs text-[#54707E] dark:text-slate-400">
-            Preferensi antarmuka, bahasa, basis default, serta status penyimpanan offline IndexedDB.
+            {pickLang(
+              preferences.language,
+              "Preferensi antarmuka, bahasa, basis default, serta status penyimpanan offline IndexedDB.",
+              "Interface preferences, language, default basis, and IndexedDB offline storage status.",
+            )}
           </p>
         </div>
       </div>
@@ -106,14 +111,16 @@ export const SettingsPage = memo(function SettingsPage({
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
           <div>
             <p className="text-sm font-semibold text-[#122B36] dark:text-slate-100">
-              Bahasa Antarmuka (i18n)
+              {pickLang(
+                preferences.language,
+                "Bahasa Antarmuka (i18n)",
+                "Interface Language (i18n)",
+              )}
             </p>
-            <p className="text-xs text-[#54707E] dark:text-slate-400">
-              Bahasa Indonesia atau English
-            </p>
+            <p className="text-xs text-[#54707E] dark:text-slate-400">Bahasa Indonesia / English</p>
           </div>
           <Select
-            aria-label="Pilih bahasa"
+            aria-label={pickLang(preferences.language, "Pilih bahasa", "Select language")}
             value={preferences.language}
             onChange={(e) => onUpdate({ language: e.target.value as "id" | "en" })}
             className="w-44"
@@ -126,50 +133,74 @@ export const SettingsPage = memo(function SettingsPage({
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
           <div>
             <p className="text-sm font-semibold text-[#122B36] dark:text-slate-100">
-              Tema Tampilan
+              {pickLang(preferences.language, "Tema Tampilan", "Display Theme")}
             </p>
             <p className="text-xs text-[#54707E] dark:text-slate-400">
-              Mode Terang atau Gelap (Dark Mode)
+              {pickLang(
+                preferences.language,
+                "Mode Terang atau Gelap (Dark Mode)",
+                "Light or Dark Mode",
+              )}
             </p>
           </div>
           <Select
-            aria-label="Pilih tema"
+            aria-label={pickLang(preferences.language, "Pilih tema", "Select theme")}
             value={preferences.theme}
             onChange={(e) => onUpdate({ theme: e.target.value as "light" | "dark" })}
             className="w-44"
           >
-            <option value="light">Terang (Light)</option>
-            <option value="dark">Gelap (Dark)</option>
+            <option value="light">
+              {pickLang(preferences.language, "Terang (Light)", "Light")}
+            </option>
+            <option value="dark">{pickLang(preferences.language, "Gelap (Dark)", "Dark")}</option>
           </Select>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
           <div>
             <p className="text-sm font-semibold text-[#122B36] dark:text-slate-100">
-              Basis Perhitungan Default
+              {pickLang(
+                preferences.language,
+                "Basis Perhitungan Default",
+                "Default Calculation Basis",
+              )}
             </p>
             <p className="text-xs text-[#54707E] dark:text-slate-400">
-              As-Fed (unggas/babi) atau Bahan Kering (ruminansia)
+              {pickLang(
+                preferences.language,
+                "As-Fed (unggas/babi) atau Bahan Kering (ruminansia)",
+                "As-Fed (poultry/swine) or Dry Matter (ruminants)",
+              )}
             </p>
           </div>
           <Select
-            aria-label="Basis default"
+            aria-label={pickLang(preferences.language, "Basis default", "Default basis")}
             value={preferences.defaultBasis}
             onChange={(e) => onUpdate({ defaultBasis: e.target.value as Basis })}
             className="w-44"
           >
             <option value="as_fed">As-Fed</option>
-            <option value="dry_matter">Bahan Kering (BK)</option>
+            <option value="dry_matter">
+              {pickLang(preferences.language, "Bahan Kering (BK)", "Dry Matter (DM)")}
+            </option>
           </Select>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
           <div>
             <p className="text-sm font-semibold text-[#122B36] dark:text-slate-100">
-              Ukuran Batch Adukan Default (kg)
+              {pickLang(
+                preferences.language,
+                "Ukuran Batch Adukan Default (kg)",
+                "Default Batch Size (kg)",
+              )}
             </p>
             <p className="text-xs text-[#54707E] dark:text-slate-400">
-              Dipakai otomatis saat membuka formulasi baru
+              {pickLang(
+                preferences.language,
+                "Dipakai otomatis saat membuka formulasi baru",
+                "Applied automatically when starting a new formulation",
+              )}
             </p>
           </div>
           <Input
@@ -299,11 +330,18 @@ export const SettingsPage = memo(function SettingsPage({
               <GlossySquircleIcon tone="sky" size="sm" icon={<Database className="h-4 w-4" />} />
               <div>
                 <h2 className="text-sm font-bold text-[#122B36] dark:text-slate-100">
-                  Penyimpanan Offline (IndexedDB) &amp; Status PWA
+                  {pickLang(
+                    preferences.language,
+                    "Penyimpanan Offline (IndexedDB) & Status PWA",
+                    "Offline Storage (IndexedDB) & PWA Status",
+                  )}
                 </h2>
                 <p className="text-xs text-[#54707E] dark:text-slate-400">
-                  Seluruh bahan, harga kustom, target nutrien, dan resep disimpan lokal di perangkat
-                  Anda tanpa server eksternal.
+                  {pickLang(
+                    preferences.language,
+                    "Seluruh bahan, harga kustom, target nutrien, dan resep disimpan lokal di perangkat Anda tanpa server eksternal.",
+                    "All ingredients, custom prices, targets, and recipes stay stored locally on your device.",
+                  )}
                 </p>
               </div>
             </div>
@@ -311,7 +349,9 @@ export const SettingsPage = memo(function SettingsPage({
             <div className="flex flex-wrap items-center gap-1.5">
               {storageStats && (
                 <Badge tone={storageStats.storageMode === "indexeddb" ? "emerald" : "amber"}>
-                  {storageStats.storageMode === "indexeddb" ? "IndexedDB Aktif" : "Mode Memori"}
+                  {storageStats.storageMode === "indexeddb"
+                    ? pickLang(preferences.language, "IndexedDB Aktif", "IndexedDB Active")
+                    : pickLang(preferences.language, "Mode Memori", "Memory Mode")}
                 </Badge>
               )}
               {pwaStatus && (
@@ -319,12 +359,14 @@ export const SettingsPage = memo(function SettingsPage({
                   {pwaStatus.isOnline ? (
                     <span className="inline-flex items-center gap-1">
                       <Wifi className="h-3 w-3" />
-                      {pwaStatus.offlineReady ? "Siap Offline" : "Online"}
+                      {pwaStatus.offlineReady
+                        ? pickLang(preferences.language, "Siap Offline", "Offline Ready")
+                        : "Online"}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1">
                       <WifiOff className="h-3 w-3" />
-                      Mode Offline
+                      {pickLang(preferences.language, "Mode Offline", "Offline Mode")}
                     </span>
                   )}
                 </Badge>
@@ -336,31 +378,32 @@ export const SettingsPage = memo(function SettingsPage({
             <div className="neu-well grid grid-cols-2 gap-2.5 rounded-2xl p-3 text-xs tabular-nums sm:grid-cols-4">
               <div>
                 <span className="block text-[10px] font-medium text-[#54707E] dark:text-slate-400">
-                  Katalog Bahan
+                  {pickLang(preferences.language, "Katalog Bahan", "Feed Catalog")}
                 </span>
                 <span className="font-bold text-[#122B36] dark:text-slate-100">
-                  {storageStats.ingredientCount} bahan
+                  {storageStats.ingredientCount} {pickLang(preferences.language, "bahan", "feeds")}
                 </span>
               </div>
               <div>
                 <span className="block text-[10px] font-medium text-[#54707E] dark:text-slate-400">
-                  Standar Kebutuhan
+                  {pickLang(preferences.language, "Standar Kebutuhan", "Standards")}
                 </span>
                 <span className="font-bold text-[#122B36] dark:text-slate-100">
-                  {storageStats.requirementCount} profil
+                  {storageStats.requirementCount}{" "}
+                  {pickLang(preferences.language, "profil", "profiles")}
                 </span>
               </div>
               <div>
                 <span className="block text-[10px] font-medium text-[#54707E] dark:text-slate-400">
-                  Resep Tersimpan
+                  {pickLang(preferences.language, "Resep Tersimpan", "Saved Recipes")}
                 </span>
                 <span className="font-bold text-[#122B36] dark:text-slate-100">
-                  {storageStats.recipeCount} resep
+                  {storageStats.recipeCount} {pickLang(preferences.language, "resep", "recipes")}
                 </span>
               </div>
               <div>
                 <span className="block text-[10px] font-medium text-[#54707E] dark:text-slate-400">
-                  Estimasi Ukuran
+                  {pickLang(preferences.language, "Estimasi Ukuran", "Est. Size")}
                 </span>
                 <span className="font-bold text-[#122B36] dark:text-slate-100">
                   {formatBytes(storageStats.estimatedBytes)}
@@ -390,14 +433,22 @@ export const SettingsPage = memo(function SettingsPage({
             {pwaStatus?.needRefresh && (
               <Button variant="primary" size="sm" onClick={pwaStatus.applyUpdate}>
                 <RefreshCw className="h-3.5 w-3.5" />
-                <span>Muat Ulang Versi Baru</span>
+                <span>
+                  {pickLang(preferences.language, "Muat Ulang Versi Baru", "Reload New Version")}
+                </span>
               </Button>
             )}
 
             {onExportAllBackup && (
               <Button variant="secondary" size="sm" onClick={onExportAllBackup}>
                 <Download className="h-3.5 w-3.5" />
-                <span>Unduh Backup Semua (.json)</span>
+                <span>
+                  {pickLang(
+                    preferences.language,
+                    "Unduh Backup Semua (.json)",
+                    "Download Full Backup (.json)",
+                  )}
+                </span>
               </Button>
             )}
 
@@ -409,7 +460,9 @@ export const SettingsPage = memo(function SettingsPage({
                 onClick={() => void handleResetSamples()}
               >
                 <RotateCcw className="h-3.5 w-3.5" />
-                <span>Reset Data Bawaan</span>
+                <span>
+                  {pickLang(preferences.language, "Reset Data Bawaan", "Reset Sample Data")}
+                </span>
               </Button>
             )}
 
@@ -421,7 +474,9 @@ export const SettingsPage = memo(function SettingsPage({
                 onClick={() => setConfirmClearOpen(true)}
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                <span>Hapus Semua Data Lokal</span>
+                <span>
+                  {pickLang(preferences.language, "Hapus Semua Data Lokal", "Clear All Local Data")}
+                </span>
               </Button>
             )}
           </div>
@@ -435,11 +490,18 @@ export const SettingsPage = memo(function SettingsPage({
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-300" />
                 <div className="flex-1 space-y-2">
                   <p className="font-bold">
-                    Hapus seluruh data lokal (termasuk resep tersimpan dan harga kustom)?
+                    {pickLang(
+                      preferences.language,
+                      "Hapus seluruh data lokal (termasuk resep tersimpan dan harga kustom)?",
+                      "Clear all local data (including saved recipes and custom prices)?",
+                    )}
                   </p>
                   <p className="text-[11px] opacity-90">
-                    Tindakan ini mengosongkan IndexedDB dan memulihkan dataset pabrik awal. Unduh
-                    backup `.json` lebih dulu bila masih diperlukan.
+                    {pickLang(
+                      preferences.language,
+                      "Tindakan ini mengosongkan IndexedDB dan memulihkan dataset pabrik awal. Unduh backup `.json` lebih dulu bila masih diperlukan.",
+                      "This clears IndexedDB and restores default factory data. Download a `.json` backup first if needed.",
+                    )}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -448,7 +510,11 @@ export const SettingsPage = memo(function SettingsPage({
                       disabled={busyAction !== null}
                       onClick={() => void handleConfirmClearAll()}
                     >
-                      Konfirmasi Hapus Permanen
+                      {pickLang(
+                        preferences.language,
+                        "Konfirmasi Hapus Permanen",
+                        "Confirm Permanent Delete",
+                      )}
                     </Button>
                     <Button
                       variant="secondary"
@@ -456,7 +522,7 @@ export const SettingsPage = memo(function SettingsPage({
                       disabled={busyAction !== null}
                       onClick={() => setConfirmClearOpen(false)}
                     >
-                      Batal
+                      {pickLang(preferences.language, "Batal", "Cancel")}
                     </Button>
                   </div>
                 </div>

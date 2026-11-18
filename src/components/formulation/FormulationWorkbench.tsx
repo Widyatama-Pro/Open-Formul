@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Plus, Search, Table } from "lucide-react";
 import { motion } from "motion/react";
 import type { PrototypeStore } from "../../hooks/use-prototype-store";
+import { pickLang } from "../../i18n";
 import type { Ingredient } from "../../types";
 import { cn } from "../../utils/cn";
 import { ResultsPanel } from "../analytics/ResultsPanel";
@@ -15,6 +16,7 @@ import { IngredientDetailSheet } from "./IngredientDetailSheet";
 import { IngredientMobileCards } from "./IngredientMobileCards";
 import { MobileStickyActionBar } from "./MobileStickyActionBar";
 import { NutrientTargetsPanel } from "./NutrientTargetsPanel";
+import { PrecisionEngineDialog } from "./PrecisionEngineDialog";
 import { WorkbenchToolbar } from "./WorkbenchToolbar";
 
 export interface FormulationWorkbenchProps {
@@ -57,6 +59,7 @@ export function FormulationWorkbench({
   const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null);
   const [windowLimit, setWindowLimit] = useState(36);
   const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [precisionOpen, setPrecisionOpen] = useState(false);
 
   const handleOpenDetail = useCallback((ing: Ingredient) => {
     setEditingIngredientId(ing.id);
@@ -103,9 +106,11 @@ export function FormulationWorkbench({
     <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5">
       <div className="flex items-center gap-2">
         <h2 className="text-sm font-bold tracking-tight text-[#0F172A] dark:text-white">
-          {language === "id" ? "Daftar Bahan Pakan" : "Feed Ingredients"}
+          {pickLang(language, "Daftar Bahan Pakan", "Feed Ingredients")}
         </h2>
-        <Badge tone="emerald">{activeCount} aktif</Badge>
+        <Badge tone="emerald">
+          {activeCount} {pickLang(language, "aktif", "active")}
+        </Badge>
       </div>
       <div className="flex flex-1 items-center justify-end gap-2 sm:flex-none">
         <div className="relative min-w-36 flex-1 sm:w-48 sm:flex-none">
@@ -117,8 +122,8 @@ export function FormulationWorkbench({
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={language === "id" ? "Cari bahan…" : "Search feed…"}
-            aria-label="Cari bahan pakan"
+            placeholder={pickLang(language, "Cari bahan…", "Search feed…")}
+            aria-label={pickLang(language, "Cari bahan pakan", "Search feed ingredients")}
             className="pl-8 text-xs"
           />
         </div>
@@ -127,14 +132,22 @@ export function FormulationWorkbench({
           size="sm"
           onClick={() => setMobileTableMode((v) => !v)}
           className="neu-pill-btn rounded-lg md:hidden"
-          title="Ganti tampilan Kartu / Tabel Kompak"
-          aria-label="Ganti tampilan Kartu atau Tabel Kompak"
+          title={pickLang(
+            language,
+            "Ganti tampilan Kartu / Tabel Kompak",
+            "Toggle Card / Compact Table View",
+          )}
+          aria-label={pickLang(
+            language,
+            "Ganti tampilan Kartu atau Tabel Kompak",
+            "Toggle Card or Compact Table View",
+          )}
         >
           <Table className="h-4 w-4" />
         </Button>
         <Button variant="secondary" size="sm" onClick={onOpenAddIngredient}>
           <Plus className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Tambah</span>
+          <span className="hidden sm:inline">{pickLang(language, "Tambah", "Add")}</span>
         </Button>
       </div>
     </div>
@@ -147,6 +160,7 @@ export function FormulationWorkbench({
       activeBasis={store.config.activeBasis}
       enableAdvance={store.config.enableAdvanceNutrients}
       enableDigestible={store.config.enableDigestibleBasis}
+      enableStochastic={store.config.enableStochasticSlp === true}
       onToggleDigestible={store.toggleDigestibleBasis}
       nutrientResults={store.result.nutrients}
       conflicts={store.result.conflicts ?? []}
@@ -164,7 +178,9 @@ export function FormulationWorkbench({
       result={store.result}
       ingredients={store.ingredients}
       allNutrients={store.allNutrients}
+      requirement={store.activeRequirement}
       config={store.config}
+      language={language}
       hideKpiStrip
       onSetBatchSize={store.setBatchSizeKg}
       onToggleElastic={store.toggleElasticFallback}
@@ -177,8 +193,13 @@ export function FormulationWorkbench({
   const catalogWindowBanner = isWindowEligible && (
     <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5 text-[11px] font-medium text-[#475569] dark:border-[#1E333D] dark:bg-[#0B1519] dark:text-slate-300">
       <span>
-        Menampilkan {displayedIngredients.length} dari {filteredIngredients.length} bahan
-        {hasMoreCatalog && ` (${activeCount} aktif + pratinjau katalog)`}
+        {pickLang(
+          language,
+          `Menampilkan ${displayedIngredients.length} dari ${filteredIngredients.length} bahan`,
+          `Showing ${displayedIngredients.length} of ${filteredIngredients.length} ingredients`,
+        )}
+        {hasMoreCatalog &&
+          ` (${activeCount} ${pickLang(language, "aktif + pratinjau katalog", "active + catalog preview")})`}
       </span>
       <div className="flex items-center gap-2">
         {hasMoreCatalog && (
@@ -189,12 +210,14 @@ export function FormulationWorkbench({
               setWindowLimit((prev) => Math.min(filteredIngredients.length, prev + 50))
             }
           >
-            Muat +50 ({filteredIngredients.length - displayedIngredients.length} tersisa)
+            {pickLang(language, "Muat +50", "Load +50")} (
+            {filteredIngredients.length - displayedIngredients.length}{" "}
+            {pickLang(language, "tersisa", "remaining")})
           </Button>
         )}
         {windowLimit > 36 && (
           <Button variant="ghost" size="sm" onClick={() => setWindowLimit(36)}>
-            Ringkas Daftar
+            {pickLang(language, "Ringkas Daftar", "Collapse List")}
           </Button>
         )}
       </div>
@@ -218,6 +241,7 @@ export function FormulationWorkbench({
         onToggleAdvance={store.toggleAdvanceNutrients}
         onToggleZeroInclusion={store.setGlobalZeroInclusion}
         onToggleElastic={store.toggleElasticFallback}
+        onOpenPrecisionDialog={() => setPrecisionOpen(true)}
         onSetDemoScenario={store.setDemoScenario}
         onOpenSaveDialog={onOpenSaveDialog}
         onOpenExportDialog={onOpenExportDialog}
@@ -231,7 +255,9 @@ export function FormulationWorkbench({
           className="border-b border-[#E2E8F0] bg-white px-4 py-1.5 lg:px-5 dark:border-[#1E333D] dark:bg-[#111F26]"
         >
           <div className="flex items-center gap-3 text-[11px] font-semibold text-[#059669] dark:text-emerald-400">
-            <span>Menjalankan Simplex HiGHS…</span>
+            <span>
+              {pickLang(language, "Menjalankan Simplex HiGHS…", "Running HiGHS Simplex…")}
+            </span>
             <div className="skeleton-shimmer h-1.5 flex-1 rounded-full" />
           </div>
         </div>
@@ -240,13 +266,17 @@ export function FormulationWorkbench({
       {/* Mobile & Tablet Stepper (< lg) */}
       <div className="border-b border-[#E2E8F0] bg-white px-4 py-2 lg:hidden dark:border-[#1E333D] dark:bg-[#111F26]">
         <SegmentedTabs
-          ariaLabel="Tahapan formulasi mobile"
+          ariaLabel={pickLang(language, "Tahapan formulasi mobile", "Mobile formulation steps")}
           value={mobileStep}
           onChange={setMobileStep}
           options={[
-            { value: "ingredients", label: "1. Bahan", badge: activeCount },
-            { value: "targets", label: "2. Target" },
-            { value: "results", label: "3. Hasil" },
+            {
+              value: "ingredients",
+              label: pickLang(language, "1. Bahan", "1. Feeds"),
+              badge: activeCount,
+            },
+            { value: "targets", label: pickLang(language, "2. Target", "2. Targets") },
+            { value: "results", label: pickLang(language, "3. Hasil", "3. Results") },
           ]}
         />
       </div>
@@ -266,16 +296,22 @@ export function FormulationWorkbench({
           <motion.div variants={WORKBENCH_PANEL_ITEM} className="min-h-0 flex-[1.65]">
             <Card
               interactive={false}
-              aria-label="Panel Bahan Pakan"
+              aria-label={pickLang(language, "Panel Bahan Pakan", "Feed Ingredients Panel")}
               className="flex h-full min-h-0 flex-col p-3"
             >
               {ingredientHeaderBar}
               <div className="min-h-0 flex-1">
                 {filteredIngredients.length === 0 ? (
                   <div className="flex h-full flex-col items-center justify-center gap-2 py-12 text-center text-xs text-[#475569]">
-                    <p>Tidak ada bahan yang cocok dengan pencarian &ldquo;{searchQuery}&rdquo;.</p>
+                    <p>
+                      {pickLang(
+                        language,
+                        `Tidak ada bahan yang cocok dengan pencarian “${searchQuery}”.`,
+                        `No feed matches “${searchQuery}”.`,
+                      )}
+                    </p>
                     <Button variant="secondary" size="sm" onClick={() => setSearchQuery("")}>
-                      Tampilkan Semua
+                      {pickLang(language, "Tampilkan Semua", "Show All")}
                     </Button>
                   </div>
                 ) : (
@@ -304,7 +340,7 @@ export function FormulationWorkbench({
 
           <motion.section
             variants={WORKBENCH_PANEL_ITEM}
-            aria-label="Panel Hasil Formulasi"
+            aria-label={pickLang(language, "Panel Hasil Formulasi", "Formulation Results Panel")}
             className="min-h-[210px] flex-1"
           >
             {resultsPanel}
@@ -315,7 +351,7 @@ export function FormulationWorkbench({
         {inspectorOpen && (
           <motion.section
             variants={WORKBENCH_PANEL_ITEM}
-            aria-label="Panel Target Nutrien"
+            aria-label={pickLang(language, "Panel Target Nutrien", "Nutrient Targets Panel")}
             className="min-h-0 w-[310px]"
           >
             {targetPanel}
@@ -330,7 +366,11 @@ export function FormulationWorkbench({
             {ingredientHeaderBar}
             {filteredIngredients.length === 0 ? (
               <Card interactive={false} className="p-8 text-center text-xs text-[#475569]">
-                Tidak ada bahan yang cocok dengan pencarian &ldquo;{searchQuery}&rdquo;.
+                {pickLang(
+                  language,
+                  `Tidak ada bahan yang cocok dengan pencarian “${searchQuery}”.`,
+                  `No feed matches “${searchQuery}”.`,
+                )}
               </Card>
             ) : mobileTableMode ? (
               <div className="space-y-2">
@@ -391,6 +431,7 @@ export function FormulationWorkbench({
         status={store.result.status}
         costPerKg={store.result.costPerKg}
         activeStep={mobileStep}
+        language={language}
         onShowResults={() => setMobileStep("results")}
       />
 
@@ -398,10 +439,21 @@ export function FormulationWorkbench({
         ingredient={editingIngredient}
         allNutrients={store.allNutrients}
         open={editingIngredient !== null}
+        stochasticEnabled={store.config.enableStochasticSlp === true}
         onClose={() => setEditingIngredientId(null)}
         onUpdate={store.updateIngredient}
         onResetPrice={store.resetPriceOverride}
         language={language}
+      />
+
+      <PrecisionEngineDialog
+        open={precisionOpen}
+        onClose={() => setPrecisionOpen(false)}
+        config={store.config}
+        allNutrients={store.allNutrients}
+        stochasticIterations={store.result.stochasticIterations}
+        language={language}
+        onUpdatePrecision={store.updatePrecisionConfig}
       />
     </div>
   );

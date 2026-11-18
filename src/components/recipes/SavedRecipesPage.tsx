@@ -1,5 +1,6 @@
 import { memo, useRef, useState, type ChangeEvent } from "react";
 import { BookmarkCheck, Download, FileCode2, FolderOpen, Plus, Trash2, Upload } from "lucide-react";
+import { pickLang } from "../../i18n";
 import {
   FEED_FILE_EXTENSION,
   FEED_JSON_MIME,
@@ -58,16 +59,32 @@ export const SavedRecipesPage = memo(function SavedRecipesPage({
       }
 
       const renameNote = outcome.data.wasIdRenamed
-        ? " (ID otomatis dibuat unik agar resep lama tidak tertimpa)"
+        ? pickLang(
+            language,
+            " (ID otomatis dibuat unik agar resep lama tidak tertimpa)",
+            " (ID auto-uniqued so existing recipe is preserved)",
+          )
         : "";
       setImportFeedback({
         tone: "success",
-        lines: [`Resep "${outcome.data.recipe.name}" berhasil diimpor${renameNote}.`],
+        lines: [
+          pickLang(
+            language,
+            `Resep "${outcome.data.recipe.name}" berhasil diimpor${renameNote}.`,
+            `Recipe "${outcome.data.recipe.name}" imported${renameNote}.`,
+          ),
+        ],
       });
     } catch {
       setImportFeedback({
         tone: "error",
-        lines: ["Gagal membaca berkas .feed.json dari perangkat."],
+        lines: [
+          pickLang(
+            language,
+            "Gagal membaca berkas .feed.json dari perangkat.",
+            "Failed to read .feed.json file from device.",
+          ),
+        ],
       });
     }
   };
@@ -83,14 +100,17 @@ export const SavedRecipesPage = memo(function SavedRecipesPage({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium text-[#54707E] dark:text-slate-400">
-            {language === "id" ? "Arsip & Templat" : "Recipes & Templates"}
+            {pickLang(language, "Arsip & Templat", "Recipes & Templates")}
           </p>
           <h1 className="text-xl font-bold tracking-[-0.025em] text-[#122B36] dark:text-slate-100">
-            {language === "id" ? "Proyek & Resep Tersimpan" : "Saved Recipes & Templates"}
+            {pickLang(language, "Proyek & Resep Tersimpan", "Saved Recipes & Templates")}
           </h1>
           <p className="mt-0.5 text-xs text-[#54707E] dark:text-slate-400">
-            Simpan, impor, dan bagikan racikan serta batasan nutrien sebagai berkas portabel
-            (`.feed.json`).
+            {pickLang(
+              language,
+              "Simpan, impor, dan bagikan racikan serta batasan nutrien sebagai berkas portabel (`.feed.json`).",
+              "Save, import, and share formulations and nutrient bounds as portable `.feed.json` files.",
+            )}
           </p>
         </div>
 
@@ -101,23 +121,27 @@ export const SavedRecipesPage = memo(function SavedRecipesPage({
                 ref={fileInputRef}
                 type="file"
                 accept=".json,.feed.json,application/json"
-                aria-label="Unggah berkas .feed.json"
+                aria-label={pickLang(
+                  language,
+                  "Unggah berkas .feed.json",
+                  "Upload .feed.json file",
+                )}
                 onChange={(e) => void handleFileChange(e)}
                 className="sr-only"
               />
               <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
                 <Upload className="h-3.5 w-3.5" />
-                <span>Impor .feed.json</span>
+                <span>{pickLang(language, "Impor .feed.json", "Import .feed.json")}</span>
               </Button>
             </>
           )}
           <Button variant="secondary" size="sm" onClick={onOpenExport}>
             <Download className="h-3.5 w-3.5" />
-            <span>Ekspor Lembar Kerja</span>
+            <span>{pickLang(language, "Ekspor Lembar Kerja", "Export Workbench")}</span>
           </Button>
           <Button variant="primary" size="sm" onClick={onOpenSaveCurrent}>
             <Plus className="h-3.5 w-3.5" />
-            <span>Simpan Sesi Saat Ini</span>
+            <span>{pickLang(language, "Simpan Sesi Saat Ini", "Save Current Session")}</span>
           </Button>
         </div>
       </div>
@@ -142,8 +166,11 @@ export const SavedRecipesPage = memo(function SavedRecipesPage({
           interactive={false}
           className="p-8 text-center text-xs text-[#54707E] dark:text-slate-400"
         >
-          Belum ada resep tersimpan. Klik &ldquo;Simpan Sesi Saat Ini&rdquo; atau impor berkas
-          `.feed.json`.
+          {pickLang(
+            language,
+            'Belum ada resep tersimpan. Klik "Simpan Sesi Saat Ini" atau impor berkas `.feed.json`.',
+            'No saved recipes yet. Click "Save Current Session" or import a `.feed.json` file.',
+          )}
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -165,7 +192,9 @@ export const SavedRecipesPage = memo(function SavedRecipesPage({
                       <Badge tone="sky">v{r.schemaVersion}</Badge>
                     </div>
                     <p className="mt-1 text-xs font-medium text-[#2A4957] dark:text-slate-300">
-                      {r.requirement.name}
+                      {language === "id"
+                        ? r.requirement.name
+                        : (r.requirement.nameEn ?? r.requirement.name)}
                     </p>
                     {r.notes && (
                       <p className="mt-1 text-[11px] text-[#54707E] dark:text-slate-400">
@@ -177,30 +206,38 @@ export const SavedRecipesPage = memo(function SavedRecipesPage({
               </div>
 
               <div className="neu-well mt-3.5 flex flex-wrap items-center justify-between gap-2 rounded-2xl px-3 py-2 text-[11px] font-medium text-[#54707E] dark:text-slate-400">
-                <span>{r.ingredients.filter((i) => i.isActive !== false).length} bahan aktif</span>
-                <span>Basis: {r.config?.activeBasis === "dry_matter" ? "BK (DM)" : "As-Fed"}</span>
+                <span>
+                  {r.ingredients.filter((i) => i.isActive !== false).length}{" "}
+                  {pickLang(language, "bahan aktif", "active ingredients")}
+                </span>
+                <span>
+                  Basis:{" "}
+                  {r.config?.activeBasis === "dry_matter"
+                    ? pickLang(language, "BK (DM)", "DM")
+                    : "As-Fed"}
+                </span>
               </div>
 
               <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
                 <Button variant="ghost" size="sm" onClick={() => handleDownloadCard(r)}>
                   <FileCode2 className="h-3.5 w-3.5" />
-                  <span>Unduh .feed.json</span>
+                  <span>{pickLang(language, "Unduh .feed.json", "Download .feed.json")}</span>
                 </Button>
                 {onDeleteRecipe && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    aria-label={`Hapus resep ${r.name}`}
+                    aria-label={`${pickLang(language, "Hapus resep", "Delete recipe")} ${r.name}`}
                     onClick={() => onDeleteRecipe(r.id)}
                     className="text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    <span>Hapus</span>
+                    <span>{pickLang(language, "Hapus", "Delete")}</span>
                   </Button>
                 )}
                 <Button variant="secondary" size="sm" onClick={() => onLoadRecipe(r.id)}>
                   <FolderOpen className="h-3.5 w-3.5" />
-                  <span>Muat</span>
+                  <span>{pickLang(language, "Muat", "Load")}</span>
                 </Button>
               </div>
             </Card>

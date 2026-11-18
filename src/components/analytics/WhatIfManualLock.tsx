@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { Lock, Unlock } from "lucide-react";
-import type { CompositionItem, Ingredient } from "../../types";
+import { pickLang } from "../../i18n";
+import type { AppLanguage, CompositionItem, Ingredient } from "../../types";
 import { formatNumberLocale } from "../../utils/locale-number";
 import { NumericCellInput } from "../formulation/NumericCellInput";
 import { Button } from "../ui/Button";
@@ -10,6 +11,7 @@ export interface WhatIfManualLockProps {
   readonly ingredients: readonly Ingredient[];
   readonly composition: readonly CompositionItem[];
   readonly manualLocks: Readonly<Record<string, number>>;
+  readonly language?: AppLanguage;
   readonly onSetManualLock: (id: string, pct: number | null) => void;
   readonly onClearLocks: () => void;
 }
@@ -19,6 +21,7 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
   ingredients,
   composition,
   manualLocks,
+  language = "id",
   onSetManualLock,
   onClearLocks,
 }: WhatIfManualLockProps) {
@@ -31,10 +34,18 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
       <div className="neu-well flex flex-wrap items-center justify-between gap-2 rounded-xl p-2.5">
         <div>
           <p className="font-bold text-[#0F172A] dark:text-white">
-            Simulasi Tukar Bahan Cepat (&ldquo;What-If&rdquo; Lock)
+            {pickLang(
+              language,
+              'Simulasi Tukar Bahan Cepat ("What-If" Lock)',
+              'Quick Feed Substitution Simulator ("What-If" Lock)',
+            )}
           </p>
           <p className="text-[11px] text-[#475569] dark:text-slate-300">
-            Kunci persentase bahan tertentu (total terkunci:{" "}
+            {pickLang(
+              language,
+              "Kunci persentase bahan tertentu (total terkunci:",
+              "Lock specific ingredient percentages (total locked:",
+            )}{" "}
             <strong className="tabular-nums text-[#0F172A] dark:text-white">
               {formatNumberLocale(totalLocked, 1)}%
             </strong>{" "}
@@ -43,7 +54,7 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
         </div>
         {Object.keys(manualLocks).length > 0 && (
           <Button variant="secondary" size="sm" onClick={onClearLocks}>
-            Reset Semua Kunci
+            {pickLang(language, "Reset Semua Kunci", "Reset All Locks")}
           </Button>
         )}
       </div>
@@ -53,6 +64,7 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
           const lockedVal = manualLocks[ing.id];
           const isLocked = lockedVal !== undefined;
           const currentPct = lockedVal ?? compMap.get(ing.id) ?? 0;
+          const ingName = language === "id" ? ing.name : (ing.nameEn ?? ing.name);
 
           return (
             <Card
@@ -72,7 +84,7 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
                 ) : (
                   <Unlock className="h-3.5 w-3.5 text-[#475569]" />
                 )}
-                <span>{ing.name}</span>
+                <span>{ingName}</span>
               </button>
 
               <div className="flex items-center gap-2.5">
@@ -82,7 +94,7 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
                   max={ing.inclusion?.max ?? 100}
                   step={0.5}
                   value={currentPct}
-                  aria-label={`Slider What-If ${ing.name}`}
+                  aria-label={`Slider What-If ${ingName}`}
                   onChange={(e) => onSetManualLock(ing.id, Number(e.target.value))}
                   className="w-24 cursor-pointer accent-[#059669] sm:w-32"
                 />
@@ -90,7 +102,7 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
                   <NumericCellInput
                     value={currentPct}
                     fractionDigits={1}
-                    ariaLabel={`Persentase What-If ${ing.name}`}
+                    ariaLabel={`${pickLang(language, "Persentase What-If", "What-If %")} ${ingName}`}
                     onCommit={(val) => onSetManualLock(ing.id, val)}
                   />
                 </div>

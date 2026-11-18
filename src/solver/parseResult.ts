@@ -12,6 +12,7 @@ import type {
   Requirement,
 } from "../types";
 import { computeAsFedFractions } from "../utils/basis";
+import { isDerivedNutrient, resolveNutrientValue } from "../utils/equations";
 import type { LpSolveOutput } from "./highsTypes";
 import {
   BASIC_NUTRIENT_IDS,
@@ -19,7 +20,12 @@ import {
   resolveActiveConstraints,
   resolveEffectiveInclusion,
   resolveEffectivePricePerKg,
+  resolveIngredientStdDev,
+  resolveRequirementVariance,
 } from "./modelHelpers";
+import { computeIngredientEnzymeUplift } from "./enzymes";
+import { evaluateRumenBiology } from "./rumenEvaluator";
+import { computeKappa } from "./stochastic";
 import type { LpModel } from "./types";
 
 const VERIFY_TOL = 1e-6;
@@ -47,16 +53,28 @@ function collectDisplayNutrientIds(
 ): readonly string[] {
   const customIds = new Set((config.customNutrients ?? []).map((n) => n.id));
   const seen = new Set<string>([...BASIC_NUTRIENT_IDS, ...customIds]);
+  const addIfVisible = (nutId: string) => {
+    const isBasic = BASIC_NUTRIENT_IDS.has(nutId);
+    const isDerived = isDerivedNutrient(nutId);
+    const isExplicitCustom = customIds.has(nutId);
+    if (DIGESTIBLE_NUTRIENT_IDS.has(nutId) && !config.enableDigestibleBasis) return;
+    if (isBasic || isDerived || isExplicitCustom) {
+      seen.add(nutId);
+      return;
+    }
+    if (config.enableAdvanceNutrients) {
+      seen.add(nutId);
+    }
+  };
   for (const c of requirement.constraints) {
-    const isBasic = BASIC_NUTRIENT_IDS.has(c.nutrientId);
-    const isCustom = customIds.has(c.nutrientId) || (!isBasic && c.isAdvance === false);
-    if (!isBasic && !isCustom && !config.enableAdvanceNutrients) continue;
-    if (DIGESTIBLE_NUTRIENT_IDS.has(c.nutrientId) && !config.enableDigestibleBasis) continue;
-    seen.add(c.nutrientId);
+    addIfVisible(c.nutrientId);
+  }
+  if (config.fractionalObjective) {
+    addIfVisible(config.fractionalObjective.nutrientId);
   }
   for (const r of requirement.ratios ?? []) {
-    seen.add(r.numerator);
-    seen.add(r.denominator);
+    addIfVisible(r.numerator);
+    addIfVisible(r.denominator);
   }
   return Array.from(seen);
 }
@@ -65,6 +83,7 @@ export function buildInfeasibleResult(
   config: FormulationConfig,
   conflicts: readonly ConflictDiagnostic[],
   messages: readonly string[],
+  extras: Pick<FormulationResult, "iis"> = {},
 ): FormulationResult {
   return {
     status: "infeasible",
@@ -79,7 +98,20 @@ export function buildInfeasibleResult(
     conflicts,
     messages,
     solvedAt: new Date().toISOString(),
+    ...extras,
   };
+}
+
+function computeRelaxationPenalty(model: LpModel, output: LpSolveOutput): number {
+  let total = 0;
+  for (const v of model.variables) {
+    if (v.role !== "elastic_pos" && v.role !== "elastic_neg") continue;
+    const col = output.solution.Columns[v.varName];
+    const primal = col && "Primal" in col ? col.Primal : 0;
+    if (!Number.isFinite(primal) || primal <= 0) continue;
+    total += v.objectiveCoeff * primal;
+  }
+  return total;
 }
 
 export function parseHighsResult(
@@ -115,7 +147,8 @@ export function parseHighsResult(
   let rawSum = 0;
 
   for (const v of ingVars) {
-    const primal = solution.Columns[v.varName]?.Primal ?? 0;
+    const col = solution.Columns[v.varName];
+    const primal = col && "Primal" in col ? col.Primal : 0;
     if (
       !Number.isFinite(primal) ||
       primal < v.lower - VERIFY_TOL ||
@@ -146,8 +179,9 @@ export function parseHighsResult(
   const activeConstraints = resolveActiveConstraints(requirement, config);
   const constraintMap = new Map(activeConstraints.map((c) => [c.nutrientId, c]));
 
-  // Ekstrak shadow price nutrien dari baris LP yang binding (hanya bermakna sebagai Rp saat costObjFactor > 0)
   const nutrientDualMap = new Map<string, number>();
+  const nutrientRhsRangeMap = new Map<string, { min: number | null; max: number | null }>();
+  const nutrientDegenerateMap = new Map<string, boolean>();
   const rowViolations: string[] = [];
 
   model.rows.forEach((row, rIdx) => {
@@ -160,17 +194,69 @@ export function parseHighsResult(
     }
     const solvedRow = solution.Rows[rIdx];
     if (!solvedRow || !("Status" in solvedRow) || !("Dual" in solvedRow)) return;
-    if (solvedRow.Status === "BS") return;
-    if (model.costObjFactor <= 0) return;
+
+    const rowPrimal =
+      "Primal" in solvedRow && typeof solvedRow.Primal === "number" ? solvedRow.Primal : null;
+    const atBound = rowPrimal !== null && Math.abs(rowPrimal - row.meta.boundValue) <= 1e-6;
+    const isActiveOrAtBound = solvedRow.Status !== "BS" || atBound;
+
+    // PR-02/PR-03: rentang RHS & dual — berlaku pada baris mengikat atau baris yang tepat menyentuh batas (degenerasi primal).
+    let zeroMarginDegenerate = false;
+    if (!model.fractionalActive && ranging && isActiveOrAtBound) {
+      const bDown = ranging.rowBoundDown[rIdx];
+      const bUp = ranging.rowBoundUp[rIdx];
+      const prev = nutrientRhsRangeMap.get(row.meta.nutrientId);
+      const down = typeof bDown === "number" && Number.isFinite(bDown) ? bDown : null;
+      const up = typeof bUp === "number" && Number.isFinite(bUp) ? bUp : null;
+      if (
+        (down !== null && Math.abs(down - row.meta.boundValue) <= 1e-6) ||
+        (up !== null && Math.abs(up - row.meta.boundValue) <= 1e-6)
+      ) {
+        zeroMarginDegenerate = true;
+      }
+      const next = {
+        min:
+          prev?.min !== null && prev?.min !== undefined && down !== null
+            ? Math.max(prev.min, down)
+            : (down ?? prev?.min ?? null),
+        max:
+          prev?.max !== null && prev?.max !== undefined && up !== null
+            ? Math.min(prev.max, up)
+            : (up ?? prev?.max ?? null),
+      };
+      nutrientRhsRangeMap.set(row.meta.nutrientId, next);
+    }
+
+    if (solvedRow.Status === "BS") {
+      // Degenerasi primal: baris tepat di batas (slack basic = 0) dan dual dilaporkan 0.
+      if (atBound && !nutrientDegenerateMap.has(row.meta.nutrientId)) {
+        nutrientDegenerateMap.set(row.meta.nutrientId, true);
+      }
+      return;
+    }
+    if (model.costObjFactor <= 0 || model.fractionalActive) return;
 
     const rawDual = solvedRow.Dual;
-    if (!Number.isFinite(rawDual) || Math.abs(rawDual) <= DUAL_ZERO_EPS) return;
+    if (!Number.isFinite(rawDual)) return;
+
     const priceDual = rawDual / model.costObjFactor;
-    const prev = nutrientDualMap.get(row.meta.nutrientId) ?? 0;
-    nutrientDualMap.set(row.meta.nutrientId, prev + priceDual);
+
+    // PR-02: baris mengikat tapi dual ~0 ATAU rentang RHS satu sisi nol => sinyal degenerasi.
+    if (Math.abs(priceDual) <= DUAL_ZERO_EPS || zeroMarginDegenerate) {
+      if (!nutrientDegenerateMap.has(row.meta.nutrientId) || zeroMarginDegenerate) {
+        nutrientDegenerateMap.set(row.meta.nutrientId, true);
+      }
+      if (Math.abs(priceDual) > DUAL_ZERO_EPS) {
+        const prev = nutrientDualMap.get(row.meta.nutrientId) ?? 0;
+        nutrientDualMap.set(row.meta.nutrientId, prev + priceDual);
+      }
+    } else {
+      nutrientDegenerateMap.set(row.meta.nutrientId, false);
+      const prev = nutrientDualMap.get(row.meta.nutrientId) ?? 0;
+      nutrientDualMap.set(row.meta.nutrientId, prev + priceDual);
+    }
   });
 
-  // Hitung ulang seluruh nutrien dari proporsi mentah x_i lalu verifikasi batas 1e-6
   const nutrientIds = collectDisplayNutrientIds(requirement, config);
   const nutrientValues = new Map<string, number>();
   let anyConstraintViolated = false;
@@ -181,7 +267,13 @@ export function parseHighsResult(
     for (const ing of activeNormalized) {
       const varName = model.ingredientVarMap.get(ing.id);
       const frac = varName ? (rawByVar.get(varName) ?? 0) : 0;
-      val += frac * (ing.nutrients[nutId] ?? 0);
+      const uplift = computeIngredientEnzymeUplift(
+        ing,
+        nutId,
+        config.enzymes,
+        config.enzymeSubAdditiveCap,
+      );
+      val += frac * ((resolveNutrientValue(ing, nutId) ?? 0) + uplift);
     }
     nutrientValues.set(nutId, val);
   }
@@ -191,6 +283,7 @@ export function parseHighsResult(
     const constraint = constraintMap.get(nutId);
     const min = constraint?.min;
     const max = constraint?.max;
+    const rhsRange = nutrientRhsRangeMap.get(nutId);
 
     let status: NutrientStatus = "unconstrained";
     let deviation: number | undefined;
@@ -224,6 +317,32 @@ export function parseHighsResult(
     }
 
     const shadowPrice = nutrientDualMap.get(nutId);
+    const isDegenerate = nutrientDegenerateMap.get(nutId);
+
+    // PR-04: margin stokastik κ·sqrt(V(x)) yang diterapkan kendala peluang ini.
+    let stochasticMargin: number | undefined;
+    if (
+      config.enableStochasticSlp === true &&
+      constraint &&
+      (min !== undefined || max !== undefined)
+    ) {
+      const xVec = activeNormalized.map((ing) => {
+        const varName = model.ingredientVarMap.get(ing.id);
+        return varName ? (rawByVar.get(varName) ?? 0) : 0;
+      });
+      const sigmas = activeNormalized.map((ing) => resolveIngredientStdDev(ing, nutId));
+      const reqVar = resolveRequirementVariance(constraint.requirementStdDev);
+      if (reqVar > 0 || sigmas.some((s) => s > 0)) {
+        const kappa = computeKappa(constraint.targetProbability, constraint.useCantelli);
+        // s dihitung di titik solusi akhir (margin eksak, bukan aproksimasi linear).
+        let variance = reqVar + 1e-12;
+        for (let j = 0; j < sigmas.length; j++) {
+          variance += (sigmas[j] ?? 0) ** 2 * (xVec[j] ?? 0) ** 2;
+        }
+        stochasticMargin = kappa * Math.sqrt(variance);
+      }
+    }
+
     return {
       nutrientId: nutId,
       value: val,
@@ -232,10 +351,12 @@ export function parseHighsResult(
       ...(max !== undefined ? { max } : {}),
       ...(deviation !== undefined ? { deviation } : {}),
       ...(shadowPrice !== undefined ? { shadowPrice } : {}),
+      ...(isDegenerate !== undefined ? { isDegenerate } : {}),
+      ...(rhsRange ? { rhsRange } : {}),
+      ...(stochasticMargin !== undefined ? { stochasticMargin } : {}),
     };
   });
 
-  // Verifikasi rasio Ca:P dkk dalam toleransi 1e-6
   for (const ratio of requirement.ratios ?? []) {
     const numVal = nutrientValues.get(ratio.numerator) ?? 0;
     const denVal = nutrientValues.get(ratio.denominator) ?? 0;
@@ -258,7 +379,6 @@ export function parseHighsResult(
     );
   }
 
-  // Konversi fraksi model -> fraksi penimbangan As-Fed
   const cleanFractions = activeNormalized.map((ing) => {
     const varName = model.ingredientVarMap.get(ing.id);
     const raw = varName ? (rawByVar.get(varName) ?? 0) : 0;
@@ -266,7 +386,6 @@ export function parseHighsResult(
   });
   const asFedMap = computeAsFedFractions(cleanFractions, model.basis);
 
-  // Biaya riil Σ x_j c_j murni TANPA penalti elastik maupun bobot goal programming!
   let costPerKg = 0;
   const composition: CompositionItem[] = [];
   const opportunityCosts: OpportunityCostItem[] = [];
@@ -288,9 +407,8 @@ export function parseHighsResult(
     const asFedFrac = asFedMap.get(ingId) ?? frac;
     const weightKg = asFedFrac * config.batchSizeKg;
 
-    // Price sensitivity ranging (bermakna bila biaya masuk objective, costObjFactor > 0)
     let priceRange: PriceRange | undefined;
-    if (ranging && colIndex !== undefined && model.costObjFactor > 0) {
+    if (!model.fractionalActive && ranging && colIndex !== undefined && model.costObjFactor > 0) {
       const rawDown = ranging.colCostDown[colIndex];
       const rawUp = ranging.colCostUp[colIndex];
       const minPrice =
@@ -311,8 +429,7 @@ export function parseHighsResult(
       ...(priceRange ? { priceRange } : {}),
     });
 
-    // Pisahkan dual kolom: Opportunity Cost (bahan 0% non-basis) vs Bound Dual (batas inklusi mengikat)
-    if (col && "Status" in col && "Dual" in col) {
+    if (!model.fractionalActive && col && "Status" in col && "Dual" in col) {
       const colDualRaw = col.Dual;
       const reducedCostModel =
         model.costObjFactor > 0 && Number.isFinite(colDualRaw)
@@ -358,6 +475,25 @@ export function parseHighsResult(
     ? [...precheckWarnings, ...violatedDetails]
     : precheckWarnings;
 
+  const relaxationPenalty = model.elasticMode ? computeRelaxationPenalty(model, output) : 0;
+
+  let fractionalCost: number | null | undefined;
+  if (model.fractionalActive && config.fractionalObjective) {
+    const denVal = nutrientValues.get(config.fractionalObjective.nutrientId) ?? 0;
+    fractionalCost = denVal > 1e-12 ? costPerKg / denVal : null;
+  }
+
+  const fracByIngId = new Map<string, number>();
+  for (const item of cleanFractions) {
+    fracByIngId.set(item.ingredient.id, item.fraction);
+  }
+  const rumenEvaluation = evaluateRumenBiology(
+    activeNormalized,
+    fracByIngId,
+    nutrientResults,
+    requirement,
+  );
+
   const messages: string[] = isNearFeasible
     ? [
         `Mode Relaksasi Elastik aktif: solusi kompromi ditemukan dengan penyesuaian ${rowViolations.length} kendala.`,
@@ -375,6 +511,9 @@ export function parseHighsResult(
     opportunityCosts,
     boundDuals,
     conflicts: allConflicts,
+    ...(relaxationPenalty > 0 ? { relaxationPenalty } : {}),
+    ...(fractionalCost !== undefined ? { fractionalCost } : {}),
+    ...(rumenEvaluation ? { rumenEvaluation } : {}),
     messages,
     solvedAt: new Date().toISOString(),
   };

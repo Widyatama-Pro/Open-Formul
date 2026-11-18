@@ -75,9 +75,9 @@ Tipe kanonik didefinisikan di [`src/types/index.ts`](../src/types/index.ts). Dok
 Mendefinisikan profil standar kebutuhan ternak:
 
 - `id`, `name`, `nameEn?`, `species`, `phase?`, `basis`, `source?`
-- `constraints`: `readonly NutrientConstraint[]` (`nutrientId`, `min?`, `max?`, `isAdvance?`, `enabled?`, `idealTarget?`)
-- `ratios?`: `readonly RatioConstraint[]` (`id?`, `label?`, `numerator`, `denominator`, `min?`, `max?`)
-- `ingredientGroups?`: `readonly IngredientGroupConstraint[]` (`id`, `name`, `ingredientIds`, `min?`, `max?`)
+- `constraints`: `readonly NutrientConstraint[]` (`nutrientId`, `min?`, `max?`, `isAdvance?`, `enabled?`, `idealTarget?`, `tier?`, `requirementStdDev?`, `targetProbability?`, `useCantelli?`)
+- `ratios?`: `readonly RatioConstraint[]` (`id?`, `label?`, `numerator`, `denominator`, `min?`, `max?`, `tier?`)
+- `ingredientGroups?`: `readonly IngredientGroupConstraint[]` (`id`, `name`, `ingredientIds`, `min?`, `max?`, `tier?`)
 
 ## `FormulationConfig`
 
@@ -92,6 +92,9 @@ Menyimpan parameter aktif workbench formulasi:
 - `globalZeroInclusion`: `ZeroInclusionRule`
 - `manualLocks?`: `Record<string, number>` (kunci persentase manual untuk What-If)
 - `customNutrients?`: `readonly Nutrient[]` (daftar nutrien kustom pengguna; maksimal 50, divalidasi lewat `validateCustomNutrient`)
+- `fractionalObjective?`: `FractionalObjective` (`{ mode: "cost_per_nutrient", nutrientId, denominatorEpsilon? }`)
+- `enableStochasticSlp?`, `stochasticMaxIter?`, `stochasticDamping?`, `stochasticTolerance?` (parameter SLP Munford `PR-04`)
+- `enzymes?`: `readonly EnzymeConfig[]` (`id`, `type`, `matrix`, `thermalRetention?`, `inclusionFraction?`, `substrateNutrientId?`) & `enzymeSubAdditiveCap?` (`PR-05`)
 
 ## `FormulationResult`
 
@@ -103,10 +106,15 @@ Output hasil formulasi yang dihasilkan oleh engine LP HiGHS WASM di Web Worker (
 - `batchTotalCost?`: `number | null`
 - `batchSizeKg?`: `number`
 - `composition`: array `CompositionItem` (`ingredientId`, `fraction`, `asFedFraction?`, `weightKg?`, `costContribution?`, `priceRange?`)
-- `nutrients`: array `NutrientResult` (`nutrientId`, `value`, `min?`, `max?`, `status`, `deviation?`, `shadowPrice?`)
+- `nutrients`: array `NutrientResult` (`nutrientId`, `value`, `min?`, `max?`, `status`, `deviation?`, `shadowPrice?`, `shadowPriceDown?`, `shadowPriceUp?`, `isDegenerate?`, `rhsRange?`, `stochasticMargin?`)
 - `opportunityCosts?`: array `OpportunityCostItem` (untuk bahan tidak terpilih `0%`)
 - `boundDuals?`: array `BoundDualItem` (bahan yang menempel batas inklusi `min`/`max`)
 - `conflicts?`: array `ConflictDiagnostic` (`code`, `severity`, `message`, `targetId?`, `suggestion?`)
+- `iis?`: array `IisItem` (`kind`, `targetId`, `bound`, `tier?`, `message` — output _Chinneck Deletion Filter_ `PR-01`)
+- `relaxationPenalty?`: `number` (total penalti relaksasi bertingkat pada status `near_feasible`)
+- `fractionalCost?`: `number | null` (biaya per unit nutrien saat `fractionalObjective` aktif)
+- `stochasticIterations?`: `number` (jumlah iterasi konvergensi SLP `PR-04`)
+- `rumenEvaluation?`: `RumenEvaluation` (`forageFractionPct`, `ndfPct`, `peuNdf240Pct`, `estimatedDmiPctBw`, `kpForagePctPerH`, `kpConcPctPerH`, `microbialProteinGPerKgDm`, `predictedMethaneGPerKgDm`, `acidosisRisk`)
 - `messages`: array pesan diagnosis manusiawi
 - `solvedAt`: timestamp ISO 8601
 

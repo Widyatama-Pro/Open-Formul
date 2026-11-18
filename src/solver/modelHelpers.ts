@@ -7,6 +7,7 @@ import type {
   Requirement,
 } from "../types";
 import { convertPriceToModelBasis, normalizeIngredientToBasis } from "../utils/basis";
+import { isDerivedNutrient } from "../utils/equations";
 
 export const BASIC_NUTRIENT_IDS: ReadonlySet<string> = new Set([
   "cp",
@@ -87,15 +88,17 @@ export function resolveActiveConstraints(
   const customIds = new Set((config.customNutrients ?? []).map((n) => n.id));
   return requirement.constraints.filter((c) => {
     const isBasic = BASIC_NUTRIENT_IDS.has(c.nutrientId);
-    const isCustom = customIds.has(c.nutrientId) || (!isBasic && c.isAdvance === false);
-    const isAdvance = !isBasic && !isCustom;
+    const isDerived = isDerivedNutrient(c.nutrientId);
+    const isCustom =
+      customIds.has(c.nutrientId) || (!isBasic && !isDerived && c.isAdvance === false);
+    const isAdvance = !isBasic && !isDerived && !isCustom;
     if (isAdvance && !config.enableAdvanceNutrients) {
       return false;
     }
     if (DIGESTIBLE_NUTRIENT_IDS.has(c.nutrientId) && !config.enableDigestibleBasis) {
       return false;
     }
-    const enabled = c.enabled ?? (isBasic || isCustom);
+    const enabled = c.enabled ?? (isBasic || isCustom || isDerived);
     if (!enabled) {
       return false;
     }
@@ -162,4 +165,17 @@ export function resolveNutrientGoalTarget(constraint: NutrientConstraint): numbe
 
 export function computeScaleFactor(referenceValue: number): number {
   return Math.max(Math.abs(referenceValue), 1e-3);
+}
+
+/** PR-04: sigma (standar deviasi) bahan untuk nutrien; 0 bila tidak ada data varians. */
+export function resolveIngredientStdDev(ingredient: Ingredient, nutrientId: string): number {
+  const v = ingredient.stdDev?.[nutrientId];
+  return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : 0;
+}
+
+/** PR-04: varians kebutuhan σ_bi² dari targetProbability/requirementStdDev. */
+export function resolveRequirementVariance(requirementStdDev: number | undefined): number {
+  return requirementStdDev !== undefined && Number.isFinite(requirementStdDev)
+    ? requirementStdDev * requirementStdDev
+    : 0;
 }

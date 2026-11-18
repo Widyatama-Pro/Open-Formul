@@ -125,6 +125,11 @@ describe("OpenFormul Fase 1 UI Prototype Flow", () => {
     await user.click(screen.getAllByRole("button", { name: /Pengaturan/i })[0]!);
     await user.selectOptions(screen.getByLabelText("Pilih bahasa"), "en");
     expect(screen.getByRole("heading", { name: "Application Settings" })).toBeInTheDocument();
+
+    // Cek propagasi bahasa EN ke Workbench Formulasi & Modul Lanjutan
+    await user.click(screen.getAllByRole("button", { name: /Ration Formulation/i })[0]!);
+    expect(screen.getByRole("heading", { name: "Ration Formulation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Precision LP/i })).toBeInTheDocument();
   });
 
   it("mendukung penambahan nutrien kustom penuh (nama, satuan, basis dinamis)", async () => {
@@ -167,7 +172,7 @@ describe("OpenFormul Fase 1 UI Prototype Flow", () => {
     expect(screen.getByRole("button", { name: /Tampilkan Semua \(1/i })).toBeInTheDocument();
   });
 
-  it("menampilkan seluruh 15 modul Advance berstatus Coming Soon dan panduan instalasi Desktop/Mobile", async () => {
+  it("menampilkan status aktif modul Fase 4A (PR-01..PR-05), klasifikasi Fase 5–6, dan panduan instalasi Desktop/Mobile", async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -175,13 +180,24 @@ describe("OpenFormul Fase 1 UI Prototype Flow", () => {
     expect(
       screen.getByRole("heading", { name: /Modul Presisi, Pabrik & Enterprise/i }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText("Coming Soon").length).toBe(15);
+    expect(screen.getAllByText("Aktif").length).toBe(5);
+    expect(screen.getAllByText("Opsional Single-Mix").length).toBe(3);
+    expect(screen.getAllByText("CLI / Build-Time").length).toBe(1);
+    expect(screen.getAllByText("Out of Scope PWA").length).toBe(6);
     expect(screen.getByText(/Diagnosis Konflik Cerdas \(IIS\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Urutan Batch Bebas Kontaminasi/i)).toBeInTheDocument();
 
-    // Filter tahap Presisi & Risiko menampilkan 5 modul
+    // Filter tahap Presisi & Risiko menampilkan 5 modul Aktif
     await user.click(screen.getByRole("tab", { name: /Presisi & Risiko \(5\)/i }));
-    expect(screen.getAllByText("Coming Soon").length).toBe(5);
+    expect(screen.getAllByText("Aktif").length).toBe(5);
+
+    // Tombol Buka di Workbench membuka dialog Presisi LP (PR-03..PR-05)
+    await user.click(screen.getByRole("button", { name: /Buka di Workbench/i }));
+    await user.click(screen.getByRole("button", { name: /Presisi LP/i }));
+    expect(screen.getByText(/Sasaran Objektif Fraksional/i)).toBeInTheDocument();
+    expect(screen.getByText(/Formulasi Stokastik/i)).toBeInTheDocument();
+    expect(screen.getByText(/Matriks Multi-Enzim Sub-Aditif/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Selesai/i }));
 
     // Cek kartu unduh/instal lintas platform di Pengaturan
     await user.click(screen.getAllByRole("button", { name: /Pengaturan/i })[0]!);

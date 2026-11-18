@@ -27,7 +27,7 @@ export function OptimizationModeSelector({
           onChange(parsed as OptimizationMode);
         }
       }}
-      className="h-7 min-h-7 py-0 text-[11px] md:min-w-40"
+      className="h-7 min-h-7 w-auto py-0 text-[11px] md:min-w-40"
     >
       {MODES.map((m) => {
         const meta = OPTIMIZATION_MODE_META[m];

@@ -1,6 +1,7 @@
 import { memo, useState } from "react";
 import { EyeOff } from "lucide-react";
-import type { Basis, CompositionItem, Ingredient } from "../../types";
+import { getCategoryLabel, pickLang } from "../../i18n";
+import type { AppLanguage, Basis, CompositionItem, Ingredient } from "../../types";
 import { cn } from "../../utils/cn";
 import { formatCurrencyIdr, formatNumberLocale } from "../../utils/locale-number";
 import { NumericCellInput } from "../formulation/NumericCellInput";
@@ -12,6 +13,7 @@ export interface BatchMixerCalculatorProps {
   readonly composition: readonly CompositionItem[];
   readonly ingredients: readonly Ingredient[];
   readonly activeBasis: Basis;
+  readonly language?: AppLanguage;
 }
 
 const PRESET_BATCH_KG = [50, 100, 500, 1000] as const;
@@ -32,6 +34,7 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
   composition,
   ingredients,
   activeBasis,
+  language = "id",
 }: BatchMixerCalculatorProps) {
   const [printBatchOnly, setPrintBatchOnly] = useState(false);
   const ingMap = new Map(ingredients.map((i) => [i.id, i]));
@@ -42,7 +45,7 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
       <div className="neu-well flex flex-wrap items-center justify-between gap-2.5 rounded-xl p-2.5">
         <div className="no-scrollbar flex flex-1 items-center gap-1.5 overflow-x-auto">
           <span className="shrink-0 text-xs font-semibold text-[#0F172A] dark:text-slate-200">
-            Skala Adukan:
+            {pickLang(language, "Skala Adukan:", "Batch Size:")}
           </span>
           {PRESET_BATCH_KG.map((kg) => (
             <button
@@ -64,7 +67,7 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
               value={batchSizeKg}
               treatSingleThousandDot
               fractionDigits={0}
-              ariaLabel="Total berat adukan kg"
+              ariaLabel={pickLang(language, "Total berat adukan kg", "Total batch weight kg")}
               onCommit={(val) => {
                 if (val !== null && val >= 1) onSetBatchSize(val);
               }}
@@ -80,7 +83,13 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
             className="h-3.5 w-3.5 cursor-pointer rounded border-slate-300 accent-[#059669]"
           />
           <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
-          <span>Mode Operator (Print Batch Only)</span>
+          <span>
+            {pickLang(
+              language,
+              "Mode Operator (Print Batch Only)",
+              "Operator Mode (Print Batch Only)",
+            )}
+          </span>
         </label>
       </div>
 
@@ -88,20 +97,37 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
       {composition.length > 0 && (
         <div>
           <div className="mb-1 flex justify-between text-[11px] font-medium text-[#475569] dark:text-slate-300">
-            <span>Distribusi Komposisi (Total 100%)</span>
+            <span>
+              {pickLang(
+                language,
+                "Distribusi Komposisi (Total 100%)",
+                "Composition Breakdown (Total 100%)",
+              )}
+            </span>
             {activeBasis === "dry_matter" && (
-              <span>Tercantum juga berat segar As-Fed penimbangan</span>
+              <span>
+                {pickLang(
+                  language,
+                  "Tercantum juga berat segar As-Fed penimbangan",
+                  "Includes As-Fed fresh weighing proportions",
+                )}
+              </span>
             )}
           </div>
           <div className="neu-well flex h-3 w-full overflow-hidden rounded-full p-0.5">
             {composition.map((item, idx) => {
               const ing = ingMap.get(item.ingredientId);
               const color = BAR_COLORS[idx % BAR_COLORS.length]!;
+              const ingName = ing
+                ? language === "id"
+                  ? ing.name
+                  : (ing.nameEn ?? ing.name)
+                : item.ingredientId;
               return (
                 <div
                   key={item.ingredientId}
                   style={{ width: `${(item.fraction * 100).toFixed(2)}%` }}
-                  title={`${ing?.name ?? item.ingredientId}: ${(item.fraction * 100).toFixed(2)}%`}
+                  title={`${ingName}: ${(item.fraction * 100).toFixed(2)}%`}
                   className={cn(
                     "h-full border-r border-white/60 first:rounded-l-full last:rounded-r-full last:border-r-0",
                     color,
@@ -118,11 +144,19 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
         <table className="w-full border-collapse text-xs">
           <thead className="bg-[#F1F5F9] text-[11px] font-bold tracking-wide text-[#475569] dark:bg-[#162831] dark:text-slate-300">
             <tr>
-              <th className="px-3 py-2 text-left">Bahan Pakan</th>
-              <th className="px-2 py-2 text-right">Porsi %</th>
+              <th className="px-3 py-2 text-left">
+                {pickLang(language, "Bahan Pakan", "Feed Ingredient")}
+              </th>
+              <th className="px-2 py-2 text-right">{pickLang(language, "Porsi %", "Share %")}</th>
               {activeBasis === "dry_matter" && <th className="px-2 py-2 text-right">As-Fed %</th>}
-              <th className="px-2 py-2 text-right">Takaran (kg)</th>
-              {!printBatchOnly && <th className="px-3 py-2 text-right">Kontribusi Biaya</th>}
+              <th className="px-2 py-2 text-right">
+                {pickLang(language, "Takaran (kg)", "Weight (kg)")}
+              </th>
+              {!printBatchOnly && (
+                <th className="px-3 py-2 text-right">
+                  {pickLang(language, "Kontribusi Biaya", "Cost Contribution")}
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E2E8F0] dark:divide-[#1E333D]">
@@ -131,6 +165,11 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
               const color = BAR_COLORS[idx % BAR_COLORS.length]!;
               const pct = item.fraction * 100;
               const weightKg = item.weightKg ?? item.fraction * batchSizeKg;
+              const ingName = ing
+                ? language === "id"
+                  ? ing.name
+                  : (ing.nameEn ?? ing.name)
+                : item.ingredientId;
               return (
                 <tr
                   key={item.ingredientId}
@@ -138,7 +177,7 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
                 >
                   <td className="px-3 py-1.5 font-semibold text-[#0F172A] dark:text-slate-100">
                     <span className={cn("mr-2 inline-block h-2.5 w-2.5 rounded-xs", color)} />
-                    {ing?.name ?? item.ingredientId}
+                    {ingName}
                   </td>
                   <td className="px-2 py-1.5 text-right font-semibold tabular-nums text-[#059669] dark:text-emerald-400">
                     {formatNumberLocale(pct, 2)}%
@@ -170,13 +209,18 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
           const color = BAR_COLORS[idx % BAR_COLORS.length]!;
           const pct = item.fraction * 100;
           const weightKg = item.weightKg ?? item.fraction * batchSizeKg;
+          const ingName = ing
+            ? language === "id"
+              ? ing.name
+              : (ing.nameEn ?? ing.name)
+            : item.ingredientId;
           return (
             <div key={item.ingredientId} className="glass-card rounded-xl p-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
                   <span className={cn("h-3 w-3 shrink-0 rounded-xs", color)} />
                   <span className="truncate text-xs font-bold text-[#0F172A] dark:text-white">
-                    {ing?.name ?? item.ingredientId}
+                    {ingName}
                   </span>
                 </div>
                 <span className="shrink-0 text-xs font-bold tabular-nums text-[#059669] dark:text-emerald-400">
@@ -186,15 +230,17 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
               <div className="mt-1.5 flex items-center justify-between text-[11px] tabular-nums text-[#475569] dark:text-slate-300">
                 <span>
                   {activeBasis === "dry_matter"
-                    ? `Segar As-Fed: ${formatNumberLocale((item.asFedFraction ?? item.fraction) * 100, 2)}%`
-                    : `Kategori: ${ing?.category ?? "-"}`}
+                    ? `${pickLang(language, "Segar As-Fed:", "Fresh As-Fed:")} ${formatNumberLocale((item.asFedFraction ?? item.fraction) * 100, 2)}%`
+                    : `${pickLang(language, "Kategori:", "Category:")} ${ing ? getCategoryLabel(language, ing.category) : "-"}`}
                 </span>
                 {!printBatchOnly ? (
                   <span className="font-semibold text-[#0F172A] dark:text-slate-100">
                     {formatCurrencyIdr(item.costContribution ?? 0)}
                   </span>
                 ) : (
-                  <Badge tone="neutral">Biaya disembunyikan</Badge>
+                  <Badge tone="neutral">
+                    {pickLang(language, "Biaya disembunyikan", "Cost hidden")}
+                  </Badge>
                 )}
               </div>
             </div>

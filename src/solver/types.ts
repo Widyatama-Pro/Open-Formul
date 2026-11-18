@@ -18,6 +18,7 @@ export type LpRowMeta =
   | { readonly kind: "nutrient_min"; readonly nutrientId: string; readonly boundValue: number }
   | { readonly kind: "nutrient_max"; readonly nutrientId: string; readonly boundValue: number }
   | { readonly kind: "nutrient_eq"; readonly nutrientId: string; readonly boundValue: number }
+  | { readonly kind: "denominator_floor"; readonly nutrientId: string; readonly floor: number }
   | {
       readonly kind: "ratio_min";
       readonly numeratorId: string;
@@ -30,9 +31,22 @@ export type LpRowMeta =
       readonly denominatorId: string;
       readonly targetRatio: number;
     }
-  | { readonly kind: "group_min"; readonly category: IngredientCategory; readonly boundPct: number }
-  | { readonly kind: "group_max"; readonly category: IngredientCategory; readonly boundPct: number }
-  | { readonly kind: "goal_deviation"; readonly nutrientId: string; readonly target: number };
+  | {
+      readonly kind: "group_min";
+      readonly category: IngredientCategory;
+      readonly boundPct: number;
+      readonly groupId?: string;
+      readonly groupName?: string;
+    }
+  | {
+      readonly kind: "group_max";
+      readonly category: IngredientCategory;
+      readonly boundPct: number;
+      readonly groupId?: string;
+      readonly groupName?: string;
+    }
+  | { readonly kind: "goal_deviation"; readonly nutrientId: string; readonly target: number }
+  | { readonly kind: "chebyshev"; readonly nutrientId: string; readonly scale: number };
 
 export interface LpRow {
   readonly name: string;
@@ -44,7 +58,8 @@ export interface LpRow {
   readonly slackPosVar?: string;
 }
 
-export type LpVariableRole = "ingredient" | "goal_pos" | "goal_neg" | "elastic_pos" | "elastic_neg";
+export type LpVariableRole =
+  "ingredient" | "goal_pos" | "goal_neg" | "elastic_pos" | "elastic_neg" | "chebyshev";
 
 export interface LpVariable {
   readonly varName: string;
@@ -65,6 +80,8 @@ export interface LpModel {
   readonly elasticPenaltyM: number;
   readonly optimizationMode: OptimizationMode;
   readonly costObjFactor: number;
+  /** PR-03: true bila objektif adalah rasio biaya/nutrien (Dinkelbach) — dual bukan IDR/kg. */
+  readonly fractionalActive: boolean;
   readonly normalizedIngredients: readonly Ingredient[];
   readonly ingredientVarMap: ReadonlyMap<string, string>;
   readonly variables: readonly LpVariable[];
@@ -77,11 +94,20 @@ export interface GroupLimitRule {
   readonly maxPct?: number;
 }
 
+export interface StochasticLinearization {
+  /** varName -> x_j^(t): titik linearisasi Taylor saat ini (SLP Munford). */
+  readonly xPrev: ReadonlyMap<string, number>;
+}
+
 export interface BuildModelOptions {
   readonly elastic?: boolean;
   readonly elasticPenaltyM?: number;
   readonly priceOverrides?: Readonly<Record<string, number>>;
   readonly groupLimits?: readonly GroupLimitRule[];
+  /** PR-03 Dinkelbach: λ pada iterasi ini; koefisien objektif jadi (harga_j − λ·e_j). */
+  readonly fractionalLambda?: number;
+  /** PR-04 SLP: linearisasi Munford V_i(x) ≈ xᵀΣ⁽ⁱ⁾x + σ_bi² pada xPrev. */
+  readonly stochastic?: StochasticLinearization;
 }
 
 export interface PrecheckResult {

@@ -1,4 +1,5 @@
 import type { FormulationConfig, FormulationResult, Ingredient, Requirement } from "../types";
+import { computeCriticalRegionStepping, type CriticalStep } from "./criticalStepping";
 import type { SolverWorkerRequest, SolverWorkerResponse } from "./highs.worker";
 import type { LpSolveOutput } from "./highsTypes";
 import { solveFormulationWithRunner, type SolveOptions } from "./solveFormulation";
@@ -109,4 +110,22 @@ export async function solveFormulation(
   options?: SolveOptions,
 ): Promise<FormulationResult> {
   return solveFormulationWithRunner(ingredients, requirement, config, runLpThroughWorker, options);
+}
+
+/** PR-02: Kurva tangga Buy/No-Buy parametrik di Web Worker (otomatis fallback di Node/test). */
+export async function computeCriticalPriceLadder(
+  ingredients: readonly Ingredient[],
+  requirement: Requirement,
+  config: FormulationConfig,
+  targetIngredientId: string,
+  options?: SolveOptions,
+): Promise<readonly CriticalStep[]> {
+  return computeCriticalRegionStepping(
+    ingredients,
+    requirement,
+    config,
+    runLpThroughWorker,
+    targetIngredientId,
+    options,
+  );
 }

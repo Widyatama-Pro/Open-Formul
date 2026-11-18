@@ -46,15 +46,16 @@ sequenceDiagram
 
 ## Modul
 
-| Folder           | Tanggung jawab                                                                                                                                                          |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/types`      | Tipe domain kanonik                                                                                                                                                     |
-| `src/data`       | Sampel bahan JSON, dataset kerja (`mock-state`), **304 bahan** Hartadi 1980 (`hartadi-feeds`), **82 profil** Kearl 1982 & **24 profil** NRC 1988 (`kearl-requirements`) |
-| `src/solver`     | `precheck`, `buildModel`, `toLpString`, `parseResult`, `solveFormulation`, `highs.worker`, `solverClient`                                                               |
-| `src/storage`    | `db` (IndexedDB `idb` `openformul-db` v1), `recipeTransfer` (`.feed.json`), `exportCsvXlsx` (CSV BOM & OOXML `.xlsx`), `exportPdf` (PDF 1.4)                            |
-| `src/utils`      | `basis` (As-Fed ↔ BK), `equations`, `validators`, `ingredientCsvImport`, `tsvPaste`, `download`, `locale-number`, `cn`                                                  |
-| `src/hooks`      | `usePrototypeStore` (orkestrasi solve live, hidrasi & persistensi IDB, non-destructive `loadRecipe`), `usePwaStatus`                                                    |
-| `src/components` | UI presentasional (Layered Glassmorphism & Soft Neumorphism, Light/Dark, offline font via `@fontsource-variable/*`)                                                     |
+| Folder           | Tanggung jawab                                                                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/types`      | Tipe domain kanonik                                                                                                                                                             |
+| `src/data`       | Sampel bahan JSON, dataset kerja (`mock-state`), **304 bahan** Hartadi 1980 (`hartadi-feeds`), **82 profil** Kearl 1982 & **24 profil** NRC 1988 (`kearl-requirements`)         |
+| `src/solver`     | `precheck`, `buildModel`, `toLpString`, `parseResult`, `solveFormulation`, `highs.worker`, `solverClient`, `iis`, `criticalStepping`, `enzymes`, `stochastic`, `rumenEvaluator` |
+| `src/storage`    | `db` (IndexedDB `idb` `openformul-db` v1), `recipeTransfer` (`.feed.json`), `exportCsvXlsx` (CSV BOM & OOXML `.xlsx`), `exportPdf` (PDF 1.4)                                    |
+| `src/i18n`       | Kamus & helper bilingual `ID / EN` (`pickLang`, label kategori/spesies/status/tier, terjemahan diagnostik konflik & IIS)                                                        |
+| `src/utils`      | `basis` (As-Fed ↔ BK termasuk skala `stdDev` & `phytateP`), `equations`, `validators`, `ingredientCsvImport`, `tsvPaste`, `download`, `locale-number`, `cn`                     |
+| `src/hooks`      | `usePrototypeStore` (orkestrasi solve live, hidrasi & persistensi IDB, non-destructive `loadRecipe`), `usePwaStatus`                                                            |
+| `src/components` | UI presentasional (Layered Glassmorphism & Soft Neumorphism, Light/Dark, offline font via `@fontsource-variable/*`)                                                             |
 
 ## Offline, PWA & Deploy Lintas Platform (Fase 4)
 
@@ -62,4 +63,4 @@ sequenceDiagram
 - **Instalasi Desktop & Mobile (`usePwaStatus.ts`):** Menangkap `beforeinstallprompt` dan menyediakan tombol instalasi native di `AppShell` dan `SettingsPage` + bundel portabel di GitHub Releases.
 - **Aplikasi Native PC `.exe` & Android `.apk`:** Selain PWA web, repositori dibungkus dengan **Tauri v2** (`src-tauri/`) untuk installer Windows NSIS (`.exe`) dan **Capacitor 8** (`android/`, `capacitor.config.json`) untuk Android (`.apk`) menggunakan script `npm run build:native` (`mode === "native"`, menonaktifkan registrasi Service Worker agar aset lokal langsung dijalankan WebView). Ekspor file di [download.ts](../src/utils/download.ts) otomatis memilih dialog Save As (`@tauri-apps/plugin-dialog` + `@tauri-apps/plugin-fs`), Android Share/Filesystem (`@capacitor/filesystem` + `@capacitor/share`), atau Blob web sesuai runtime.
 - IndexedDB via `idb` (`openformul-db` v1) dengan 5 object store: `ingredients`, `requirements`, `recipes`, `active_session`, dan `preferences` (beserta fallback memori aman jika IndexedDB diblokir/tidak tersedia).
-- **Katalog Lanjutan (`AdvancedModulesPreview.tsx`):** Menampilkan seluruh 15 modul riset (`PR-01` s/d `EN-05`) dalam mode _Coming Soon_ dengan penjelasan fungsi sederhana sambil menargetkan rilis implementasi bertahap di Fase 4A–6 (lihat [advanced-feature-research-plan.md](advanced-feature-research-plan.md)).
+- **Katalog Lanjutan (`AdvancedModulesPreview.tsx`):** Menampilkan seluruh 15 modul riset (`PR-01` s/d `EN-05`) dengan status aktual — `PR-01` s/d `PR-05` berstatus **Aktif** di Workbench (`PrecisionEngineDialog`, `ShadowPriceTab`, `ConflictDiagnosticsBanner`, `ResultsPanel`), `ML-01`–`ML-03` Opsional Single-Mix, `EN-01` CLI/Build-Time, dan sisanya `Out of Scope PWA` (lihat [advanced-feature-research-plan.md](advanced-feature-research-plan.md)).

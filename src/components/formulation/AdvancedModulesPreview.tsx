@@ -2,7 +2,9 @@ import { memo, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
+  ArrowRight,
   Boxes,
+  CheckCircle2,
   Clock,
   Cpu,
   Factory,
@@ -20,21 +22,26 @@ import {
   Sparkles,
   TrendingUp,
 } from "lucide-react";
+import { pickLang } from "../../i18n";
 import type { AppLanguage } from "../../types";
 import { cn } from "../../utils/cn";
 import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { GlossySquircleIcon, type SquircleTone } from "../ui/GlossySquircleIcon";
 
 export interface AdvancedModulesPreviewProps {
   readonly language?: AppLanguage;
+  readonly onOpenWorkbench?: () => void;
 }
 
 type ModuleStageKey = "all" | "precision" | "mill_eco" | "enterprise";
+type ModuleStatus = "active" | "optional_single_mix" | "cli_build_time" | "out_of_scope_pwa";
 
 interface ModuleRoadmapItem {
   readonly id: string;
   readonly stage: Exclude<ModuleStageKey, "all">;
+  readonly status: ModuleStatus;
   readonly phaseId: string;
   readonly phaseEn: string;
   readonly titleId: string;
@@ -60,6 +67,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "PR-01",
     stage: "precision",
+    status: "active",
     phaseId: "Fase 4A",
     phaseEn: "Phase 4A",
     titleId: "Diagnosis Konflik Cerdas (IIS) & Penalti Bertingkat",
@@ -74,6 +82,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "PR-02",
     stage: "precision",
+    status: "active",
     phaseId: "Fase 4A",
     phaseEn: "Phase 4A",
     titleId: "Peta Harga Beli & Rentang Aman Shadow Price",
@@ -87,6 +96,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "PR-03",
     stage: "precision",
+    status: "active",
     phaseId: "Fase 4A",
     phaseEn: "Phase 4A",
     titleId: "Optimasi Biaya per Energi/Protein & Kendala dEB Aktif",
@@ -100,6 +110,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "PR-04",
     stage: "precision",
+    status: "active",
     phaseId: "Fase 4A",
     phaseEn: "Phase 4A",
     titleId: "Formulasi Stokastik & Margin Keamanan (σ)",
@@ -113,6 +124,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "PR-05",
     stage: "precision",
+    status: "active",
     phaseId: "Fase 4A",
     phaseEn: "Phase 4A",
     titleId: "Matriks Multi-Enzim & Simulator Ruminansia Cepat",
@@ -126,6 +138,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "ML-01",
     stage: "mill_eco",
+    status: "optional_single_mix",
     phaseId: "Fase 5",
     phaseEn: "Phase 5",
     titleId: "Anti-Nol Pintar & Step Timbangan Pabrik (MILP)",
@@ -139,6 +152,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "ML-02",
     stage: "mill_eco",
+    status: "optional_single_mix",
     phaseId: "Fase 5",
     phaseEn: "Phase 5",
     titleId: "Koreksi Susut Peleting & Indeks Kualitas Pelet (PDI)",
@@ -152,6 +166,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "ML-03",
     stage: "mill_eco",
+    status: "optional_single_mix",
     phaseId: "Fase 5",
     phaseEn: "Phase 5",
     titleId: "Aturan Bentrok Aditif & Batas Mikotoksin Gabungan",
@@ -166,6 +181,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "ML-04",
     stage: "mill_eco",
+    status: "out_of_scope_pwa",
     phaseId: "Fase 5",
     phaseEn: "Phase 5",
     titleId: "Formulasi Ramah Lingkungan & Jejak Karbon (Eco-Nutrition)",
@@ -179,6 +195,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "ML-05",
     stage: "mill_eco",
+    status: "out_of_scope_pwa",
     phaseId: "Fase 5",
     phaseEn: "Phase 5",
     titleId: "Maksimasi Profit Karkas & Laba Susu (IOFC / Gompertz)",
@@ -192,6 +209,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "EN-01",
     stage: "enterprise",
+    status: "cli_build_time",
     phaseId: "Fase 6",
     phaseEn: "Phase 6",
     titleId: "Paket Engine Riset (@openformul/core) & Crawler Data",
@@ -205,6 +223,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "EN-02",
     stage: "enterprise",
+    status: "out_of_scope_pwa",
     phaseId: "Fase 6",
     phaseEn: "Phase 6",
     titleId: "Optimasi Multi-Formula, Kapasitas Silo & Multi-Lot",
@@ -218,6 +237,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "EN-03",
     stage: "enterprise",
+    status: "out_of_scope_pwa",
     phaseId: "Fase 6",
     phaseEn: "Phase 6",
     titleId: "Asisten Pembelian Lintas Formula (Procurement Matrix)",
@@ -231,6 +251,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "EN-04",
     stage: "enterprise",
+    status: "out_of_scope_pwa",
     phaseId: "Fase 6",
     phaseEn: "Phase 6",
     titleId: "Koneksi Uji Lab / FT-NIR Otomatis ke Stokastik (EWMA)",
@@ -244,6 +265,7 @@ const ADVANCED_MODULES: readonly ModuleRoadmapItem[] = [
   {
     id: "EN-05",
     stage: "enterprise",
+    status: "out_of_scope_pwa",
     phaseId: "Fase 6",
     phaseEn: "Phase 6",
     titleId: "Urutan Batch Bebas Kontaminasi & Label SNI / EU / AAFCO",
@@ -294,6 +316,7 @@ function renderModuleIcon(id: string) {
 
 export const AdvancedModulesPreview = memo(function AdvancedModulesPreview({
   language = "id",
+  onOpenWorkbench,
 }: AdvancedModulesPreviewProps) {
   const [selectedStage, setSelectedStage] = useState<ModuleStageKey>("all");
 
@@ -307,9 +330,11 @@ export const AdvancedModulesPreview = memo(function AdvancedModulesPreview({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-3xl">
           <div className="flex items-center gap-2">
-            <Badge tone="amber">
-              <Clock className="h-3 w-3" />
-              <span>{language === "id" ? "Coming Soon · Segera Hadir" : "Coming Soon"}</span>
+            <Badge tone="emerald">
+              <CheckCircle2 className="h-3 w-3" />
+              <span>
+                {pickLang(language, "Fase 4A Aktif (5 Modul)", "Phase 4A Active (5 Modules)")}
+              </span>
             </Badge>
             <span className="text-[11px] font-semibold text-[#5B7684] dark:text-cyan-200/75">
               {language === "id"
@@ -324,8 +349,8 @@ export const AdvancedModulesPreview = memo(function AdvancedModulesPreview({
           </h1>
           <p className="mt-1 text-xs leading-relaxed text-[#54707E] dark:text-slate-300">
             {language === "id"
-              ? "Seluruh teori formulasi presisi dan fitur industri telah kami petakan di bawah ini dengan penjelasan fungsi sederhana. Fokus rilis saat ini memastikan aplikasi utama berjalan stabil dan mudah dipasang di Desktop & Mobile terlebih dahulu—selanjutnya modul ini akan dibedah dan dibuka bertahap."
-              : "All precision nutrition theories and industrial features are cataloged below with plain-language summaries. Our current release focuses on stable desktop & mobile deployment first, followed by phased research and implementation of each module."}
+              ? "Seluruh 5 modul Presisi & Risiko (PR-01 s/d PR-05) kini aktif di engine HiGHS WASM dan dapat digunakan langsung melalui Workbench Formulasi. Modul Fase 5–6 diklasifikasikan sesuai audit arsitektur offline-first PWA."
+              : "All 5 Precision & Risk modules (PR-01 to PR-05) are now active in the HiGHS WASM engine and accessible from the Formulation Workbench. Phase 5–6 modules follow the offline-first PWA scope audit."}
           </p>
         </div>
 
@@ -334,13 +359,24 @@ export const AdvancedModulesPreview = memo(function AdvancedModulesPreview({
             <GlossySquircleIcon tone="petrol" size="sm" icon={<GitBranch className="h-4 w-4" />} />
             <div className="text-xs">
               <p className="font-bold text-[#122B36] dark:text-white">
-                {language === "id" ? "Tahap Implementasi" : "Rollout Sequence"}
+                {language === "id" ? "Status Implementasi" : "Implementation Status"}
               </p>
               <p className="mt-0.5 text-[11px] text-[#54707E] dark:text-slate-300">
                 {language === "id"
-                  ? "1. Deploy Desktop & Mobile → 2. Bedah & Riset Teknis → 3. Rilis Fitur Bertahap"
-                  : "1. Desktop & Mobile Deploy → 2. Technical Deep-Dive → 3. Phased Rollout"}
+                  ? "PR-01–PR-05 Aktif · ML-01–ML-03 Opsional · EN-01 CLI"
+                  : "PR-01–PR-05 Active · ML-01–ML-03 Optional · EN-01 CLI"}
               </p>
+              {onOpenWorkbench && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={onOpenWorkbench}
+                  className="mt-2.5 w-full"
+                >
+                  <span>{pickLang(language, "Buka di Workbench", "Open in Workbench")}</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
           </div>
         </Card>
@@ -376,31 +412,54 @@ export const AdvancedModulesPreview = memo(function AdvancedModulesPreview({
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {visibleModules.map((m) => (
-          <Card
-            key={m.id}
-            highlight={m.highlightCoral ? "coral" : "none"}
-            className="flex flex-col p-4"
-          >
-            <div className="flex items-start gap-3">
-              <GlossySquircleIcon tone={m.tone} size="md" icon={renderModuleIcon(m.id)} />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center justify-between gap-1.5">
-                  <span className="font-mono text-[11px] font-bold text-[#5B7684] dark:text-cyan-200/80">
-                    {m.id} · {language === "id" ? m.phaseId : m.phaseEn}
-                  </span>
-                  <Badge tone="amber">Coming Soon</Badge>
+        {visibleModules.map((m) => {
+          const statusBadge =
+            m.status === "active" ? (
+              <Badge tone="emerald">
+                <CheckCircle2 className="h-3 w-3" />
+                <span>{pickLang(language, "Aktif", "Active")}</span>
+              </Badge>
+            ) : m.status === "optional_single_mix" ? (
+              <Badge tone="amber">
+                <Clock className="h-3 w-3" />
+                <span>{pickLang(language, "Opsional Single-Mix", "Optional Single-Mix")}</span>
+              </Badge>
+            ) : m.status === "cli_build_time" ? (
+              <Badge tone="sky">
+                <span>{pickLang(language, "CLI / Build-Time", "CLI / Build-Time")}</span>
+              </Badge>
+            ) : (
+              <Badge tone="neutral">
+                <span>{pickLang(language, "Out of Scope PWA", "Out of Scope PWA")}</span>
+              </Badge>
+            );
+
+          return (
+            <Card
+              key={m.id}
+              highlight={m.highlightCoral ? "coral" : m.status === "active" ? "emerald" : "none"}
+              className="flex flex-col p-4"
+            >
+              <div className="flex items-start gap-3">
+                <GlossySquircleIcon tone={m.tone} size="md" icon={renderModuleIcon(m.id)} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                    <span className="font-mono text-[11px] font-bold text-[#5B7684] dark:text-cyan-200/80">
+                      {m.id} · {language === "id" ? m.phaseId : m.phaseEn}
+                    </span>
+                    {statusBadge}
+                  </div>
+                  <h2 className="mt-1 text-sm leading-snug font-bold text-[#122B36] dark:text-white">
+                    {language === "id" ? m.titleId : m.titleEn}
+                  </h2>
                 </div>
-                <h2 className="mt-1 text-sm leading-snug font-bold text-[#122B36] dark:text-white">
-                  {language === "id" ? m.titleId : m.titleEn}
-                </h2>
               </div>
-            </div>
-            <p className="mt-3 text-xs leading-relaxed text-[#466270] dark:text-slate-300">
-              {language === "id" ? m.summaryId : m.summaryEn}
-            </p>
-          </Card>
-        ))}
+              <p className="mt-3 text-xs leading-relaxed text-[#466270] dark:text-slate-300">
+                {language === "id" ? m.summaryId : m.summaryEn}
+              </p>
+            </Card>
+          );
+        })}
       </div>
 
       <Card

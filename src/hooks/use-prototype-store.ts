@@ -25,6 +25,7 @@ import {
 import type {
   AppLanguage,
   Basis,
+  ConstraintTier,
   FormulationConfig,
   FormulationResult,
   Ingredient,
@@ -46,6 +47,10 @@ export interface ConstraintPatch {
   readonly min?: number | null;
   readonly max?: number | null;
   readonly enabled?: boolean;
+  readonly tier?: ConstraintTier;
+  readonly requirementStdDev?: number | null;
+  readonly targetProbability?: number | null;
+  readonly useCantelli?: boolean;
 }
 
 const KEARL_HARTADI_STARTER_IDS = new Set([
@@ -129,6 +134,15 @@ export interface PrototypeStore {
   readonly toggleAdvanceNutrients: (enabled: boolean) => void;
   readonly toggleDigestibleBasis: (enabled: boolean) => void;
   readonly toggleElasticFallback: (enabled: boolean) => void;
+  readonly updatePrecisionConfig: (patch: {
+    readonly fractionalObjective?: FormulationConfig["fractionalObjective"] | null;
+    readonly enableStochasticSlp?: boolean;
+    readonly stochasticMaxIter?: number;
+    readonly stochasticDamping?: number;
+    readonly stochasticTolerance?: number;
+    readonly enzymes?: FormulationConfig["enzymes"] | null;
+    readonly enzymeSubAdditiveCap?: number | null;
+  }) => void;
   readonly setGlobalZeroInclusion: (enforceNonZero: boolean, minIfSelected?: number) => void;
   readonly setManualLock: (ingredientId: string, pct: number | null) => void;
   readonly clearManualLocks: () => void;
@@ -331,6 +345,16 @@ export function usePrototypeStore(): PrototypeStore {
         const nextMin = patch.min === null ? undefined : (patch.min ?? existing?.min);
         const nextMax = patch.max === null ? undefined : (patch.max ?? existing?.max);
         const nextEnabled = patch.enabled ?? existing?.enabled ?? true;
+        const nextTier = patch.tier ?? existing?.tier;
+        const nextReqStd =
+          patch.requirementStdDev === null
+            ? undefined
+            : (patch.requirementStdDev ?? existing?.requirementStdDev);
+        const nextTargetProb =
+          patch.targetProbability === null
+            ? undefined
+            : (patch.targetProbability ?? existing?.targetProbability);
+        const nextUseCantelli = patch.useCantelli ?? existing?.useCantelli;
         return {
           nutrientId,
           enabled: nextEnabled,
@@ -338,6 +362,10 @@ export function usePrototypeStore(): PrototypeStore {
           ...(nextMax !== undefined ? { max: nextMax } : {}),
           ...(existing?.isAdvance !== undefined ? { isAdvance: existing.isAdvance } : {}),
           ...(existing?.idealTarget !== undefined ? { idealTarget: existing.idealTarget } : {}),
+          ...(nextTier !== undefined ? { tier: nextTier } : {}),
+          ...(nextReqStd !== undefined ? { requirementStdDev: nextReqStd } : {}),
+          ...(nextTargetProb !== undefined ? { targetProbability: nextTargetProb } : {}),
+          ...(nextUseCantelli !== undefined ? { useCantelli: nextUseCantelli } : {}),
         };
       };
 
@@ -513,6 +541,61 @@ export function usePrototypeStore(): PrototypeStore {
     setSessionDirty(true);
     setConfig((prev) => ({ ...prev, enableElasticFallback }));
   }, []);
+
+  const updatePrecisionConfig = useCallback(
+    (patch: {
+      readonly fractionalObjective?: FormulationConfig["fractionalObjective"] | null;
+      readonly enableStochasticSlp?: boolean;
+      readonly stochasticMaxIter?: number;
+      readonly stochasticDamping?: number;
+      readonly stochasticTolerance?: number;
+      readonly enzymes?: FormulationConfig["enzymes"] | null;
+      readonly enzymeSubAdditiveCap?: number | null;
+    }) => {
+      setSessionDirty(true);
+      setConfig((prev) => {
+        const {
+          fractionalObjective: prevFractional,
+          enzymes: prevEnzymes,
+          enzymeSubAdditiveCap: prevCap,
+          ...rest
+        } = prev;
+
+        const nextFractional =
+          "fractionalObjective" in patch
+            ? (patch.fractionalObjective ?? undefined)
+            : prevFractional;
+        const nextEnzymes =
+          "enzymes" in patch
+            ? patch.enzymes && patch.enzymes.length > 0
+              ? patch.enzymes
+              : undefined
+            : prevEnzymes;
+        const nextCap =
+          "enzymeSubAdditiveCap" in patch ? (patch.enzymeSubAdditiveCap ?? undefined) : prevCap;
+
+        return {
+          ...rest,
+          ...(patch.enableStochasticSlp !== undefined
+            ? { enableStochasticSlp: patch.enableStochasticSlp }
+            : {}),
+          ...(patch.stochasticMaxIter !== undefined
+            ? { stochasticMaxIter: patch.stochasticMaxIter }
+            : {}),
+          ...(patch.stochasticDamping !== undefined
+            ? { stochasticDamping: patch.stochasticDamping }
+            : {}),
+          ...(patch.stochasticTolerance !== undefined
+            ? { stochasticTolerance: patch.stochasticTolerance }
+            : {}),
+          ...(nextFractional !== undefined ? { fractionalObjective: nextFractional } : {}),
+          ...(nextEnzymes !== undefined ? { enzymes: nextEnzymes } : {}),
+          ...(nextCap !== undefined ? { enzymeSubAdditiveCap: nextCap } : {}),
+        };
+      });
+    },
+    [],
+  );
 
   const setGlobalZeroInclusion = useCallback((enforceNonZero: boolean, minIfSelected?: number) => {
     setSessionDirty(true);
@@ -883,6 +966,7 @@ export function usePrototypeStore(): PrototypeStore {
     toggleAdvanceNutrients,
     toggleDigestibleBasis,
     toggleElasticFallback,
+    updatePrecisionConfig,
     setGlobalZeroInclusion,
     setManualLock,
     clearManualLocks,

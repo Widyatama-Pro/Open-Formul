@@ -2,9 +2,7 @@
 
 Dokumen ini menjadi panduan cetak biru (**Research & Dissection Plan**) pasca-deploy untuk membedah, memverifikasi secara matematis terhadap literatur _peer-reviewed_, lalu mengimplementasikan **15 modul formulasi presisi, operasional pabrik, dan ekosistem enterprise** secara bertahap pada engine **OpenFormul** (`src/solver/`, `src/utils/`, `src/storage/`, dan UI _Advance_).
 
-> **Status Publikasi Saat Ini:** Seluruh 15 modul telah ditampilkan di halaman **Modul Lanjutan (`src/components/formulation/AdvancedModulesPreview.tsx`)** dengan status **Coming Soon** dan penjelasan fungsi sederhana agar pengguna versi publik (Desktop & Mobile PWA) memahami peta riset awal.
->
-> **Audit Lingkup Offline-First PWA (Sinkronisasi [docs/prd.md](prd.md#33-audit-lingkup-offline-first-pwa-in-scope-vs-out-of-scope) & [docs/ROADMAP.md](ROADMAP.md)):** Hanya modul **Fase 4A (`PR-01` s/d `PR-05`)** (serta bagian evaluator aljabar rumen tanpa GA) yang dilanjutkan langsung di aplikasi PWA offline; `ML-01` s/d `ML-03` berstatus opsional _single-mix_; `EN-01` (termasuk _crawler_ `F-19`) dipisah ke CLI/_build-time_ di luar browser; sedangkan `ML-04`, `ML-05`, dan `EN-02` s/d `EN-05` berstatus **🚫 Out of Scope PWA** karena membutuhkan server multi-user, hardware pabrik/FT-NIR, regulasi hukum dinamis, database LCA berlisensi, atau solver NLP/GA di luar HiGHS WASM.
+> **Status Implementasi Saat Ini:** Modul **Fase 4A (`PR-01` s/d `PR-05`)** telah aktif di engine HiGHS WASM (`src/solver/`) dan antarmuka Workbench ([AdvancedModulesPreview.tsx](../src/components/formulation/AdvancedModulesPreview.tsx)); `ML-01`–`ML-03` berstatus opsional _single-mix_, `EN-01` dipisah ke CLI/_build-time_, dan `ML-04`, `ML-05`, `EN-02`–`EN-05` berstatus **🚫 Out of Scope PWA** sesuai audit lingkup offline-first.
 
 ---
 

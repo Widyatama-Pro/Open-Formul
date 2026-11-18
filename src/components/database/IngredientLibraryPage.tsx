@@ -11,6 +11,7 @@ import {
   Upload,
   Wheat,
 } from "lucide-react";
+import { getCategoryLabel, pickLang } from "../../i18n";
 import type { AppLanguage, Ingredient, IngredientCategory, Nutrient } from "../../types";
 import { downloadTextFile } from "../../utils/download";
 import {
@@ -191,8 +192,11 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
             {language === "id" ? "Database Kandungan Bahan Pakan" : "Feed Ingredient Database"}
           </h1>
           <p className="mt-0.5 text-xs text-[#54707E] dark:text-slate-400">
-            Modul terpisah dari Standar Kebutuhan Ternak. Membedakan tegas nilai 0 vs N/A (data
-            belum tersedia).
+            {pickLang(
+              language,
+              "Modul terpisah dari Standar Kebutuhan Ternak. Membedakan tegas nilai 0 vs N/A (data belum tersedia).",
+              "Decoupled from Livestock Requirement Standards. Strictly separates true 0 vs N/A (missing assay).",
+            )}
           </p>
         </div>
 
@@ -206,7 +210,7 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
             }}
           >
             <Download className="h-3.5 w-3.5" />
-            <span>Ekspor CSV</span>
+            <span>{pickLang(language, "Ekspor CSV", "Export CSV")}</span>
           </Button>
           <Button
             variant="secondary"
@@ -215,11 +219,11 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
             onClick={() => setImportOpen((prev) => !prev)}
           >
             <Upload className="h-3.5 w-3.5" />
-            <span>Impor CSV / JSON</span>
+            <span>{pickLang(language, "Impor CSV / JSON", "Import CSV / JSON")}</span>
           </Button>
           <Button variant="primary" size="sm" onClick={onOpenAdd}>
             <Plus className="h-3.5 w-3.5" />
-            <span>Tambah Bahan</span>
+            <span>{pickLang(language, "Tambah Bahan", "Add Feed")}</span>
           </Button>
         </div>
       </div>
@@ -229,12 +233,18 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-bold text-[#122B36] dark:text-slate-100">
-                Impor Bahan Pakan (CSV Excel Indonesia `,`/`;` atau JSON Pack)
+                {pickLang(
+                  language,
+                  "Impor Bahan Pakan (CSV Excel Indonesia `,`/`;` atau JSON Pack)",
+                  "Import Feed Ingredients (CSV `,`/`;` or JSON Pack)",
+                )}
               </h2>
               <p className="text-[11px] text-[#54707E] dark:text-slate-400">
-                Merge non-destruktif: hanya kolom yang diisi akan memperbarui data lama (asam amino
-                &amp; mineral lain aman). Sel kosong dibaca N/A (`null`), sedangkan `0` disimpan
-                sebagai nol.
+                {pickLang(
+                  language,
+                  "Merge non-destruktif: hanya kolom yang diisi akan memperbarui data lama (asam amino & mineral lain aman). Sel kosong dibaca N/A (`null`), sedangkan `0` disimpan sebagai nol.",
+                  "Non-destructive merge: only filled columns overwrite existing data. Empty cells become N/A (`null`) while `0` is saved as zero.",
+                )}
               </p>
             </div>
           </div>
@@ -245,13 +255,21 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
                 htmlFor="default-import-source"
                 className="mb-1 block text-xs font-medium text-[#122B36] dark:text-slate-200"
               >
-                Sumber Default (opsional jika CSV belum punya kolom Sumber)
+                {pickLang(
+                  language,
+                  "Sumber Default (opsional jika CSV belum punya kolom Sumber)",
+                  "Default Source (optional if CSV lacks a Source column)",
+                )}
               </label>
               <Input
                 id="default-import-source"
                 value={defaultSource}
                 onChange={(e) => setDefaultSource(e.target.value)}
-                placeholder="Mis. Hasil Lab Proksimat 2026 / Hartadi UGM"
+                placeholder={pickLang(
+                  language,
+                  "Mis. Hasil Lab Proksimat 2026 / Hartadi UGM",
+                  "e.g. Proximate Assay 2026 / NRC",
+                )}
               />
             </div>
 
@@ -260,7 +278,11 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
                 htmlFor="ingredient-import-file"
                 className="mb-1 block text-xs font-medium text-[#122B36] dark:text-slate-200"
               >
-                Pilih file CSV atau JSON bahan pakan
+                {pickLang(
+                  language,
+                  "Pilih file CSV atau JSON bahan pakan",
+                  "Choose ingredient CSV or JSON file",
+                )}
               </label>
               <input
                 id="ingredient-import-file"
@@ -299,23 +321,27 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari nama bahan atau sumber (NRC, Hartadi, Feedipedia)…"
+            placeholder={pickLang(
+              language,
+              "Cari nama bahan atau sumber (NRC, Hartadi, Feedipedia)…",
+              "Search ingredient name or source (NRC, Hartadi, Feedipedia)…",
+            )}
             className="pl-10"
           />
         </div>
         <Select
-          aria-label="Filter kategori bahan"
+          aria-label={pickLang(language, "Filter kategori bahan", "Filter feed category")}
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value as "all" | IngredientCategory)}
           className="sm:w-52"
         >
-          <option value="all">Semua Kategori</option>
-          <option value="energy">Energi</option>
-          <option value="protein">Protein</option>
-          <option value="forage">Hijauan</option>
-          <option value="mineral">Mineral</option>
-          <option value="premix">Premix</option>
-          <option value="additive">Aditif</option>
+          <option value="all">{pickLang(language, "Semua Kategori", "All Categories")}</option>
+          <option value="energy">{getCategoryLabel(language, "energy")}</option>
+          <option value="protein">{getCategoryLabel(language, "protein")}</option>
+          <option value="forage">{getCategoryLabel(language, "forage")}</option>
+          <option value="mineral">{getCategoryLabel(language, "mineral")}</option>
+          <option value="premix">{getCategoryLabel(language, "premix")}</option>
+          <option value="additive">{getCategoryLabel(language, "additive")}</option>
         </Select>
       </div>
 
@@ -343,13 +369,13 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
                       <h2 className="truncate text-sm font-bold tracking-[-0.015em] text-[#122B36] dark:text-slate-100">
                         {language === "id" ? ing.name : (ing.nameEn ?? ing.name)}
                       </h2>
-                      <Badge tone="neutral">{ing.category}</Badge>
+                      <Badge tone="neutral">{getCategoryLabel(language, ing.category)}</Badge>
                       <Badge tone={ing.basis === "as_fed" ? "sky" : "emerald"}>
-                        {ing.basis === "as_fed" ? "As-Fed" : "BK"}
+                        {ing.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK", "DM")}
                       </Badge>
                     </div>
                     <p className="mt-1 truncate text-[11px] text-[#54707E] dark:text-slate-400">
-                      Sumber: {ing.source}
+                      {pickLang(language, "Sumber:", "Source:")} {ing.source}
                     </p>
                   </div>
                 </div>
@@ -361,14 +387,14 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
                     onChange={(e) => onToggleActive(ing.id, e.target.checked)}
                     className="h-4 w-4 rounded border-slate-300 text-[#0E5E6F] accent-[#0E5E6F]"
                   />
-                  <span>Pakai</span>
+                  <span>{pickLang(language, "Pakai", "Use")}</span>
                 </label>
               </div>
 
               <div className="neu-well mt-3.5 grid grid-cols-2 gap-2.5 rounded-2xl p-3 text-xs tabular-nums sm:grid-cols-4">
                 <div>
                   <span className="block text-[10px] font-medium text-[#54707E] dark:text-slate-400">
-                    Harga
+                    {pickLang(language, "Harga", "Price")}
                   </span>
                   <span className="font-semibold text-[#122B36] dark:text-slate-100">
                     {formatCurrencyIdr(ing.pricePerKg)}
@@ -376,7 +402,7 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
                 </div>
                 <div>
                   <span className="block text-[10px] font-medium text-[#54707E] dark:text-slate-400">
-                    BK
+                    {pickLang(language, "BK", "DM")}
                   </span>
                   <span className="font-semibold text-[#122B36] dark:text-slate-100">
                     {formatNumberLocale(ing.dryMatter, 0)}%
@@ -384,7 +410,7 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
                 </div>
                 <div>
                   <span className="block text-[10px] font-medium text-[#54707E] dark:text-slate-400">
-                    PK
+                    {pickLang(language, "PK", "CP")}
                   </span>
                   <span className="font-semibold text-[#122B36] dark:text-slate-100">
                     {cp !== null && cp !== undefined ? `${formatNumberLocale(cp, 1)}%` : "N/A"}
@@ -411,10 +437,16 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
       {isWindowed && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-xs text-[#475569] dark:border-[#1E333D] dark:bg-[#111F26] dark:text-slate-300">
           <span>
-            Menampilkan {displayed.length} dari {filtered.length} bahan pakan dalam pustaka.
+            {pickLang(
+              language,
+              `Menampilkan ${displayed.length} dari ${filtered.length} bahan pakan dalam pustaka.`,
+              `Showing ${displayed.length} of ${filtered.length} feed ingredients in library.`,
+            )}
           </span>
           <Button variant="secondary" size="sm" onClick={() => setShowAll((prev) => !prev)}>
-            {showAll ? "Ringkas Tampilan" : `Tampilkan Semua (${filtered.length} bahan)`}
+            {showAll
+              ? pickLang(language, "Ringkas Tampilan", "Collapse List")
+              : `${pickLang(language, "Tampilkan Semua", "Show All")} (${filtered.length} ${pickLang(language, "bahan", "feeds")})`}
           </Button>
         </div>
       )}

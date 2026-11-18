@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { Basis, Ingredient, IngredientCategory } from "../../types";
+import { pickLang } from "../../i18n";
+import type { AppLanguage, Basis, Ingredient, IngredientCategory } from "../../types";
 import { parseLocaleDecimal } from "../../utils/locale-number";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
@@ -8,11 +9,17 @@ import { SheetDialog } from "../ui/SheetDialog";
 
 export interface AddEditIngredientModalProps {
   readonly open: boolean;
+  readonly language?: AppLanguage;
   readonly onClose: () => void;
   readonly onSave: (ingredient: Ingredient) => void;
 }
 
-export function AddEditIngredientModal({ open, onClose, onSave }: AddEditIngredientModalProps) {
+export function AddEditIngredientModal({
+  open,
+  language = "id",
+  onClose,
+  onSave,
+}: AddEditIngredientModalProps) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState<IngredientCategory>("energy");
   const [basis, setBasis] = useState<Basis>("as_fed");
@@ -35,19 +42,31 @@ export function AddEditIngredientModal({ open, onClose, onSave }: AddEditIngredi
     const parsedP = p.trim() === "" ? null : parseLocaleDecimal(p);
 
     if (!trimmedName) {
-      setError("Nama bahan wajib diisi.");
+      setError(pickLang(language, "Nama bahan wajib diisi.", "Ingredient name is required."));
       return;
     }
     if (parsedPrice === null || parsedPrice < 0) {
-      setError("Harga/kg harus angka >= 0.");
+      setError(pickLang(language, "Harga/kg harus angka >= 0.", "Price/kg must be a number >= 0."));
       return;
     }
     if (parsedDm === null || parsedDm <= 0 || parsedDm > 100) {
-      setError("Bahan kering (BK%) harus antara > 0 dan 100.");
+      setError(
+        pickLang(
+          language,
+          "Bahan kering (BK%) harus antara > 0 dan 100.",
+          "Dry matter (DM%) must be between > 0 and 100.",
+        ),
+      );
       return;
     }
     if (!source.trim()) {
-      setError("Sumber/sitasi data bahan wajib dicantumkan.");
+      setError(
+        pickLang(
+          language,
+          "Sumber/sitasi data bahan wajib dicantumkan.",
+          "Data source/citation is required.",
+        ),
+      );
       return;
     }
 
@@ -83,15 +102,19 @@ export function AddEditIngredientModal({ open, onClose, onSave }: AddEditIngredi
     <SheetDialog
       open={open}
       onClose={onClose}
-      title="Tambah Bahan Pakan Baru"
-      subtitle="Data tersimpan ke Database Bahan (kosongkan kolom nutrien bila data belum diuji/N/A)."
+      title={pickLang(language, "Tambah Bahan Pakan Baru", "Add New Feed Ingredient")}
+      subtitle={pickLang(
+        language,
+        "Data tersimpan ke Database Bahan (kosongkan kolom nutrien bila data belum diuji/N/A).",
+        "Saved to Ingredient DB (leave nutrient fields empty if untested / N/A).",
+      )}
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
-            Batal
+            {pickLang(language, "Batal", "Cancel")}
           </Button>
           <Button variant="primary" onClick={handleSubmit}>
-            Simpan Bahan
+            {pickLang(language, "Simpan Bahan", "Save Ingredient")}
           </Button>
         </div>
       }
@@ -106,88 +129,98 @@ export function AddEditIngredientModal({ open, onClose, onSave }: AddEditIngredi
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-              Nama Bahan Pakan
+              {pickLang(language, "Nama Bahan Pakan", "Ingredient Name")}
             </label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Mis. Tepung Maggot BSF…"
+              placeholder={pickLang(language, "Mis. Tepung Maggot BSF…", "e.g. BSF Larvae Meal…")}
             />
           </div>
 
           <div>
             <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-              Kategori
+              {pickLang(language, "Kategori", "Category")}
             </label>
             <Select
               value={category}
               onChange={(e) => setCategory(e.target.value as IngredientCategory)}
             >
-              <option value="energy">Energi (Energy)</option>
-              <option value="protein">Protein (Protein)</option>
-              <option value="forage">Hijauan (Forage)</option>
+              <option value="energy">{pickLang(language, "Energi (Energy)", "Energy")}</option>
+              <option value="protein">{pickLang(language, "Protein (Protein)", "Protein")}</option>
+              <option value="forage">{pickLang(language, "Hijauan (Forage)", "Forage")}</option>
               <option value="mineral">Mineral</option>
               <option value="premix">Premix</option>
-              <option value="additive">Aditif / Asam Amino</option>
-              <option value="enzyme">Enzim</option>
+              <option value="additive">
+                {pickLang(language, "Aditif / Asam Amino", "Additive / Amino Acid")}
+              </option>
+              <option value="enzyme">{pickLang(language, "Enzim", "Enzyme")}</option>
             </Select>
           </div>
 
           <div>
             <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-              Basis Nilai Nutrien
+              {pickLang(language, "Basis Nilai Nutrien", "Nutrient Data Basis")}
             </label>
             <Select value={basis} onChange={(e) => setBasis(e.target.value as Basis)}>
-              <option value="as_fed">As-Fed (Segar apa adanya)</option>
-              <option value="dry_matter">Bahan Kering (100% DM)</option>
+              <option value="as_fed">
+                {pickLang(language, "As-Fed (Segar apa adanya)", "As-Fed")}
+              </option>
+              <option value="dry_matter">
+                {pickLang(language, "Bahan Kering (100% DM)", "Dry Matter (100% DM)")}
+              </option>
             </Select>
           </div>
 
           <div>
             <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-              Harga Acuan (Rp/kg As-Fed)
+              {pickLang(language, "Harga Acuan (Rp/kg As-Fed)", "Market Price (IDR/kg As-Fed)")}
             </label>
             <Input numeric value={price} onChange={(e) => setPrice(e.target.value)} />
           </div>
 
           <div>
             <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-              Bahan Kering / BK (%)
+              {pickLang(language, "Bahan Kering / BK (%)", "Dry Matter / DM (%)")}
             </label>
             <Input numeric value={dryMatter} onChange={(e) => setDryMatter(e.target.value)} />
           </div>
 
           <div>
             <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-              Protein Kasar / PK (%)
+              {pickLang(language, "Protein Kasar / PK (%)", "Crude Protein / CP (%)")}
             </label>
             <Input numeric value={cp} onChange={(e) => setCp(e.target.value)} placeholder="N/A" />
           </div>
 
           <div>
             <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-              Energi Metabolis (kcal/kg)
+              {pickLang(language, "Energi Metabolis (kcal/kg)", "Metabolizable Energy (kcal/kg)")}
             </label>
             <Input numeric value={me} onChange={(e) => setMe(e.target.value)} placeholder="N/A" />
           </div>
 
           <div>
             <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-              Kalsium / Ca (%)
+              {pickLang(language, "Kalsium / Ca (%)", "Calcium / Ca (%)")}
             </label>
             <Input numeric value={ca} onChange={(e) => setCa(e.target.value)} placeholder="N/A" />
           </div>
 
           <div>
             <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-              Fosfor Total / P (%)
+              {pickLang(language, "Fosfor Total / P (%)", "Total Phosphorus / P (%)")}
             </label>
             <Input numeric value={p} onChange={(e) => setP(e.target.value)} placeholder="N/A" />
           </div>
 
           <div className="sm:col-span-2">
             <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-              Sumber / Sitasi Data (Wajib)
+              {pickLang(
+                language,
+                "Sumber / Sitasi Data (Wajib)",
+                "Data Source / Citation (Required)",
+              )}
             </label>
             <Input value={source} onChange={(e) => setSource(e.target.value)} />
           </div>

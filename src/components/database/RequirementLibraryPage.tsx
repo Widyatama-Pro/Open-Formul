@@ -1,5 +1,6 @@
 import { memo, useMemo, useState, type ReactNode } from "react";
 import { Beef, Bird, Check, Egg, Milk, Plus, Search, Target } from "lucide-react";
+import { getSpeciesLabelI18n, pickLang } from "../../i18n";
 import type { AppLanguage, Basis, Requirement } from "../../types";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -8,21 +9,6 @@ import { GlossySquircleIcon, type SquircleTone } from "../ui/GlossySquircleIcon"
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
 import { SheetDialog } from "../ui/SheetDialog";
-
-const SPECIES_LABELS: Record<string, string> = {
-  broiler: "Ayam Broiler",
-  layer: "Ayam Layer",
-  duck: "Itik / Bebek",
-  cattle_beef: "Sapi Potong",
-  cattle_dairy: "Sapi Perah",
-  sheep: "Domba",
-  goat: "Kambing",
-  goat_sheep: "Kambing / Domba",
-};
-
-function getSpeciesLabel(species: string): string {
-  return SPECIES_LABELS[species] ?? species;
-}
 
 function getSpeciesVisual(species: string): { tone: SquircleTone; icon: ReactNode } {
   const s = species.toLowerCase();
@@ -67,9 +53,9 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
         req.name.toLowerCase().includes(q) ||
         (req.nameEn?.toLowerCase().includes(q) ?? false) ||
         (req.source?.toLowerCase().includes(q) ?? false) ||
-        getSpeciesLabel(req.species).toLowerCase().includes(q),
+        getSpeciesLabelI18n(language, req.species).toLowerCase().includes(q),
     );
-  }, [requirements, query]);
+  }, [requirements, query, language]);
 
   const isWindowed = query.trim() === "" && filteredRequirements.length > 50;
   const displayedRequirements =
@@ -106,13 +92,16 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
               : "Livestock Requirement Standards"}
           </h1>
           <p className="mt-0.5 text-xs text-[#54707E] dark:text-slate-400">
-            Preset standar nutrisi berdasarkan komoditas dan fase pemeliharaan (terpisah dari
-            database bahan).
+            {pickLang(
+              language,
+              "Preset standar nutrisi berdasarkan komoditas dan fase pemeliharaan (terpisah dari database bahan).",
+              "Nutrient standard presets by livestock species and growth phase (decoupled from Ingredient DB).",
+            )}
           </p>
         </div>
         <Button variant="primary" size="sm" onClick={() => setOpenCreate(true)}>
           <Plus className="h-3.5 w-3.5" />
-          <span>Buat Profil Baru</span>
+          <span>{pickLang(language, "Buat Profil Baru", "Create New Profile")}</span>
         </Button>
       </div>
 
@@ -122,8 +111,16 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Cari profil fase, bobot badan, spesies, atau standar (Kearl, NRC, SNI)…"
-          aria-label="Cari standar kebutuhan ternak"
+          placeholder={pickLang(
+            language,
+            "Cari profil fase, bobot badan, spesies, atau standar (Kearl, NRC, SNI)…",
+            "Search phase profile, body weight, species, or standard (Kearl, NRC, SNI)…",
+          )}
+          aria-label={pickLang(
+            language,
+            "Cari standar kebutuhan ternak",
+            "Search livestock requirement standards",
+          )}
           className="pl-10"
         />
       </div>
@@ -148,12 +145,14 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
                         {language === "id" ? req.name : (req.nameEn ?? req.name)}
                       </h2>
                       <Badge tone={req.basis === "as_fed" ? "sky" : "emerald"}>
-                        {req.basis === "as_fed" ? "As-Fed" : "BK (DM)"}
+                        {req.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK (DM)", "DM")}
                       </Badge>
                     </div>
                     <p className="mt-1 text-[11px] text-[#54707E] dark:text-slate-400">
-                      Spesies: {getSpeciesLabel(req.species)} · Sumber:{" "}
-                      {req.source ?? "Standar internal"}
+                      {pickLang(language, "Spesies:", "Species:")}{" "}
+                      {getSpeciesLabelI18n(language, req.species)} ·{" "}
+                      {pickLang(language, "Sumber:", "Source:")}{" "}
+                      {req.source ?? pickLang(language, "Standar internal", "Internal standard")}
                     </p>
                   </div>
                 </div>
@@ -166,7 +165,11 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
                   {isCurrent && (
                     <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   )}
-                  <span>{isCurrent ? "Aktif" : "Gunakan"}</span>
+                  <span>
+                    {isCurrent
+                      ? pickLang(language, "Aktif", "Active")
+                      : pickLang(language, "Gunakan", "Use")}
+                  </span>
                 </Button>
               </div>
 
@@ -188,13 +191,16 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
       {isWindowed && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/75 bg-white/55 px-4 py-3 text-xs text-[#54707E] dark:border-cyan-200/10 dark:bg-[#0D2E3B]/60 dark:text-slate-300">
           <span>
-            Menampilkan {displayedRequirements.length} dari {filteredRequirements.length} profil
-            kebutuhan ternak.
+            {pickLang(
+              language,
+              `Menampilkan ${displayedRequirements.length} dari ${filteredRequirements.length} profil kebutuhan ternak.`,
+              `Showing ${displayedRequirements.length} of ${filteredRequirements.length} livestock requirement profiles.`,
+            )}
           </span>
           <Button variant="secondary" size="sm" onClick={() => setShowAll((prev) => !prev)}>
             {showAll
-              ? "Ringkas Tampilan"
-              : `Tampilkan Semua (${filteredRequirements.length} profil)`}
+              ? pickLang(language, "Ringkas Tampilan", "Collapse List")
+              : `${pickLang(language, "Tampilkan Semua", "Show All")} (${filteredRequirements.length} ${pickLang(language, "profil", "profiles")})`}
           </Button>
         </div>
       )}
@@ -202,14 +208,18 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
       <SheetDialog
         open={openCreate}
         onClose={() => setOpenCreate(false)}
-        title="Buat Profil Kebutuhan Ternak Baru"
+        title={pickLang(
+          language,
+          "Buat Profil Kebutuhan Ternak Baru",
+          "Create New Livestock Requirement Profile",
+        )}
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setOpenCreate(false)}>
-              Batal
+              {pickLang(language, "Batal", "Cancel")}
             </Button>
             <Button variant="primary" onClick={handleCreate}>
-              Buat & Pakai
+              {pickLang(language, "Buat & Pakai", "Create & Apply")}
             </Button>
           </div>
         }
@@ -217,35 +227,43 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
         <div className="space-y-3 text-xs">
           <div>
             <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-              Nama Profil / Fase
+              {pickLang(language, "Nama Profil / Fase", "Profile / Phase Name")}
             </label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Mis. Itik Petelur Fase Layer…"
+              placeholder={pickLang(
+                language,
+                "Mis. Itik Petelur Fase Layer…",
+                "e.g. Laying Duck Layer Phase…",
+              )}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-                Komoditas / Spesies
+                {pickLang(language, "Komoditas / Spesies", "Species")}
               </label>
               <Select value={species} onChange={(e) => setSpecies(e.target.value)}>
-                <option value="broiler">Ayam Broiler</option>
-                <option value="layer">Ayam Layer</option>
-                <option value="duck">Itik / Bebek</option>
-                <option value="cattle_beef">Sapi Potong</option>
-                <option value="cattle_dairy">Sapi Perah</option>
-                <option value="goat_sheep">Kambing / Domba</option>
+                <option value="broiler">{getSpeciesLabelI18n(language, "broiler")}</option>
+                <option value="layer">{getSpeciesLabelI18n(language, "layer")}</option>
+                <option value="duck">{getSpeciesLabelI18n(language, "duck")}</option>
+                <option value="cattle_beef">{getSpeciesLabelI18n(language, "cattle_beef")}</option>
+                <option value="cattle_dairy">
+                  {getSpeciesLabelI18n(language, "cattle_dairy")}
+                </option>
+                <option value="goat_sheep">{getSpeciesLabelI18n(language, "goat_sheep")}</option>
               </Select>
             </div>
             <div>
               <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-                Basis Standar
+                {pickLang(language, "Basis Standar", "Standard Basis")}
               </label>
               <Select value={basis} onChange={(e) => setBasis(e.target.value as Basis)}>
                 <option value="as_fed">As-Fed</option>
-                <option value="dry_matter">Bahan Kering (BK)</option>
+                <option value="dry_matter">
+                  {pickLang(language, "Bahan Kering (BK)", "Dry Matter (DM)")}
+                </option>
               </Select>
             </div>
           </div>

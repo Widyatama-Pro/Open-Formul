@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo, useState, type ClipboardEvent } from "react";
 import { RotateCcw, Sliders } from "lucide-react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
+import { pickLang } from "../../i18n";
 import type {
   AppLanguage,
   CompositionItem,
@@ -9,6 +10,7 @@ import type {
   Nutrient,
 } from "../../types";
 import { cn } from "../../utils/cn";
+import { isDerivedNutrient, resolveNutrientValue } from "../../utils/equations";
 import { formatCurrencyIdr, formatNumberLocale } from "../../utils/locale-number";
 import { applyTsvGridPaste, type PasteColumnKey } from "../../utils/tsvPaste";
 import { Badge } from "../ui/Badge";
@@ -231,14 +233,27 @@ const IngredientTableRow = memo(function IngredientTableRow({
       </td>
 
       {visibleNutrients.map((nut) => {
+        if (isDerivedNutrient(nut.id)) {
+          const derivedVal = resolveNutrientValue(ing, nut.id);
+          return (
+            <td
+              key={nut.id}
+              className="px-2 py-1 text-right tabular-nums text-[#475569] dark:text-slate-300"
+            >
+              {derivedVal !== null ? formatNumberLocale(derivedVal, 0) : "N/A"}
+            </td>
+          );
+        }
         const val = ing.nutrients[nut.id];
         const isNull = val === null || val === undefined;
+        const digits =
+          nut.unit === "kcal/kg" || nut.unit === "mg/kg" || nut.unit === "mEq/kg" ? 0 : 2;
         return (
           <td key={nut.id} className="px-2 py-1">
             <NumericCellInput
               value={val ?? null}
               allowNull
-              fractionDigits={nut.unit === "kcal/kg" ? 0 : 2}
+              fractionDigits={digits}
               gridRow={rowIdx}
               gridCol={nut.id}
               onPaste={(e) => onCellPaste(rowIdx, nut.id, e)}
@@ -331,11 +346,15 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
         onBatchIngredientsUpdate(outcome.ingredients);
       }
       setPasteNotice({
-        text: `${outcome.appliedCells} sel ditempel dari spreadsheet.`,
+        text: pickLang(
+          language,
+          `${outcome.appliedCells} sel ditempel dari spreadsheet.`,
+          `${outcome.appliedCells} cells pasted from spreadsheet.`,
+        ),
         warnings: outcome.warnings,
       });
     },
-    [allIngredients, ingredients, onBatchIngredientsUpdate, orderedCols],
+    [allIngredients, ingredients, language, onBatchIngredientsUpdate, orderedCols],
   );
 
   return (
@@ -354,7 +373,7 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
             onClick={() => setPasteNotice(null)}
             className="cursor-pointer rounded px-1.5 py-0.5 font-semibold underline hover:opacity-80"
           >
-            Tutup
+            {pickLang(language, "Tutup", "Close")}
           </button>
         </div>
       )}
@@ -363,16 +382,16 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
           <thead className="sticky top-0 z-20 bg-[#F1F5F9] text-[11px] font-bold tracking-wide text-[#475569] dark:bg-[#162831] dark:text-slate-300">
             <tr>
               <th className="sticky left-0 z-30 w-10 border-r border-b border-[#E2E8F0] bg-[#F1F5F9] px-1.5 py-2 text-center dark:border-[#1E333D] dark:bg-[#162831]">
-                Aktif
+                {pickLang(language, "Aktif", "Active")}
               </th>
               <th className="sticky left-10 z-30 min-w-40 border-r border-b border-[#E2E8F0] bg-[#F1F5F9] px-2.5 py-2 dark:border-[#1E333D] dark:bg-[#162831]">
-                {language === "id" ? "Nama Bahan" : "Ingredient"}
+                {pickLang(language, "Nama Bahan", "Ingredient")}
               </th>
               <th className="w-24 min-w-24 border-b border-[#E2E8F0] px-2 py-2 text-right dark:border-[#1E333D]">
-                Harga/kg
+                {pickLang(language, "Harga/kg", "Price/kg")}
               </th>
               <th className="w-16 border-b border-[#E2E8F0] px-1.5 py-2 text-right dark:border-[#1E333D]">
-                BK %
+                {pickLang(language, "BK %", "DM %")}
               </th>
               <th className="w-16 border-b border-[#E2E8F0] px-1.5 py-2 text-right dark:border-[#1E333D]">
                 Min %
@@ -381,10 +400,10 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
                 Max %
               </th>
               <th className="w-20 min-w-20 border-b border-[#E2E8F0] bg-emerald-50/70 px-2 py-2 text-right text-[#0F3D3E] dark:border-[#1E333D] dark:bg-emerald-950/35 dark:text-emerald-300">
-                Inklusi %
+                {pickLang(language, "Inklusi %", "Inclusion %")}
               </th>
               <th className="w-14 border-b border-[#E2E8F0] px-2 py-2 text-center dark:border-[#1E333D]">
-                Anti-0
+                {pickLang(language, "Anti-0", "Anti-0")}
               </th>
               {visibleNutrients.map((nut) => (
                 <th

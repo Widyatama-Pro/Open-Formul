@@ -90,12 +90,17 @@ Seluruh persamaan berikut diimplementasikan murni pada basis Bahan Kering (BK) d
 - **ME Babi (Asplund & Harris, 1969):** $\text{ME}(\text{kcal/kg}) = \max(0,\, (0,96 - 0,00202 \cdot \text{CP}\%) \cdot \text{DE})$.
 - **4% Fat-Corrected Milk & Kebutuhan DMI/Laktasi (NRC, 1988 Tabel 6-1 & Kearl, 1982 Tabel 15):** $\text{FCM}(4\%) = 0,4 \cdot \text{Susu} + 0,15 \cdot \text{Susu} \cdot \text{Lemak}\%$, interpolasi bilinear DMI (`estimateCattleDryMatterIntakePctBw`), dan agregasi kebutuhan harian hidup pokok + produksi susu menjadi konsentrasi `% BK` (`computeKearlLactationRequirement`).
 
-## Spesifikasi Target Matematis Lanjutan (Rencana Implementasi Fase 4A–6)
+## Modul Presisi Fase 4A (Aktif di `src/solver/`)
 
-> **Catatan Status:** Persamaan di bawah adalah **target desain terverifikasi** untuk implementasi bertahap pasca-deploy publik (belum aktif di solver produksi; saat ini berstatus _Coming Soon_ di menu Modul Lanjutan). Rincian lengkap tersedia di [`advanced-feature-research-plan.md`](advanced-feature-research-plan.md).
+> **Status Implementasi:** Fitur `PR-01` s/d `PR-05` telah aktif di Web Worker HiGHS WASM dan unit test solver (`tests/solver-pr01-diagnostics.test.ts` s/d `tests/solver-pr05.test.ts`), bersama evaluator rumen aljabar pasca-solve ([rumenEvaluator.ts](../src/solver/rumenEvaluator.ts)).
 
-- **Stokastik SLP Kovarians & Cantelli (`PR-04`):** Linearisasi Taylor $\sqrt{\mathbf{x}^\top \Sigma^{(i)}\mathbf{x} + \sigma_{b_i}^2 + 10^{-12}}$ dengan pengali $\kappa_i = \Phi^{-1}(p_i)$ atau $\sqrt{p_i / (1 - p_i)}$ (Munford, 1996; D'Alfonso et al., 1992; Chen, 1973).
-- **Optimasi Rasio Biaya/Nutrisi (`PR-03`):** Substitusi Charnes–Cooper ($t = (\sum e_j x_j)^{-1}$, $\mathbf{z} = t\mathbf{x}$) mengubah $\min \frac{\sum c_j x_j}{\sum e_j x_j}$ ke LP eksak.
-- **Minimal IIS & Priority Tiers (`PR-01`):** _Chinneck Deletion Filter_ (1997) + penalti bertingkat agar batas Tier-0 (toksin/VFD) tidak ikut terelaksasi.
-- **Neraca Susut Air Produk Jadi (`ML-02`):** $(1 - \delta_{\text{dust}})\sum x_j + x_{\text{steam}} + x_{\text{oil,coater}} - x_{\text{evap}} = 1{,}00$ per 1 kg pakan akhir + kendala indeks PDI linear.
-- **Pareto Eco-Nutrition (`ML-04`):** $\min \sum c_j x_j$ dengan kendala $\sum \text{GWP}_j^{\text{LCA+LUC}} x_j \le \varepsilon_k$ dan neraca retensi N/P (Mackenzie et al., 2016; Garcia-Launay et al., 2018; Moraes et al., 2015).
+- **Minimal IIS & Priority Tiers (`PR-01`, [iis.ts](../src/solver/iis.ts)):** _Chinneck Deletion Filter_ untuk mengisolasi kendala nutrien, rasio, dan grup pemicu konflik, dipadukan penalti bertingkat `tier0` (kaku) hingga `tier3` (lunak) serta Mode 5 Chebyshev $\min D + 10^{-5}\sum c_j x_j$.
+- **RHS Validity Ranging, Directional Duals & Parametric Stepping (`PR-02`, [criticalStepping.ts](../src/solver/criticalStepping.ts)):** Ekstraksi rentang RHS `[rowBoundDown, rowBoundUp]`, deteksi degenerasi basis + probing $\pm\delta$ (`shadowPriceDown`, `shadowPriceUp`), serta kurva tangga harga beli _Buy/No-Buy_ berantai melintasi `colCostDown/Up`.
+- **Optimasi Rasio Biaya/Nutrisi & Kendala Aktif `dEB/DCAD` (`PR-03`, [solveFormulation.ts](../src/solver/solveFormulation.ts)):** Iterasi parametrik Dinkelbach untuk $\min \frac{\sum c_j x_j}{\sum e_j x_j}$ (setara transformasi Charnes–Cooper) dengan lantai penyebut `1e-4` & guard `FRACTIONAL_DENOMINATOR_ZERO`, ditambah resolusi dinamis `deb`/`dcad` dari `Na/K/Cl/S`.
+- **Stokastik CCP + Munford SLP & Cantelli (`PR-04`, [stochastic.ts](../src/solver/stochastic.ts)):** Linearisasi Taylor orde-1 $\sqrt{\sum (\sigma_{ij} x_j)^2 + \sigma_{b_i}^2 + 10^{-12}}$ dengan pengali $\kappa_i = \Phi^{-1}(p_i)$ atau $\sqrt{p_i / (1 - p_i)}$ (_Cantelli_) dan redaman $\alpha$, disertai penskalaan `stdDev` saat konversi basis.
+- **Multi-Enzim Sub-Aditif & Evaluator Rumen CNCPS/NASEM (`PR-05`, [enzymes.ts](../src/solver/enzymes.ts), [rumenEvaluator.ts](../src/solver/rumenEvaluator.ts)):** Uplift enzim per bahan dibatasi retensi termal, pool substrat (`phytateP` / `substrateNutrientId`), dan plafon sub-aditif $\psi$, disertai estimasi aljabar pasca-solve `peuNDF240`, `DMI` Mertens, laju alir `kp`, sintesis `MCP`, emisi `eCH4`, dan risiko asidosis.
+
+## Spesifikasi Target Matematis Fase 5 (Opsional Single-Mix vs Out of Scope)
+
+- **Neraca Susut Air Produk Jadi (`ML-02`, Opsional):** $(1 - \delta_{\text{dust}})\sum x_j + x_{\text{steam}} + x_{\text{oil,coater}} - x_{\text{evap}} = 1{,}00$ per 1 kg pakan akhir + kendala indeks PDI linear.
+- **Pareto Eco-Nutrition (`ML-04`, Out of Scope PWA):** $\min \sum c_j x_j$ dengan kendala $\sum \text{GWP}_j^{\text{LCA+LUC}} x_j \le \varepsilon_k$ dan neraca retensi N/P (Mackenzie et al., 2016; Garcia-Launay et al., 2018; Moraes et al., 2015).

@@ -1,6 +1,13 @@
 import { memo } from "react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
-import type { CompositionItem, Ingredient, Nutrient, NutrientResult } from "../../types";
+import { pickLang } from "../../i18n";
+import type {
+  AppLanguage,
+  CompositionItem,
+  Ingredient,
+  Nutrient,
+  NutrientResult,
+} from "../../types";
 import { formatNumberLocale } from "../../utils/locale-number";
 import { NeumorphicProgressTrack } from "../ui/NeumorphicProgressTrack";
 
@@ -10,6 +17,7 @@ export interface FormulationChartsProps {
   readonly allNutrients?: readonly Nutrient[];
   readonly ingredients: readonly Ingredient[];
   readonly batchTotalCost: number | null;
+  readonly language?: AppLanguage;
 }
 
 /** Visualisasi SVG murni & indikator progres: Radar Target vs Aktual, Bar Berat vs Biaya, dan Rentang Nutrien. */
@@ -19,6 +27,7 @@ export const FormulationCharts = memo(function FormulationCharts({
   allNutrients = MOCK_NUTRIENTS,
   ingredients,
   batchTotalCost,
+  language = "id",
 }: FormulationChartsProps) {
   const ingMap = new Map(ingredients.map((i) => [i.id, i]));
   const nutMap = new Map(allNutrients.map((n) => [n.id, n]));
@@ -58,21 +67,26 @@ export const FormulationCharts = memo(function FormulationCharts({
       <div className="glass-card rounded-xl p-3.5">
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-xs font-bold text-[#0F172A] dark:text-white">
-            Radar Target Ideal vs Aktual
+            {pickLang(language, "Radar Target Ideal vs Aktual", "Ideal Target vs Actual Radar")}
           </h3>
           <div className="flex items-center gap-3 text-[11px] font-medium">
             <span className="inline-flex items-center gap-1 text-[#475569] dark:text-slate-300">
               <span className="h-2 w-2 rounded-full bg-slate-400" /> Target (100%)
             </span>
             <span className="inline-flex items-center gap-1 text-[#059669] dark:text-emerald-400">
-              <span className="h-2 w-2 rounded-full bg-[#059669] dark:bg-emerald-400" /> Aktual
+              <span className="h-2 w-2 rounded-full bg-[#059669] dark:bg-emerald-400" />{" "}
+              {pickLang(language, "Aktual", "Actual")}
             </span>
           </div>
         </div>
 
         {radarItems.length < 3 ? (
-          <p className="py-10 text-center text-xs text-[#475569]">
-            Aktifkan minimal 3 batasan nutrien untuk menampilkan Radar Chart.
+          <p className="py-10 text-center text-xs text-[#475569] dark:text-slate-300">
+            {pickLang(
+              language,
+              "Aktifkan minimal 3 batasan nutrien untuk menampilkan Radar Chart.",
+              "Enable at least 3 nutrient constraints to display the Radar Chart.",
+            )}
           </p>
         ) : (
           <div className="flex justify-center">
@@ -139,14 +153,20 @@ export const FormulationCharts = memo(function FormulationCharts({
       <div className="glass-card rounded-xl p-3.5">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-xs font-bold text-[#0F172A] dark:text-white">
-            Porsi Berat (%) vs Porsi Biaya (%)
+            {pickLang(
+              language,
+              "Porsi Berat (%) vs Porsi Biaya (%)",
+              "Weight Share (%) vs Cost Share (%)",
+            )}
           </h3>
           <div className="flex items-center gap-3 text-[11px] font-medium">
             <span className="inline-flex items-center gap-1 text-[#0F3D3E] dark:text-teal-300">
-              <span className="h-2 w-2 rounded-xs bg-[#0F3D3E] dark:bg-teal-400" /> Berat
+              <span className="h-2 w-2 rounded-xs bg-[#0F3D3E] dark:bg-teal-400" />{" "}
+              {pickLang(language, "Berat", "Weight")}
             </span>
             <span className="inline-flex items-center gap-1 text-[#059669] dark:text-emerald-300">
-              <span className="h-2 w-2 rounded-xs bg-[#059669]" /> Biaya
+              <span className="h-2 w-2 rounded-xs bg-[#059669]" />{" "}
+              {pickLang(language, "Biaya", "Cost")}
             </span>
           </div>
         </div>
@@ -159,16 +179,21 @@ export const FormulationCharts = memo(function FormulationCharts({
               batchTotalCost && batchTotalCost > 0 && item.costContribution !== undefined
                 ? (item.costContribution / batchTotalCost) * 100
                 : weightPct;
+            const ingName = ing
+              ? language === "id"
+                ? ing.name
+                : (ing.nameEn ?? ing.name)
+              : item.ingredientId;
 
             return (
               <div key={item.ingredientId} className="space-y-1 text-[11px]">
                 <div className="flex justify-between gap-2">
                   <span className="truncate font-semibold text-[#0F172A] dark:text-slate-100">
-                    {ing?.name ?? item.ingredientId}
+                    {ingName}
                   </span>
                   <span className="shrink-0 tabular-nums text-[#475569] dark:text-slate-300">
-                    {formatNumberLocale(weightPct, 1)}% berat · {formatNumberLocale(costPct, 1)}%
-                    biaya
+                    {formatNumberLocale(weightPct, 1)}% {pickLang(language, "berat", "weight")} ·{" "}
+                    {formatNumberLocale(costPct, 1)}% {pickLang(language, "biaya", "cost")}
                   </span>
                 </div>
                 <div className="space-y-1">
@@ -194,7 +219,11 @@ export const FormulationCharts = memo(function FormulationCharts({
       {/* Bar Rentang Pencapaian Nutrien */}
       <div className="glass-card rounded-xl p-3.5 xl:col-span-2">
         <h3 className="mb-3 text-xs font-bold text-[#0F172A] dark:text-white">
-          Indikator Rentang Pencapaian Nutrien (Min–Max)
+          {pickLang(
+            language,
+            "Indikator Rentang Pencapaian Nutrien (Min–Max)",
+            "Nutrient Target Range Indicators (Min–Max)",
+          )}
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {radarItems.map((n) => {
@@ -205,12 +234,17 @@ export const FormulationCharts = memo(function FormulationCharts({
             const minPct = (lo / scaleMax) * 100;
             const maxPct = (hi / scaleMax) * 100;
             const valPct = Math.min(100, Math.max(0, (n.value / scaleMax) * 100));
+            const nutName = meta
+              ? language === "id"
+                ? meta.name
+                : (meta.nameEn ?? meta.name)
+              : n.nutrientId;
 
             return (
               <div key={n.nutrientId} className="space-y-1.5 text-xs">
                 <div className="flex justify-between">
                   <span className="font-semibold text-[#0F172A] dark:text-slate-100">
-                    {meta?.name ?? n.nutrientId}
+                    {nutName}
                   </span>
                   <span className="font-semibold tabular-nums text-[#475569] dark:text-slate-200">
                     {formatNumberLocale(n.value, meta?.unit === "kcal/kg" ? 0 : 2)}{" "}

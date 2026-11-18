@@ -124,7 +124,7 @@ export function AppShell({
                 <button
                   type="button"
                   onClick={() => setDrawerOpen(true)}
-                  aria-label="Buka menu navigasi"
+                  aria-label={language === "id" ? "Buka menu navigasi" : "Open navigation menu"}
                   className="neu-pill-btn hidden min-h-9 min-w-9 cursor-pointer items-center justify-center rounded-lg text-[#0F172A] md:inline-flex lg:hidden dark:text-slate-100"
                 >
                   <Menu className="h-4 w-4" />
@@ -189,8 +189,24 @@ export function AppShell({
                 <button
                   type="button"
                   onClick={onToggleTheme}
-                  aria-label={theme === "light" ? "Mode gelap" : "Mode terang"}
-                  title={theme === "light" ? "Aktifkan mode gelap" : "Aktifkan mode terang"}
+                  aria-label={
+                    theme === "light"
+                      ? language === "id"
+                        ? "Mode gelap"
+                        : "Dark mode"
+                      : language === "id"
+                        ? "Mode terang"
+                        : "Light mode"
+                  }
+                  title={
+                    theme === "light"
+                      ? language === "id"
+                        ? "Aktifkan mode gelap"
+                        : "Enable dark mode"
+                      : language === "id"
+                        ? "Aktifkan mode terang"
+                        : "Enable light mode"
+                  }
                   className="neu-pill-btn inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-[#0F172A] dark:text-slate-100"
                 >
                   {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
@@ -199,7 +215,9 @@ export function AppShell({
                 <button
                   type="button"
                   onClick={() => onNavigate("settings")}
-                  aria-label="Ringkasan status workspace"
+                  aria-label={
+                    language === "id" ? "Ringkasan status workspace" : "Workspace status summary"
+                  }
                   className="neu-pill-btn hidden cursor-pointer items-center gap-2 rounded-lg py-1 pr-2.5 pl-1.5 text-left sm:inline-flex"
                 >
                   <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#0F3D3E] text-[10px] font-bold text-white dark:bg-[#059669]">
@@ -213,15 +231,17 @@ export function AppShell({
                       {!isOnline ? (
                         <>
                           <WifiOff className="h-2.5 w-2.5 text-[#D97706]" />
-                          <span>Mode Offline</span>
+                          <span>{language === "id" ? "Mode Offline" : "Offline Mode"}</span>
                         </>
                       ) : offlineReady ? (
                         <>
                           <Wifi className="h-2.5 w-2.5 text-[#059669] dark:text-emerald-400" />
-                          <span>HiGHS · Siap Offline</span>
+                          <span>
+                            {language === "id" ? "HiGHS · Siap Offline" : "HiGHS · Offline Ready"}
+                          </span>
                         </>
                       ) : (
-                        <span>HiGHS · Lokal</span>
+                        <span>{language === "id" ? "HiGHS · Lokal" : "HiGHS · Local"}</span>
                       )}
                     </span>
                   </span>
@@ -229,7 +249,13 @@ export function AppShell({
                 </button>
 
                 <Badge tone={!isOnline ? "amber" : "emerald"} className="sm:hidden">
-                  {!isOnline ? "Offline" : offlineReady ? "Siap Offline" : "HiGHS"}
+                  {!isOnline
+                    ? "Offline"
+                    : offlineReady
+                      ? language === "id"
+                        ? "Siap Offline"
+                        : "Offline Ready"
+                      : "HiGHS"}
                 </Badge>
               </div>
             </motion.header>

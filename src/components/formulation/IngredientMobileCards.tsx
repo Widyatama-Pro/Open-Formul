@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { ChevronRight, Leaf, Pill, RotateCcw, Sparkles, Wheat } from "lucide-react";
+import { getCategoryLabel, pickLang } from "../../i18n";
 import type { AppLanguage, Ingredient, IngredientCategory } from "../../types";
 import { cn } from "../../utils/cn";
 import { formatCurrencyIdr, formatNumberLocale } from "../../utils/locale-number";
@@ -68,7 +69,8 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
             ? `ME ${formatNumberLocale(ing.nutrients.me_poultry, 0)}`
             : me !== null && me !== undefined
               ? `TDN ${formatNumberLocale(me, 1)}%`
-              : "Energi N/A";
+              : pickLang(language, "Energi N/A", "Energy N/A");
+        const ingName = language === "id" ? ing.name : (ing.nameEn ?? ing.name);
 
         return (
           <Card
@@ -93,14 +95,18 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
                 />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-[#122B36] dark:text-white">
-                    {language === "id" ? ing.name : (ing.nameEn ?? ing.name)}
+                    {ingName}
                   </p>
                   <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                    <Badge tone="neutral">{ing.category}</Badge>
+                    <Badge tone="neutral">{getCategoryLabel(language, ing.category)}</Badge>
                     <Badge tone={ing.basis === "as_fed" ? "sky" : "emerald"}>
-                      {ing.basis === "as_fed" ? "As-Fed" : "BK"}
+                      {ing.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK", "DM")}
                     </Badge>
-                    {hasOverride && <Badge tone="amber">Harga Custom</Badge>}
+                    {hasOverride && (
+                      <Badge tone="amber">
+                        {pickLang(language, "Harga Custom", "Custom Price")}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </label>
@@ -112,7 +118,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
                 aria-label={`Edit nutrien ${ing.name}`}
                 className="neu-pill-btn shrink-0 rounded-xl"
               >
-                <span>Nutrien</span>
+                <span>{pickLang(language, "Nutrien", "Nutrients")}</span>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -122,7 +128,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
               <div>
                 <div className="mb-1 flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[#54707E] dark:text-slate-300">
-                    Harga/kg
+                    {pickLang(language, "Harga/kg", "Price/kg")}
                   </span>
                   {hasOverride && (
                     <button
@@ -188,22 +194,28 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
 
             {invalidBounds && (
               <p className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-400">
-                Nilai Min ({min}%) tidak boleh melebihi Max ({max}%).
+                {pickLang(
+                  language,
+                  `Nilai Min (${min}%) tidak boleh melebihi Max (${max}%).`,
+                  `Min (${min}%) cannot exceed Max (${max}%).`,
+                )}
               </p>
             )}
 
             {/* Baris 3: Ringkasan 3 nutrien kunci tabular */}
             <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/65 pt-2.5 text-[11px] tabular-nums text-[#466270] dark:border-cyan-200/10 dark:text-slate-300">
               <span>
-                PK:{" "}
+                {pickLang(language, "PK", "CP")}:{" "}
                 <strong className="text-[#122B36] dark:text-white">
                   {cp !== null && cp !== undefined ? `${formatNumberLocale(cp, 1)}%` : "N/A"}
                 </strong>
               </span>
               <span>{meLabel}</span>
-              <span>BK: {formatNumberLocale(ing.dryMatter, 0)}%</span>
+              <span>
+                {pickLang(language, "BK", "DM")}: {formatNumberLocale(ing.dryMatter, 0)}%
+              </span>
               <span className="ml-auto text-[#6C8693] dark:text-slate-400">
-                Pasar: {formatCurrencyIdr(ing.pricePerKg)}
+                {pickLang(language, "Pasar", "Market")}: {formatCurrencyIdr(ing.pricePerKg)}
               </span>
             </div>
           </Card>

@@ -47,6 +47,45 @@ export function computeElectrolyteBalance(
   return { deb, dcad };
 }
 
+/** Nutrien turunan (dihitung dari nutrien lain), bukan nilai lab tersimpan. */
+export const DERIVED_NUTRIENT_IDS: ReadonlySet<string> = new Set(["deb", "dcad"]);
+
+export function isDerivedNutrient(nutrientId: string): boolean {
+  return DERIVED_NUTRIENT_IDS.has(nutrientId);
+}
+
+/**
+ * Nilai nutrien efektif sebuah bahan, termasuk nutrien turunan dEB/DCAD yang dihitung
+ * dari Na/K/Cl/S (mg/kg). Mengembalikan `null` bila data sumber tidak tersedia.
+ */
+export function resolveNutrientValue(
+  ingredient: { readonly nutrients: Readonly<Record<string, number | null>> },
+  nutrientId: string,
+): number | null {
+  if (!isDerivedNutrient(nutrientId)) {
+    return ingredient.nutrients[nutrientId] ?? null;
+  }
+
+  const pick = (id: string): number | null => {
+    const raw = ingredient.nutrients[id];
+    return typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+  };
+  const na = pick("na");
+  const k = pick("k");
+  const cl = pick("cl");
+  const s = pick("s");
+  // Tanpa satu pun mineral elektrolit, turunan tidak terdefinisi (bukan 0 semu).
+  if (na === null && k === null && cl === null && s === null) return null;
+
+  const balance = computeElectrolyteBalance({
+    ...(na !== null ? { na } : {}),
+    ...(k !== null ? { k } : {}),
+    ...(cl !== null ? { cl } : {}),
+    ...(s !== null ? { s } : {}),
+  });
+  return nutrientId === "deb" ? balance.deb : balance.dcad;
+}
+
 /**
  * Persamaan WPSA (1986/1989) untuk Energi Metabolis (ME) unggas dalam MJ/kg.
  * Input proksimat dinyatakan dalam g/kg; output dijepit di >= 0 MJ/kg.

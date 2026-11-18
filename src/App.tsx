@@ -94,7 +94,10 @@ export function App() {
       )}
 
       {store.route === "advanced" && (
-        <AdvancedModulesPreview language={store.preferences.language} />
+        <AdvancedModulesPreview
+          language={store.preferences.language}
+          onOpenWorkbench={() => store.setRoute("formulation")}
+        />
       )}
 
       {store.route === "settings" && (
@@ -112,7 +115,12 @@ export function App() {
 
       <SaveRecipeDialog
         open={saveOpen}
-        defaultName={store.activeRequirement.name}
+        defaultName={
+          store.preferences.language === "id"
+            ? store.activeRequirement.name
+            : (store.activeRequirement.nameEn ?? store.activeRequirement.name)
+        }
+        language={store.preferences.language}
         onClose={() => setSaveOpen(false)}
         onSave={store.saveCurrentRecipe}
       />
@@ -125,10 +133,12 @@ export function App() {
         config={store.config}
         result={store.result}
         nutrientsCatalog={store.allNutrients}
+        language={store.preferences.language}
       />
 
       <AddEditIngredientModal
         open={addIngredientOpen}
+        language={store.preferences.language}
         onClose={() => setAddIngredientOpen(false)}
         onSave={store.addIngredient}
       />

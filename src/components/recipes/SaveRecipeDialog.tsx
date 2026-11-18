@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { pickLang } from "../../i18n";
+import type { AppLanguage } from "../../types";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { SheetDialog } from "../ui/SheetDialog";
@@ -6,11 +8,18 @@ import { SheetDialog } from "../ui/SheetDialog";
 export interface SaveRecipeDialogProps {
   readonly open: boolean;
   readonly defaultName: string;
+  readonly language?: AppLanguage;
   readonly onClose: () => void;
   readonly onSave: (name: string, notes?: string) => void;
 }
 
-export function SaveRecipeDialog({ open, defaultName, onClose, onSave }: SaveRecipeDialogProps) {
+export function SaveRecipeDialog({
+  open,
+  defaultName,
+  language = "id",
+  onClose,
+  onSave,
+}: SaveRecipeDialogProps) {
   const [name, setName] = useState(defaultName);
   const [notes, setNotes] = useState("");
 
@@ -25,15 +34,19 @@ export function SaveRecipeDialog({ open, defaultName, onClose, onSave }: SaveRec
     <SheetDialog
       open={open}
       onClose={onClose}
-      title="Simpan Proyek Formulasi"
-      subtitle="Menyimpan bahan aktif, harga custom, batasan, dan hasil saat ini."
+      title={pickLang(language, "Simpan Proyek Formulasi", "Save Formulation Project")}
+      subtitle={pickLang(
+        language,
+        "Menyimpan bahan aktif, harga custom, batasan, dan hasil saat ini.",
+        "Saves active ingredients, custom prices, constraints, and current result.",
+      )}
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
-            Batal
+            {pickLang(language, "Batal", "Cancel")}
           </Button>
           <Button variant="primary" onClick={handleConfirm}>
-            Simpan Proyek
+            {pickLang(language, "Simpan Proyek", "Save Project")}
           </Button>
         </div>
       }
@@ -41,18 +54,22 @@ export function SaveRecipeDialog({ open, defaultName, onClose, onSave }: SaveRec
       <div className="space-y-3.5 text-xs">
         <div>
           <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-            Nama Resep
+            {pickLang(language, "Nama Resep", "Recipe Name")}
           </label>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div>
           <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
-            Catatan Lapangan (Opsional)
+            {pickLang(language, "Catatan Lapangan (Opsional)", "Field Notes (Optional)")}
           </label>
           <Input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Mis. Harga jagung kiriman minggu ke-2…"
+            placeholder={pickLang(
+              language,
+              "Mis. Harga jagung kiriman minggu ke-2…",
+              "e.g. Week-2 corn shipment price…",
+            )}
           />
         </div>
       </div>

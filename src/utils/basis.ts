@@ -58,10 +58,38 @@ export function normalizeIngredientToBasis(ingredient: Ingredient, targetBasis: 
     );
   }
 
+  let normalizedStdDev: Record<NutrientId, number> | undefined;
+  if (ingredient.stdDev) {
+    normalizedStdDev = {};
+    for (const [nutrientId, sigma] of Object.entries(ingredient.stdDev)) {
+      const scaled = convertNutrientValue(
+        sigma,
+        ingredient.basis,
+        targetBasis,
+        ingredient.dryMatter,
+      );
+      if (scaled !== null) {
+        normalizedStdDev[nutrientId] = scaled;
+      }
+    }
+  }
+
+  const normalizedPhytateP =
+    ingredient.phytateP !== undefined
+      ? (convertNutrientValue(
+          ingredient.phytateP,
+          ingredient.basis,
+          targetBasis,
+          ingredient.dryMatter,
+        ) ?? undefined)
+      : undefined;
+
   return {
     ...ingredient,
     basis: targetBasis,
     nutrients: normalizedNutrients,
+    ...(normalizedStdDev !== undefined ? { stdDev: normalizedStdDev } : {}),
+    ...(normalizedPhytateP !== undefined ? { phytateP: normalizedPhytateP } : {}),
   };
 }
 

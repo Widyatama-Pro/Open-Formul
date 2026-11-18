@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { Calculator } from "lucide-react";
-import type { FormulationStatus } from "../../types";
+import { pickLang } from "../../i18n";
+import type { AppLanguage, FormulationStatus } from "../../types";
 import { formatCurrencyIdr } from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -9,6 +10,7 @@ export interface MobileStickyActionBarProps {
   readonly status: FormulationStatus;
   readonly costPerKg: number | null;
   readonly activeStep: "ingredients" | "targets" | "results";
+  readonly language?: AppLanguage;
   readonly onShowResults: () => void;
 }
 
@@ -17,13 +19,14 @@ export const MobileStickyActionBar = memo(function MobileStickyActionBar({
   status,
   costPerKg,
   activeStep,
+  language = "id",
   onShowResults,
 }: MobileStickyActionBarProps) {
   const statusBadge =
     status === "optimal" ? (
       <Badge tone="emerald">Optimal</Badge>
     ) : status === "near_feasible" ? (
-      <Badge tone="amber">Elastik</Badge>
+      <Badge tone="amber">{pickLang(language, "Elastik", "Elastic")}</Badge>
     ) : (
       <Badge tone="rose">Infeasible</Badge>
     );
@@ -33,18 +36,24 @@ export const MobileStickyActionBar = memo(function MobileStickyActionBar({
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold text-[#475569] dark:text-slate-300">
-            Estimasi/kg
+            {pickLang(language, "Estimasi/kg", "Est./kg")}
           </span>
           {statusBadge}
         </div>
         <p className="truncate text-sm font-bold tabular-nums text-[#0F172A] dark:text-white">
-          {costPerKg !== null ? formatCurrencyIdr(costPerKg) : "Belum layak"}
+          {costPerKg !== null
+            ? formatCurrencyIdr(costPerKg)
+            : pickLang(language, "Belum layak", "Not feasible")}
         </p>
       </div>
 
       <Button variant="primary" size="md" onClick={onShowResults} className="shrink-0">
         <Calculator className="h-4 w-4" />
-        <span>{activeStep === "results" ? "Hitung Ulang" : "Lihat Hasil"}</span>
+        <span>
+          {activeStep === "results"
+            ? pickLang(language, "Hitung Ulang", "Recalculate")
+            : pickLang(language, "Lihat Hasil", "View Results")}
+        </span>
       </Button>
     </div>
   );

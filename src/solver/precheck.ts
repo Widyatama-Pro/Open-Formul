@@ -1,5 +1,6 @@
 import type { ConflictDiagnostic, FormulationConfig, Ingredient, Requirement } from "../types";
 import { normalizeIngredientToBasis } from "../utils/basis";
+import { isDerivedNutrient, resolveNutrientValue } from "../utils/equations";
 import {
   resolveActiveConstraints,
   resolveEffectiveInclusion,
@@ -20,7 +21,7 @@ function computeKnapsackExtrema(
   nutrientId: string,
 ): { readonly minAchievable: number; readonly maxAchievable: number } {
   const entries = items.map(({ ing, bounds }) => ({
-    val: ing.nutrients[nutrientId] ?? 0,
+    val: resolveNutrientValue(ing, nutrientId) ?? 0,
     minFrac: bounds.minPct / 100,
     maxFrac: bounds.maxPct / 100,
   }));
@@ -63,6 +64,25 @@ export function runPrecheck(
       suggestion: "Aktifkan minimal satu sumber energi atau protein terlebih dahulu.",
     });
     return { hasErrors: true, diagnostics };
+  }
+
+  // PR-03: guard 0/0 pra-solve untuk Fractional LP
+  if (config.fractionalObjective?.mode === "cost_per_nutrient") {
+    const denId = config.fractionalObjective.nutrientId;
+    const maxDen = activeRaw.reduce((sum, ing) => {
+      const v = resolveNutrientValue(ing, denId) ?? 0;
+      return Math.max(sum, v);
+    }, 0);
+    if (maxDen <= 1e-9) {
+      diagnostics.push({
+        code: "FRACTIONAL_DENOMINATOR_ZERO",
+        severity: "error",
+        targetId: denId,
+        message: `Penyebut sasaran fraksional "${denId}" bernilai 0 pada seluruh bahan aktif.`,
+        suggestion: `Tambahkan bahan yang mengandung nutrien "${denId}" atau ubah sasaran fraksional.`,
+      });
+      return { hasErrors: true, diagnostics };
+    }
   }
 
   let hasStructuralBoundError = false;
@@ -198,7 +218,9 @@ export function runPrecheck(
       const rawNulls = activeRaw.filter((rawIng, idx) => {
         const pair = normalizedPairs[idx];
         const hasCapacity = pair ? pair.bounds.maxPct > EPS : true;
-        const rawVal = rawIng.nutrients[c.nutrientId];
+        const rawVal = isDerivedNutrient(c.nutrientId)
+          ? resolveNutrientValue(rawIng, c.nutrientId)
+          : rawIng.nutrients[c.nutrientId];
         return hasCapacity && (rawVal === null || rawVal === undefined);
       });
       if (rawNulls.length > 0) {

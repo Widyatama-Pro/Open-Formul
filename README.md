@@ -49,9 +49,9 @@ npm run build
 
 ## Core Capabilities
 
-- **HiGHS LP Solver in Web Worker:** 5 optimization modes (including goal programming / precision targeting), optional L1 elastic relaxation (`near_feasible`), post-solve verification (`1e-6`), shadow prices, opportunity costs, and safe price ranges.
-- **Consistent Nutritional Basis:** Automatic As-Fed ↔ Dry Matter (BK/DM) normalization, linearized nutrient ratios (such as `Ca:P`), strict `0` vs `N/A` (`null`) distinction, and full custom nutrient definitions.
-- **Built-in Reference Libraries:** 304 feeds from Hartadi 1980, 82 Kearl 1982 profiles, and 24 NRC 1988 dairy profiles archived under [`docs/references/`](docs/references/).
+- **HiGHS LP/SLP Solver in Web Worker:** 5 optimization modes (including Mode 5 Chebyshev minimax $\epsilon$-lexicographic), priority-tiered L1 elastic relaxation (`near_feasible`), Chinneck minimal IIS diagnostics, RHS validity ranges & directional duals, parametric Buy/No-Buy price ladder, Dinkelbach fractional cost-per-nutrient LP, Munford/Cantelli stochastic chance constraints, and sub-additive multi-enzyme matrices.
+- **Consistent Nutritional Basis & Rumen Biology:** Automatic As-Fed ↔ Dry Matter (BK/DM) normalization (including stochastic $\sigma$ scaling), linearized nutrient ratios (`Ca:P`), active `dEB`/`DCAD` electrolyte balance, post-solve CNCPS v6.5 / NASEM 2021 rumen evaluation (`peuNDF240`, `DMI`, `kp`, `MCP`, `eCH4`), strict `0` vs `N/A` (`null`) distinction, and full custom nutrient definitions.
+- **Built-in Reference Libraries & Full Bilingual UI (`ID / EN`):** 304 feeds from Hartadi 1980, 82 Kearl 1982 profiles, and 24 NRC 1988 dairy profiles archived under [`docs/references/`](docs/references/), plus complete Indonesian/English localization (`src/i18n/`).
 - **Spreadsheet & Mill I/O:** Excel/Sheets TSV block paste directly into the ingredient grid, non-destructive CSV/JSON merge, `.feed.json` (v1) recipe portability, `.xlsx` workbooks, and operator-safe `batch_only` PDFs gated on `optimal` solver status.
 
 ## Architecture
@@ -67,10 +67,11 @@ flowchart LR
 
 ```text
 src/
-├── components/   # Precision Agritech UI, formulation grid, analytics, export dialogs
+├── components/   # Precision Agritech UI, formulation grid, precision LP modal, analytics, export dialogs
 ├── data/         # Sample JSON, Hartadi 1980 (304), Kearl 1982 (82), NRC 1988 (24)
 ├── hooks/        # Store orchestration & PWA lifecycle hooks
-├── solver/       # Pure LP model builder, HiGHS WASM worker, post-solve verifier
+├── i18n/         # Full ID / EN localization helpers & conflict translators
+├── solver/       # Pure LP/SLP builder, IIS, stepping, stochastic, enzymes, rumen evaluator, HiGHS worker
 ├── storage/      # IndexedDB (idb), .feed.json, CSV/OOXML .xlsx, PDF 1.4 generators
 ├── types/        # Canonical domain TypeScript types
 └── utils/        # Basis math, nutrition equations, validators, TSV paste

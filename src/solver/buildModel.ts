@@ -1,18 +1,51 @@
-import type { FormulationConfig, Ingredient, IngredientCategory, Requirement } from "../types";
+import type {
+  ConstraintTier,
+  FormulationConfig,
+  Ingredient,
+  IngredientCategory,
+  Requirement,
+} from "../types";
+import { resolveNutrientValue } from "../utils/equations";
+import { computeIngredientEnzymeUplift } from "./enzymes";
 import {
   computeScaleFactor,
   getModeWeights,
   normalizeActiveIngredients,
   resolveActiveConstraints,
   resolveEffectiveInclusion,
+  resolveIngredientStdDev,
   resolveNutrientGoalTarget,
+  resolveRequirementVariance,
 } from "./modelHelpers";
+import { computeKappa, linearizeChanceConstraint } from "./stochastic";
 import type { BuildModelOptions, LpModel, LpRow, LpTerm, LpVariable } from "./types";
 
 const EPS = 1e-9;
+/** Lantai penyebut Charnes–Cooper (F-09+): Σ e_j x_j >= ε agar 0/0 tertutup. */
+const DENOMINATOR_FLOOR = 1e-4;
+
+/** Nilai nutrien bahan (0 bila N/A), termasuk turunan dEB/DCAD dari Na/K/Cl/S. */
+function ingValue(ing: Ingredient, nutrientId: string): number {
+  return resolveNutrientValue(ing, nutrientId) ?? 0;
+}
 
 function filterNonZeroTerms(terms: readonly LpTerm[]): readonly LpTerm[] {
   return terms.filter((t) => Number.isFinite(t.coeff) && Math.abs(t.coeff) > EPS);
+}
+
+function tierPenalty(tier: ConstraintTier | undefined, baseM: number): number {
+  switch (tier) {
+    case "tier1":
+      return Math.max(1e8, baseM);
+    case "tier2":
+      return Math.max(1e6, baseM);
+    case "tier3":
+      return Math.max(1e4, baseM / 10);
+    case "tier0":
+      return baseM; // unused (not relaxable)
+    default:
+      return Math.max(1e6, baseM);
+  }
 }
 
 export function buildLpModel(
@@ -40,6 +73,22 @@ export function buildLpModel(
       : 1;
   const costScale = Math.max(avgPrice, 1);
 
+  // PR-05: uplift enzim (sub-aditif + retensi termal + batas substrat bahan) per (bahan, nutrien).
+  const enzymes = config.enzymes ?? [];
+  const enzymeCap = config.enzymeSubAdditiveCap;
+  const enzymeUpliftCache = new Map<string, number>();
+  const getUplift = (ing: Ingredient, nutrientId: string): number => {
+    if (enzymes.length === 0) return 0;
+    const key = `${ing.id}\0${nutrientId}`;
+    const cached = enzymeUpliftCache.get(key);
+    if (cached !== undefined) return cached;
+    const val = computeIngredientEnzymeUplift(ing, nutrientId, enzymes, enzymeCap);
+    enzymeUpliftCache.set(key, val);
+    return val;
+  };
+  const nutValue = (ing: Ingredient, nutrientId: string): number =>
+    ingValue(ing, nutrientId) + getUplift(ing, nutrientId);
+
   const activeConstraints = resolveActiveConstraints(requirement, config);
   const goalTargets = activeConstraints
     .map((c) => ({ constraint: c, target: resolveNutrientGoalTarget(c) }))
@@ -53,12 +102,23 @@ export function buildLpModel(
     );
 
   const { wCost, wDev } = getModeWeights(config.optimizationMode);
-  const useGoals = wDev > 0 && goalTargets.length > 0;
+  const fractional = config.fractionalObjective;
+  const fractionalLambda = options.fractionalLambda ?? 0;
+  const useChebyshev = !fractional && config.optimizationMode === 5 && goalTargets.length > 0;
+  const useGoals = !fractional && !useChebyshev && wDev > 0 && goalTargets.length > 0;
 
-  // Mode 1: koefisien objective murni harga IDR/kg (dual dari HiGHS langsung bernilai IDR/kg).
-  // Mode 2-4: normalisasi harga & deviasi terukur agar skala energi (~3000) dan mineral (~1) seimbang.
-  // Mode 5: wCost = 0 -> fokus penuh meminimalkan deviasi terhadap titik tengah target.
-  const costObjFactor = wCost === 0 ? 0 : useGoals ? wCost / costScale : 1;
+  // Mode 1: koefisien objective murni harga IDR/kg.
+  // Mode 2-4: normalisasi harga & deviasi terukur.
+  // Mode 5 (Chebyshev + epsilon-lexicographic): min D + 1e-5 * sum c_j x_j (ternormalisasi).
+  const costObjFactor = fractional
+    ? 1
+    : useChebyshev
+      ? 1e-5 / costScale
+      : wCost === 0
+        ? 0
+        : useGoals
+          ? wCost / costScale
+          : 1;
 
   const variables: LpVariable[] = [];
   const ingredientVarMap = new Map<string, string>();
@@ -71,6 +131,11 @@ export function buildLpModel(
     ingredientVarMap.set(ing.id, varName);
     ingVarNames.push(varName);
 
+    // PR-03 Dinkelbach: koefisien objektif = harga_j − λ·e_j (min λ ⇒ max (c·x)/(e·x)).
+    const objCoeff = fractional
+      ? (modelPricePerKg - fractionalLambda * nutValue(ing, fractional.nutrientId)) * costObjFactor
+      : modelPricePerKg * costObjFactor;
+
     variables.push({
       varName,
       role: "ingredient",
@@ -78,7 +143,7 @@ export function buildLpModel(
       effectiveLowerPct: bounds.minPct,
       effectiveUpperPct: bounds.maxPct,
       modelPricePerKg,
-      objectiveCoeff: modelPricePerKg * costObjFactor,
+      objectiveCoeff: objCoeff,
       lower: bounds.minPct / 100,
       upper: bounds.maxPct / 100,
     });
@@ -97,9 +162,13 @@ export function buildLpModel(
     rhs: number,
     meta: LpRow["meta"],
     scaleForElastic: number,
+    tier: ConstraintTier | undefined,
+    forceHard = false,
   ) => {
     const cleaned = [...filterNonZeroTerms(baseTerms)];
-    if (!elasticMode || meta.kind === "sum_to_one") {
+    const relaxable = elasticMode && !forceHard && tier !== "tier0" && meta.kind !== "sum_to_one";
+
+    if (!relaxable) {
       rows.push({
         name: nextRowName(prefix),
         terms: cleaned,
@@ -110,7 +179,8 @@ export function buildLpModel(
       return;
     }
 
-    const penalty = elasticPenaltyM / computeScaleFactor(scaleForElastic);
+    const penaltyBase = tierPenalty(tier, elasticPenaltyM);
+    const penalty = penaltyBase / computeScaleFactor(scaleForElastic);
     let slackNegVar: string | undefined;
     let slackPosVar: string | undefined;
 
@@ -156,46 +226,77 @@ export function buildLpModel(
     1,
     { kind: "sum_to_one" },
     1,
+    "tier0",
+    true,
   );
 
   // 2. Kendala batas nutrien (Min / Max / Eq)
+  // PR-04: bila titik linearisasi SLP diberikan, terapkan margin peluang Munford.
+  const xPrev = options.stochastic?.xPrev;
+
   for (const c of activeConstraints) {
-    const terms: LpTerm[] = normalized.map((ing, idx) => ({
+    const baseTerms: LpTerm[] = normalized.map((ing, idx) => ({
       varName: ingVarNames[idx]!,
-      coeff: ing.nutrients[c.nutrientId] ?? 0,
+      coeff: nutValue(ing, c.nutrientId),
     }));
+
+    const sigmas = xPrev
+      ? normalized.map((ing) => resolveIngredientStdDev(ing, c.nutrientId))
+      : null;
+    const reqVar = resolveRequirementVariance(c.requirementStdDev);
+    const hasVariance = sigmas !== null && (reqVar > 0 || sigmas.some((s) => s > 0));
+
+    const shiftTerms = (
+      terms: LpTerm[],
+      sense: ">=" | "<=",
+    ): { terms: LpTerm[]; rhsDelta: number } => {
+      if (!hasVariance || !sigmas || !xPrev) return { terms, rhsDelta: 0 };
+      const kappa = computeKappa(c.targetProbability, c.useCantelli);
+      const xVec = ingVarNames.map((v) => xPrev.get(v) ?? 0);
+      const lin = linearizeChanceConstraint(sigmas, xVec, kappa, reqVar, sense);
+      const shifted = terms.map((t, idx) => ({
+        varName: t.varName,
+        coeff: t.coeff + (lin.varianceCoeffs[idx] ?? 0),
+      }));
+      return { terms: shifted, rhsDelta: lin.rhsShift };
+    };
 
     if (c.min !== undefined && c.max !== undefined && Math.abs(c.min - c.max) <= EPS) {
       pushConstraintRow(
         "nut",
-        terms,
+        baseTerms,
         "=",
         c.min,
         { kind: "nutrient_eq", nutrientId: c.nutrientId, boundValue: c.min },
         c.min,
+        c.tier,
       );
       continue;
     }
 
     if (c.min !== undefined) {
+      const { terms, rhsDelta } = shiftTerms(baseTerms, ">=");
       pushConstraintRow(
         "nut_min",
         terms,
         ">=",
-        c.min,
+        c.min + rhsDelta,
         { kind: "nutrient_min", nutrientId: c.nutrientId, boundValue: c.min },
         c.min,
+        c.tier,
       );
     }
 
     if (c.max !== undefined) {
+      const { terms, rhsDelta } = shiftTerms(baseTerms, "<=");
       pushConstraintRow(
         "nut_max",
         terms,
         "<=",
-        c.max,
+        c.max + rhsDelta,
         { kind: "nutrient_max", nutrientId: c.nutrientId, boundValue: c.max },
         c.max,
+        c.tier,
       );
     }
   }
@@ -205,8 +306,8 @@ export function buildLpModel(
     if (ratio.min !== undefined) {
       const minRatio = ratio.min;
       const terms: LpTerm[] = normalized.map((ing, idx) => {
-        const numVal = ing.nutrients[ratio.numerator] ?? 0;
-        const denVal = ing.nutrients[ratio.denominator] ?? 0;
+        const numVal = nutValue(ing, ratio.numerator);
+        const denVal = nutValue(ing, ratio.denominator);
         return {
           varName: ingVarNames[idx]!,
           coeff: numVal - minRatio * denVal,
@@ -223,15 +324,16 @@ export function buildLpModel(
           denominatorId: ratio.denominator,
           targetRatio: minRatio,
         },
-        minRatio,
+        Math.max(minRatio, 1),
+        ratio.tier ?? "tier1",
       );
     }
 
     if (ratio.max !== undefined) {
       const maxRatio = ratio.max;
       const terms: LpTerm[] = normalized.map((ing, idx) => {
-        const numVal = ing.nutrients[ratio.numerator] ?? 0;
-        const denVal = ing.nutrients[ratio.denominator] ?? 0;
+        const numVal = nutValue(ing, ratio.numerator);
+        const denVal = nutValue(ing, ratio.denominator);
         return {
           varName: ingVarNames[idx]!,
           coeff: numVal - maxRatio * denVal,
@@ -248,7 +350,8 @@ export function buildLpModel(
           denominatorId: ratio.denominator,
           targetRatio: maxRatio,
         },
-        maxRatio,
+        Math.max(maxRatio, 1),
+        ratio.tier ?? "tier1",
       );
     }
   }
@@ -270,8 +373,15 @@ export function buildLpModel(
         memberVars,
         ">=",
         grp.min / 100,
-        { kind: "group_min", category: normalized[0]?.category ?? "energy", boundPct: grp.min },
+        {
+          kind: "group_min",
+          category: normalized[0]?.category ?? "energy",
+          boundPct: grp.min,
+          groupId: grp.id,
+          groupName: grp.name,
+        },
         1,
+        grp.tier ?? "tier3",
       );
     }
     if (grp.max !== undefined) {
@@ -280,8 +390,15 @@ export function buildLpModel(
         memberVars,
         "<=",
         grp.max / 100,
-        { kind: "group_max", category: normalized[0]?.category ?? "energy", boundPct: grp.max },
+        {
+          kind: "group_max",
+          category: normalized[0]?.category ?? "energy",
+          boundPct: grp.max,
+          groupId: grp.id,
+          groupName: grp.name,
+        },
         1,
+        grp.tier ?? "tier3",
       );
     }
   }
@@ -303,8 +420,9 @@ export function buildLpModel(
         memberVars,
         ">=",
         grp.minPct / 100,
-        { kind: "group_min", category, boundPct: grp.minPct },
+        { kind: "group_min", category, boundPct: grp.minPct, groupId: `cat:${category}` },
         1,
+        "tier3",
       );
     }
     if (grp.maxPct !== undefined) {
@@ -313,13 +431,14 @@ export function buildLpModel(
         memberVars,
         "<=",
         grp.maxPct / 100,
-        { kind: "group_max", category, boundPct: grp.maxPct },
+        { kind: "group_max", category, boundPct: grp.maxPct, groupId: `cat:${category}` },
         1,
+        "tier3",
       );
     }
   }
 
-  // 5. Goal programming (Mode 2-5): Σ a_kj x_j - dp_k + dn_k = target_k
+  // 5a. Goal programming (Mode 2-4): Σ a_kj x_j - dp_k + dn_k = target_k
   if (useGoals) {
     const perGoalWeight = wDev / goalTargets.length;
     goalTargets.forEach(({ constraint, target }, gIdx) => {
@@ -348,7 +467,7 @@ export function buildLpModel(
       const nutTerms = filterNonZeroTerms(
         normalized.map((ing, idx) => ({
           varName: ingVarNames[idx]!,
-          coeff: ing.nutrients[constraint.nutrientId] ?? 0,
+          coeff: nutValue(ing, constraint.nutrientId),
         })),
       );
 
@@ -366,12 +485,85 @@ export function buildLpModel(
     });
   }
 
+  // 5b. Mode 5 Chebyshev minimax + ε-lexicographic cost: min D + 1e-5*Σ c_j x_j
+  if (useChebyshev) {
+    const dVar = "D";
+    variables.push({
+      varName: dVar,
+      role: "chebyshev",
+      objectiveCoeff: 1,
+      lower: 0,
+      upper: null,
+    });
+
+    goalTargets.forEach(({ constraint, target }, gIdx) => {
+      const dpVar = `dp${gIdx}`;
+      const dnVar = `dn${gIdx}`;
+      const goalScale = computeScaleFactor(target);
+
+      variables.push(
+        { varName: dpVar, role: "goal_pos", objectiveCoeff: 0, lower: 0, upper: null },
+        { varName: dnVar, role: "goal_neg", objectiveCoeff: 0, lower: 0, upper: null },
+      );
+
+      const nutTerms = filterNonZeroTerms(
+        normalized.map((ing, idx) => ({
+          varName: ingVarNames[idx]!,
+          coeff: nutValue(ing, constraint.nutrientId),
+        })),
+      );
+
+      rows.push({
+        name: nextRowName("goal"),
+        terms: [...nutTerms, { varName: dpVar, coeff: -1 }, { varName: dnVar, coeff: 1 }],
+        sense: "=",
+        rhs: target,
+        meta: { kind: "goal_deviation", nutrientId: constraint.nutrientId, target },
+      });
+
+      // (dp + dn) / s <= D  =>  dp + dn - s*D <= 0
+      rows.push({
+        name: nextRowName("cheb"),
+        terms: [
+          { varName: dpVar, coeff: 1 },
+          { varName: dnVar, coeff: 1 },
+          { varName: dVar, coeff: -goalScale },
+        ],
+        sense: "<=",
+        rhs: 0,
+        meta: { kind: "chebyshev", nutrientId: constraint.nutrientId, scale: goalScale },
+      });
+    });
+  }
+
+  // 6. PR-03: lantai penyebut fraksional Σ e_j x_j >= ε (guard 0/0 Charnes–Cooper).
+  if (fractional) {
+    const denTerms = filterNonZeroTerms(
+      normalized.map((ing, idx) => ({
+        varName: ingVarNames[idx]!,
+        coeff: nutValue(ing, fractional.nutrientId),
+      })),
+    );
+    rows.push({
+      name: nextRowName("den_floor"),
+      terms: denTerms,
+      sense: ">=",
+      rhs: DENOMINATOR_FLOOR,
+      meta: {
+        kind: "denominator_floor",
+        nutrientId: fractional.nutrientId,
+        floor: DENOMINATOR_FLOOR,
+      },
+    });
+  }
+
   return {
     basis: config.activeBasis,
     elasticMode,
     elasticPenaltyM,
     optimizationMode: config.optimizationMode,
     costObjFactor,
+    fractionalActive: fractional != null,
     normalizedIngredients: normalized,
     ingredientVarMap,
     variables,

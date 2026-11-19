@@ -9,7 +9,7 @@ describe("Live HiGHS Solver UI Integration", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText(/Optimal/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/Optimal/i).length).toBeGreaterThan(0);
       },
       { timeout: 25000 },
     );
@@ -24,7 +24,7 @@ describe("Live HiGHS Solver UI Integration", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText(/Optimal/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/Optimal/i).length).toBeGreaterThan(0);
       },
       { timeout: 25000 },
     );

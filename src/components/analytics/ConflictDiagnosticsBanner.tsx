@@ -35,12 +35,12 @@ export function ConflictDiagnosticsBanner({
       {(status === "infeasible" || errors.length > 0) && (
         <div
           role="alert"
-          className="glass-card glass-card-coral rounded-2xl bg-rose-50/75 p-3.5 text-xs text-rose-900 dark:bg-rose-950/45 dark:text-rose-100"
+          className="glass-card glass-card-coral rounded-2xl border-[var(--status-danger-border)] bg-[var(--status-danger-soft)] p-3.5 text-xs text-[var(--text-primary)]"
         >
           <div className="flex items-start gap-2.5">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-danger)]" />
             <div className="space-y-1">
-              <p className="font-bold">
+              <p className="font-bold text-[var(--status-danger)]">
                 {pickLang(
                   language,
                   "Formula Tidak Ditemukan (Infeasible) — Kendala Konflik Terdeteksi",
@@ -54,7 +54,7 @@ export function ConflictDiagnosticsBanner({
                     <li key={`${err.code}-${i}`}>
                       <span>{localized.message}</span>
                       {localized.suggestion && (
-                        <span className="block text-[11px] text-rose-700 dark:text-rose-300">
+                        <span className="block text-[11px] text-[var(--text-secondary)]">
                           {pickLang(language, "Saran", "Tip")}: {localized.suggestion}
                         </span>
                       )}
@@ -64,7 +64,7 @@ export function ConflictDiagnosticsBanner({
                 {errors.length === 0 && messages.map((msg, i) => <li key={`msg-${i}`}>{msg}</li>)}
                 {iis && iis.length > 0 && (
                   <li key="iis-list">
-                    <span className="mt-1 block text-[10px] font-semibold text-rose-700 dark:text-rose-300">
+                    <span className="mt-1 block text-[10px] font-semibold text-[var(--status-danger)]">
                       {pickLang(language, "IIS minimal (Chinneck)", "Minimal IIS (Chinneck)")}:{" "}
                       {iis
                         .map(
@@ -84,12 +84,12 @@ export function ConflictDiagnosticsBanner({
       {(status === "near_feasible" || warnings.length > 0) && status !== "infeasible" && (
         <div
           role="status"
-          className="glass-card glass-card-amber rounded-2xl bg-amber-50/75 p-3.5 text-xs text-amber-900 dark:bg-amber-950/45 dark:text-amber-100"
+          className="glass-card glass-card-amber rounded-2xl border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] p-3.5 text-xs text-[var(--text-primary)]"
         >
           <div className="flex items-start gap-2.5">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warning)]" />
             <div className="space-y-1">
-              <p className="font-bold">
+              <p className="font-bold text-[var(--status-warning)]">
                 {status === "near_feasible"
                   ? pickLang(
                       language,
@@ -100,7 +100,7 @@ export function ConflictDiagnosticsBanner({
                 {status === "near_feasible" &&
                   relaxationPenalty !== undefined &&
                   relaxationPenalty > 0 && (
-                    <span className="ml-2 text-[10px] font-medium opacity-80">
+                    <span className="ml-2 text-[10px] font-medium text-[var(--text-secondary)]">
                       ({pickLang(language, "Penalti", "Penalty")}:{" "}
                       {formatNumberLocale(relaxationPenalty, 1)})
                     </span>
@@ -113,7 +113,7 @@ export function ConflictDiagnosticsBanner({
                     <li key={`${w.code}-${i}`}>
                       <span>{localized.message}</span>
                       {localized.suggestion && (
-                        <span className="block text-[11px] opacity-85">
+                        <span className="block text-[11px] text-[var(--text-secondary)]">
                           {pickLang(language, "Saran", "Tip")}: {localized.suggestion}
                         </span>
                       )}

@@ -1,34 +1,17 @@
 import { useState } from "react";
-import {
-  AlertTriangle,
-  Check,
-  Copy,
-  FileCode2,
-  FileSpreadsheet,
-  FileText,
-  Printer,
-} from "lucide-react";
+import { AlertTriangle, FileText, Printer } from "lucide-react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
 import { pickLang } from "../../i18n";
-import {
-  FEED_FILE_EXTENSION,
-  FEED_JSON_MIME,
-  generateFormulationCsv,
-  generateFormulationPdf,
-  generateFormulationXlsx,
-  sanitizeFilenameSlug,
-  serializeRecipeToFeedJson,
-} from "../../storage";
+import { generateFormulationPdf, sanitizeFilenameSlug } from "../../storage";
 import type {
   AppLanguage,
   FormulationConfig,
   FormulationResult,
   Ingredient,
   Nutrient,
-  Recipe,
   Requirement,
 } from "../../types";
-import { downloadBinaryFile, downloadTextFile } from "../../utils/download";
+import { downloadBinaryFile } from "../../utils/download";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { GlossySquircleIcon } from "../ui/GlossySquircleIcon";
@@ -46,6 +29,9 @@ export interface ExportDialogProps {
   readonly language?: AppLanguage;
 }
 
+/**
+ * Dialog Ekspor khusus PDF rapi untuk peternak (Laporan Formula Lengkap & Lembar Timbang Gudang).
+ */
 export function ExportDialog({
   open,
   onClose,
@@ -61,10 +47,10 @@ export function ExportDialog({
     readonly tone: "success" | "error";
     readonly text: string;
   } | null>(null);
-  const [copied, setCopied] = useState(false);
 
   const effectiveTitle = (
-    recipeName?.trim() || `${requirement.name} (${config.activeBasis})`
+    recipeName?.trim() ||
+    `${requirement.name} (${config.activeBasis === "dry_matter" ? "BK" : "As-Fed"})`
   ).trim();
   const slug = sanitizeFilenameSlug(effectiveTitle);
 
@@ -72,104 +58,6 @@ export function ExportDialog({
     result.status === "infeasible" || result.status === "error" || result.composition.length === 0;
   const isNearFeasible = result.status === "near_feasible";
   const isOptimal = result.status === "optimal" && result.composition.length > 0;
-
-  const buildCurrentRecipe = (): Recipe => {
-    const now = new Date().toISOString();
-    return {
-      schemaVersion: 1,
-      id: `recipe-export-${slug}`,
-      name: effectiveTitle,
-      notes: `Diekspor dari OpenFormul (${config.activeBasis}, batch ${config.batchSizeKg} kg).`,
-      ingredients,
-      requirement,
-      config,
-      result,
-      createdAt: now,
-      updatedAt: now,
-    };
-  };
-
-  const feedJsonText = serializeRecipeToFeedJson(buildCurrentRecipe());
-
-  const handleDownloadFeedJson = () => {
-    downloadTextFile(feedJsonText, `${slug}${FEED_FILE_EXTENSION}`, FEED_JSON_MIME);
-    setNotice({
-      tone: "success",
-      text: `Berkas ${slug}${FEED_FILE_EXTENSION} berhasil diunduh.`,
-    });
-  };
-
-  const handleCopyJson = async () => {
-    try {
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(feedJsonText);
-        setCopied(true);
-        setNotice({
-          tone: "success",
-          text: "Skema .feed.json disalin ke papan klip.",
-        });
-        setTimeout(() => setCopied(false), 1800);
-        return;
-      }
-      setNotice({
-        tone: "error",
-        text: "Clipboard browser tidak tersedia; gunakan tombol Unduh .feed.json.",
-      });
-    } catch {
-      setNotice({
-        tone: "error",
-        text: "Gagal menyalin ke papan klip browser.",
-      });
-    }
-  };
-
-  const handleDownloadCsv = () => {
-    try {
-      const csv = generateFormulationCsv({
-        recipeName: effectiveTitle,
-        ingredients,
-        nutrientsCatalog,
-        requirement,
-        result,
-      });
-      downloadTextFile(csv, `${slug}.csv`, "text/csv;charset=utf-8");
-      setNotice({
-        tone: "success",
-        text: `Berkas spreadsheet ${slug}.csv berhasil diunduh.`,
-      });
-    } catch (err) {
-      setNotice({
-        tone: "error",
-        text: err instanceof Error ? err.message : "Gagal membuat CSV.",
-      });
-    }
-  };
-
-  const handleDownloadXlsx = () => {
-    try {
-      const bytes = generateFormulationXlsx({
-        recipeName: effectiveTitle,
-        ingredients,
-        nutrientsCatalog,
-        requirement,
-        result,
-      });
-      downloadBinaryFile(
-        bytes,
-        `${slug}.xlsx`,
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      );
-      setNotice({
-        tone: "success",
-        text: `Workbook multi-sheet ${slug}.xlsx berhasil diunduh.`,
-      });
-    } catch (err) {
-      setNotice({
-        tone: "error",
-        text: err instanceof Error ? err.message : "Gagal membuat .xlsx.",
-      });
-    }
-  };
 
   const handleDownloadPdfFull = () => {
     try {
@@ -184,7 +72,11 @@ export function ExportDialog({
       downloadBinaryFile(bytes, `${slug}-lengkap.pdf`, "application/pdf");
       setNotice({
         tone: "success",
-        text: `Laporan PDF ${slug}-lengkap.pdf berhasil diunduh.`,
+        text: pickLang(
+          language,
+          `Laporan PDF ${slug}-lengkap.pdf berhasil diunduh.`,
+          `PDF report ${slug}-lengkap.pdf downloaded.`,
+        ),
       });
     } catch (err) {
       setNotice({
@@ -207,12 +99,16 @@ export function ExportDialog({
       downloadBinaryFile(bytes, `${slug}-batch.pdf`, "application/pdf");
       setNotice({
         tone: "success",
-        text: `Lembar Timbang Gudang ${slug}-batch.pdf berhasil diunduh.`,
+        text: pickLang(
+          language,
+          `Lembar Timbang Gudang ${slug}-batch.pdf berhasil diunduh.`,
+          `Mill Batch Sheet ${slug}-batch.pdf downloaded.`,
+        ),
       });
     } catch (err) {
       setNotice({
         tone: "error",
-        text: err instanceof Error ? err.message : "Gagal membuat PDF Batch Only.",
+        text: err instanceof Error ? err.message : "Gagal membuat PDF Lembar Timbang.",
       });
     }
   };
@@ -224,11 +120,11 @@ export function ExportDialog({
         setNotice(null);
         onClose();
       }}
-      title={pickLang(language, "Ekspor Resep & Lembar Kerja", "Export Recipe & Worksheet")}
+      title={pickLang(language, "Ekspor Laporan PDF", "Export PDF Report")}
       subtitle={pickLang(
         language,
-        "Unduh dokumen siap cetak gudang, spreadsheet multi-sheet, atau resep portabel offline.",
-        "Download mill batch sheets, multi-sheet spreadsheets, or offline portable recipe files.",
+        "Unduh dokumen PDF siap cetak yang rapi untuk arsip peternak atau operator gudang pakan. Dokumen PDF & cetak selalu memakai latar terang agar mudah dibaca.",
+        "Download neat print-ready PDF documents for farm archives or feed mixing operators. PDF & print pages always use a high-contrast light paper layout.",
       )}
       footer={
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -242,7 +138,7 @@ export function ExportDialog({
             }}
           >
             <Printer className="h-3.5 w-3.5" />
-            <span>{pickLang(language, "Cetak Browser", "Browser Print")}</span>
+            <span>{pickLang(language, "Cetak Langsung", "Print Page")}</span>
           </Button>
           <Button
             variant="secondary"
@@ -260,9 +156,9 @@ export function ExportDialog({
         {isNearFeasible && (
           <div
             role="status"
-            className="glass-card flex items-start gap-2.5 rounded-2xl border border-amber-300/80 bg-amber-50/90 p-3 font-medium text-amber-950 dark:border-amber-700/60 dark:bg-amber-950/45 dark:text-amber-200"
+            className="glass-card flex items-start gap-2.5 rounded-2xl border border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] p-3 font-medium text-[var(--text-primary)]"
           >
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warning)]" />
             <div>
               <p className="font-bold">
                 {pickLang(
@@ -274,8 +170,8 @@ export function ExportDialog({
               <p className="mt-0.5 text-[11px] opacity-90">
                 {pickLang(
                   language,
-                  "CSV, .xlsx, dan PDF Lengkap menyertakan penanda kompromi nutrisi. PDF Print Batch Only dinonaktifkan hingga formula mencapai status Optimal penuh.",
-                  "CSV, .xlsx, and Full PDF include compromise warnings. Batch-Only PDF is locked until status is fully Optimal.",
+                  "PDF Lengkap menyertakan penanda kompromi nutrisi. PDF Lembar Timbang Gudang dikunci hingga formula mencapai status Optimal penuh.",
+                  "Full PDF includes compromise warnings. Batch-Only PDF is locked until status is fully Optimal.",
                 )}
               </p>
             </div>
@@ -285,22 +181,22 @@ export function ExportDialog({
         {isInfeasibleOrEmpty && (
           <div
             role="status"
-            className="glass-card glass-card-coral flex items-start gap-2.5 rounded-2xl bg-rose-50/90 p-3 font-medium text-rose-950 dark:bg-rose-950/45 dark:text-rose-200"
+            className="glass-card glass-card-coral flex items-start gap-2.5 rounded-2xl border border-[var(--status-danger-border)] bg-[var(--status-danger-soft)] p-3 font-medium text-[var(--text-primary)]"
           >
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-300" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-danger)]" />
             <div>
               <p className="font-bold">
                 {pickLang(
                   language,
-                  "Ekspor hasil produksi diblokir (Status Infeasible / Kosong)",
-                  "Production exports blocked (Infeasible / Empty status)",
+                  "Ekspor PDF diblokir (Formula belum valid / Infeasible)",
+                  "PDF export blocked (Infeasible / Empty status)",
                 )}
               </p>
               <p className="mt-0.5 text-[11px] opacity-90">
                 {pickLang(
                   language,
-                  "Anda tetap dapat mengunduh .feed.json untuk berbagi atau debugging target kendala bersama konsultan.",
-                  "You can still download .feed.json to share or troubleshoot constraints.",
+                  "Sesuaikan bahan atau target nutrien hingga formula mencapai status Optimal atau Near-Feasible.",
+                  "Adjust ingredients or nutrient bounds until a valid solution is reached.",
                 )}
               </p>
             </div>
@@ -312,8 +208,8 @@ export function ExportDialog({
             role="status"
             className={
               notice.tone === "success"
-                ? "glass-card glass-card-emerald rounded-2xl bg-emerald-50/85 p-3 font-medium text-emerald-900 dark:bg-emerald-950/45 dark:text-emerald-200"
-                : "glass-card glass-card-coral rounded-2xl bg-rose-50/90 p-3 font-medium text-rose-900 dark:bg-rose-950/45 dark:text-rose-200"
+                ? "glass-card glass-card-emerald rounded-2xl border border-[var(--status-success-border)] bg-[var(--status-success-soft)] p-3 font-medium text-[var(--text-primary)]"
+                : "glass-card glass-card-coral rounded-2xl border border-[var(--status-danger-border)] bg-[var(--status-danger-soft)] p-3 font-medium text-[var(--text-primary)]"
             }
           >
             {notice.text}
@@ -323,82 +219,20 @@ export function ExportDialog({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <button
             type="button"
-            onClick={handleDownloadFeedJson}
-            className="glass-card glass-card-interactive flex min-h-16 cursor-pointer items-start gap-3 p-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F6E7F]/40"
-          >
-            <GlossySquircleIcon tone="mint" size="sm" icon={<FileCode2 className="h-4 w-4" />} />
-            <div>
-              <p className="font-bold text-[#122B36] dark:text-slate-100">
-                {pickLang(language, "Resep Portabel (.feed.json)", "Portable Recipe (.feed.json)")}
-              </p>
-              <p className="mt-0.5 text-[11px] text-[#54707E] dark:text-slate-400">
-                {pickLang(
-                  language,
-                  "Simpan bahan, harga custom & batasan untuk reproduksi 100% identik offline.",
-                  "Stores feeds, custom prices & bounds for 100% reproducible offline sharing.",
-                )}
-              </p>
-            </div>
-          </button>
-
-          <div className="glass-card flex flex-col justify-between gap-2.5 p-3.5">
-            <div className="flex items-start gap-3">
-              <GlossySquircleIcon
-                tone="sky"
-                size="sm"
-                icon={<FileSpreadsheet className="h-4 w-4" />}
-              />
-              <div>
-                <p className="font-bold text-[#122B36] dark:text-slate-100">
-                  Spreadsheet (CSV &amp; Excel)
-                </p>
-                <p className="mt-0.5 text-[11px] text-[#54707E] dark:text-slate-400">
-                  {pickLang(
-                    language,
-                    "Komposisi As-Fed, bobot batch, profil nutrien & analisis sensitivitas.",
-                    "As-Fed composition, batch weights, nutrient profile & sensitivity analysis.",
-                  )}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={isInfeasibleOrEmpty}
-                onClick={handleDownloadCsv}
-                className="min-h-10 flex-1"
-              >
-                {pickLang(language, "Unduh CSV", "Download CSV")}
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={isInfeasibleOrEmpty}
-                onClick={handleDownloadXlsx}
-                className="min-h-10 flex-1"
-              >
-                {pickLang(language, "Unduh Excel (.xlsx)", "Download Excel (.xlsx)")}
-              </Button>
-            </div>
-          </div>
-
-          <button
-            type="button"
             disabled={isInfeasibleOrEmpty}
             onClick={handleDownloadPdfFull}
-            className="glass-card glass-card-interactive flex min-h-16 cursor-pointer items-start gap-3 p-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F6E7F]/40 disabled:pointer-events-none disabled:opacity-50"
+            className="glass-card glass-card-interactive flex min-h-20 cursor-pointer items-start gap-3 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:pointer-events-none disabled:opacity-50"
           >
             <GlossySquircleIcon tone="petrol" size="sm" icon={<FileText className="h-4 w-4" />} />
             <div>
-              <p className="font-bold text-[#122B36] dark:text-slate-100">
+              <p className="font-bold text-[var(--text-primary)]">
                 {pickLang(language, "PDF Lembar Formula Lengkap", "PDF Full Formula Sheet")}
               </p>
-              <p className="mt-0.5 text-[11px] text-[#54707E] dark:text-slate-400">
+              <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-secondary)]">
                 {pickLang(
                   language,
-                  "Laporan nutrisiwan, biaya batch, capaian nutrien & shadow price.",
-                  "Nutritionist report, batch cost, nutrient profile & shadow prices.",
+                  "Berisi tabel komposisi, berat timbang, biaya per kg & batch, profil nutrien, dan harga bayangan.",
+                  "Includes composition table, batch weights, costs, nutrient profile & shadow prices.",
                 )}
               </p>
             </div>
@@ -417,56 +251,31 @@ export function ExportDialog({
                   )
                 : pickLang(language, "Khusus status Optimal", "Optimal status only")
             }
-            className="glass-card glass-card-interactive flex min-h-16 cursor-pointer items-start gap-3 p-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F6E7F]/40 disabled:pointer-events-none disabled:opacity-50"
+            className="glass-card glass-card-interactive flex min-h-20 cursor-pointer items-start gap-3 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:pointer-events-none disabled:opacity-50"
           >
             <GlossySquircleIcon tone="amber" size="sm" icon={<Printer className="h-4 w-4" />} />
             <div>
               <div className="flex flex-wrap items-center gap-1.5">
-                <p className="font-bold text-[#122B36] dark:text-slate-100">PDF Print Batch Only</p>
-                <Badge tone="amber">{pickLang(language, "Gudang", "Mill")}</Badge>
+                <p className="font-bold text-[var(--text-primary)]">
+                  {pickLang(language, "PDF Lembar Timbang Gudang", "PDF Print Batch Only")}
+                </p>
+                <Badge tone="amber">{pickLang(language, "Operator", "Mill")}</Badge>
               </div>
-              <p className="mt-0.5 text-[11px] text-[#54707E] dark:text-slate-400">
+              <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-secondary)]">
                 {isOptimal
                   ? pickLang(
                       language,
-                      "Menyembunyikan harga & target nutrisi dari operator mixer.",
-                      "Hides costs & nutrient specs from mixer operators.",
+                      "Khusus operator adukan: menampilkan daftar bahan, berat kg, dan kotak centang tanpa harga.",
+                      "For mixer operators: lists feeds, kg weights, and checkboxes without prices.",
                     )
                   : pickLang(
                       language,
-                      "Terkunci — hanya tersedia bila status solver Optimal penuh.",
-                      "Locked — available only when solver status is Optimal.",
+                      "Terkunci — hanya tersedia bila status formulasi Optimal penuh.",
+                      "Locked — available only when formulation status is fully Optimal.",
                     )}
               </p>
             </div>
           </button>
-        </div>
-
-        <div>
-          <div className="mb-1.5 flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold text-[#54707E] dark:text-slate-400">
-              {pickLang(
-                language,
-                "Pratinjau Skema Kanonik (.feed.json):",
-                "Canonical Schema Preview (.feed.json):",
-              )}
-            </p>
-            <Button variant="ghost" size="sm" onClick={() => void handleCopyJson()}>
-              {copied ? (
-                <Check className="h-3.5 w-3.5 text-emerald-600" />
-              ) : (
-                <Copy className="h-3.5 w-3.5" />
-              )}
-              <span>
-                {copied
-                  ? pickLang(language, "Tersalin", "Copied")
-                  : pickLang(language, "Salin JSON", "Copy JSON")}
-              </span>
-            </Button>
-          </div>
-          <pre className="max-h-44 overflow-auto rounded-2xl border border-cyan-300/20 bg-[#0A2530] p-3.5 font-mono text-[11px] text-cyan-50 shadow-[inset_0_2px_8px_rgba(3,14,19,0.55)]">
-            {feedJsonText}
-          </pre>
         </div>
       </div>
     </SheetDialog>

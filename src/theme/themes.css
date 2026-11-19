@@ -1,0 +1,478 @@
+/* ============================================================================
+ * Portable Multi-Theme Design System — Master Semantic Tokens (7 Palettes × 2 Modes)
+ * Tactile Neumorphism (Soft UI) · Web / PWA / Android (Capacitor)
+ * Attribute selector contract: [data-theme="<palette-id>"][data-mode="light|dark"]
+ * ========================================================================== */
+
+/* Smooth Theme Transition (Activated post-hydration via .theme-transition-ready) */
+@layer base {
+  :where(
+    .theme-transition-ready,
+    .theme-transition-ready *,
+    .theme-transition-ready *::before,
+    .theme-transition-ready *::after
+  ) {
+    transition-property: background-color, color, border-color, box-shadow;
+    transition-duration: 250ms;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :where(
+      .theme-transition-ready,
+      .theme-transition-ready *,
+      .theme-transition-ready *::before,
+      .theme-transition-ready *::after
+    ) {
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Default Root Fallback (Palette 01: original-default / Light Mode) */
+:root,
+[data-theme="original-default"][data-mode="light"] {
+  color-scheme: light;
+  /* Surfaces */
+  --bg-canvas: #f5f4ef;
+  --bg-surface: #e7ebe6;
+  --bg-surface-elevated: #eff2ee;
+  --bg-sunken: #dce1dc;
+  /* Brand & Accents */
+  --color-primary: #142b27;
+  --color-primary-hover: #1c3b36;
+  --color-secondary: #24483d;
+  --color-accent: #d5a45c;
+  --color-accent-contrast: #142b27;
+  /* Typography */
+  --text-primary: #252b29;
+  --text-secondary: #43504c;
+  --text-muted: #62706b;
+  --text-on-primary: #f5f4ef;
+  /* Neumorphic Shadows & Borders */
+  --shadow-light: rgba(255, 255, 255, 0.82);
+  --shadow-dark: rgba(18, 36, 32, 0.14);
+  --border-subtle: rgba(20, 43, 39, 0.12);
+  --focus-ring: rgba(213, 164, 92, 0.55);
+  /* Semantic System States */
+  --status-success: #1d7a52;
+  --status-warning: #b87314;
+  --status-danger: #c23b33;
+  --status-info: #226888;
+}
+
+/* 1B. original-default (Dark Mode) */
+[data-theme="original-default"][data-mode="dark"] {
+  color-scheme: dark;
+  --bg-canvas: #0f1a18;
+  --bg-surface: #172623;
+  --bg-surface-elevated: #1f332f;
+  --bg-sunken: #0a1210;
+  --color-primary: #3a6e5e;
+  --color-primary-hover: #488572;
+  --color-secondary: #24483d;
+  --color-accent: #d5a45c;
+  --color-accent-contrast: #0f1a18;
+  --text-primary: #ecf0ee;
+  --text-secondary: #a9bab4;
+  --text-muted: #768a84;
+  --text-on-primary: #f5f4ef;
+  --shadow-light: rgba(46, 78, 70, 0.26);
+  --shadow-dark: rgba(4, 9, 8, 0.72);
+  --border-subtle: rgba(231, 235, 230, 0.1);
+  --focus-ring: rgba(213, 164, 92, 0.6);
+  --status-success: #3dd68c;
+  --status-warning: #f5b041;
+  --status-danger: #f2645a;
+  --status-info: #4db8e8;
+}
+
+/* 2A. prd-custom — Ergonomic Precision Palette (Zero Purple, Light Mode) */
+[data-theme="prd-custom"][data-mode="light"] {
+  color-scheme: light;
+  --bg-canvas: #f2f4f1;
+  --bg-surface: #e5e9e4;
+  --bg-surface-elevated: #ecefe9;
+  --bg-sunken: #d8ddd7;
+  --color-primary: #1b3a32;
+  --color-primary-hover: #244b41;
+  --color-secondary: #2c5e50;
+  --color-accent: #c87d32;
+  --color-accent-contrast: #ffffff;
+  --text-primary: #1a2220;
+  --text-secondary: #3d4b47;
+  --text-muted: #5c6b67;
+  --text-on-primary: #f2f4f1;
+  --shadow-light: rgba(255, 255, 255, 0.85);
+  --shadow-dark: rgba(22, 38, 33, 0.15);
+  --border-subtle: rgba(27, 58, 50, 0.13);
+  --focus-ring: rgba(200, 125, 50, 0.5);
+  --status-success: #16794f;
+  --status-warning: #b4690e;
+  --status-danger: #bf312a;
+  --status-info: #1d6a8a;
+}
+
+/* 2B. prd-custom (Dark Mode) */
+[data-theme="prd-custom"][data-mode="dark"] {
+  color-scheme: dark;
+  --bg-canvas: #101615;
+  --bg-surface: #17201e;
+  --bg-surface-elevated: #202c29;
+  --bg-sunken: #0b0f0e;
+  --color-primary: #3b7a68;
+  --color-primary-hover: #4a917d;
+  --color-secondary: #2c5e50;
+  --color-accent: #e09448;
+  --color-accent-contrast: #101615;
+  --text-primary: #e7ecea;
+  --text-secondary: #a5b4b0;
+  --text-muted: #73837f;
+  --text-on-primary: #101615;
+  --shadow-light: rgba(45, 66, 61, 0.25);
+  --shadow-dark: rgba(3, 6, 5, 0.76);
+  --border-subtle: rgba(231, 236, 234, 0.1);
+  --focus-ring: rgba(224, 148, 72, 0.55);
+  --status-success: #39d48a;
+  --status-warning: #f4ad3a;
+  --status-danger: #f25f55;
+  --status-info: #45b5d9;
+}
+
+/* 3A. template-01 — Carbon, Citrus Yellow, Lavender & Coral (Light Mode) */
+[data-theme="template-01"][data-mode="light"] {
+  color-scheme: light;
+  --bg-canvas: #f7f7f5;
+  --bg-surface: #ecece8;
+  --bg-surface-elevated: #ffffff;
+  --bg-sunken: #e0e0da;
+  --color-primary: #111111;
+  --color-primary-hover: #2f2f2f;
+  --color-secondary: #ec704b;
+  --color-accent: #f5f378;
+  --color-accent-contrast: #111111;
+  --text-primary: #111111;
+  --text-secondary: #2f2f2f;
+  --text-muted: #5e5e5a;
+  --text-on-primary: #ffffff;
+  --shadow-light: rgba(255, 255, 255, 0.9);
+  --shadow-dark: rgba(17, 17, 17, 0.14);
+  --border-subtle: rgba(17, 17, 17, 0.11);
+  --focus-ring: rgba(236, 112, 75, 0.5);
+  --status-success: #1b7f4e;
+  --status-warning: #b56e0c;
+  --status-danger: #c93b2b;
+  --status-info: #53469c;
+}
+
+/* 3B. template-01 (Dark Mode) */
+[data-theme="template-01"][data-mode="dark"] {
+  color-scheme: dark;
+  --bg-canvas: #111111;
+  --bg-surface: #1d1d1d;
+  --bg-surface-elevated: #2f2f2f;
+  --bg-sunken: #0a0a0a;
+  --color-primary: #f5f378;
+  --color-primary-hover: #faf898;
+  --color-secondary: #dcc1ff;
+  --color-accent: #ec704b;
+  --color-accent-contrast: #111111;
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --text-muted: #8e8e8e;
+  --text-on-primary: #111111;
+  --shadow-light: rgba(65, 65, 65, 0.25);
+  --shadow-dark: rgba(0, 0, 0, 0.8);
+  --border-subtle: rgba(255, 255, 255, 0.11);
+  --focus-ring: rgba(245, 243, 120, 0.55);
+  --status-success: #46dc8f;
+  --status-warning: #f5f378;
+  --status-danger: #ec704b;
+  --status-info: #dcc1ff;
+}
+
+/* 4A. template-02 — Graphite Slate & Volt Chartreuse (Light Mode) */
+[data-theme="template-02"][data-mode="light"] {
+  color-scheme: light;
+  --bg-canvas: #fbfbfb;
+  --bg-surface: #edeff3;
+  --bg-surface-elevated: #ffffff;
+  --bg-sunken: #e1e4ec;
+  --color-primary: #242424;
+  --color-primary-hover: #363842;
+  --color-secondary: #484c5e;
+  --color-accent: #eafb5d;
+  --color-accent-contrast: #242424;
+  --text-primary: #242424;
+  --text-secondary: #484c5e;
+  --text-muted: #676c82;
+  --text-on-primary: #fbfbfb;
+  --shadow-light: rgba(255, 255, 255, 0.92);
+  --shadow-dark: rgba(36, 36, 36, 0.13);
+  --border-subtle: rgba(72, 76, 94, 0.14);
+  --focus-ring: rgba(72, 76, 94, 0.48);
+  --status-success: #1d7c50;
+  --status-warning: #ad6d0b;
+  --status-danger: #c43636;
+  --status-info: #375a9e;
+}
+
+/* 4B. template-02 (Dark Mode) */
+[data-theme="template-02"][data-mode="dark"] {
+  color-scheme: dark;
+  --bg-canvas: #18191d;
+  --bg-surface: #242424;
+  --bg-surface-elevated: #32343f;
+  --bg-sunken: #111215;
+  --color-primary: #eafb5d;
+  --color-primary-hover: #f1fc86;
+  --color-secondary: #484c5e;
+  --color-accent: #eafb5d;
+  --color-accent-contrast: #242424;
+  --text-primary: #fbfbfb;
+  --text-secondary: #b9bdd0;
+  --text-muted: #84899e;
+  --text-on-primary: #242424;
+  --shadow-light: rgba(72, 76, 94, 0.28);
+  --shadow-dark: rgba(6, 7, 9, 0.78);
+  --border-subtle: rgba(251, 251, 251, 0.1);
+  --focus-ring: rgba(234, 251, 93, 0.55);
+  --status-success: #42df90;
+  --status-warning: #eafb5d;
+  --status-danger: #f46363;
+  --status-info: #789df5;
+}
+
+/* 5A. template-03 — Tangerine, Dusty Rose, Sage & Pitch Obsidian (Light Mode) */
+[data-theme="template-03"][data-mode="light"] {
+  color-scheme: light;
+  --bg-canvas: #f8f7f4;
+  --bg-surface: #eceae4;
+  --bg-surface-elevated: #ffffff;
+  --bg-sunken: #dfddd5;
+  --color-primary: #0e0f0b;
+  --color-primary-hover: #252820;
+  --color-secondary: #727e6e;
+  --color-accent: #fe813c;
+  --color-accent-contrast: #0e0f0b;
+  --text-primary: #0e0f0b;
+  --text-secondary: #454c42;
+  --text-muted: #626d5e;
+  --text-on-primary: #ffffff;
+  --shadow-light: rgba(255, 255, 255, 0.88);
+  --shadow-dark: rgba(14, 15, 11, 0.15);
+  --border-subtle: rgba(114, 126, 110, 0.18);
+  --focus-ring: rgba(254, 129, 60, 0.52);
+  --status-success: #28754b;
+  --status-warning: #c25e14;
+  --status-danger: #b33941;
+  --status-info: #2c6785;
+}
+
+/* 5B. template-03 (Dark Mode) */
+[data-theme="template-03"][data-mode="dark"] {
+  color-scheme: dark;
+  --bg-canvas: #0e0f0b;
+  --bg-surface: #181a14;
+  --bg-surface-elevated: #23271e;
+  --bg-sunken: #080906;
+  --color-primary: #fe813c;
+  --color-primary-hover: #ff985f;
+  --color-secondary: #727e6e;
+  --color-accent: #bc656a;
+  --color-accent-contrast: #ffffff;
+  --text-primary: #ffffff;
+  --text-secondary: #b7bfb4;
+  --text-muted: #848f80;
+  --text-on-primary: #0e0f0b;
+  --shadow-light: rgba(52, 58, 46, 0.28);
+  --shadow-dark: rgba(2, 3, 2, 0.82);
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --focus-ring: rgba(254, 129, 60, 0.58);
+  --status-success: #4dd68a;
+  --status-warning: #fe813c;
+  --status-danger: #e66870;
+  --status-info: #5cb3db;
+}
+
+/* 6A. template-04 — Glacial Ice, Deep Navy, Electric Indigo & Acid Lime (Light Mode) */
+[data-theme="template-04"][data-mode="light"] {
+  color-scheme: light;
+  --bg-canvas: #eefefe;
+  --bg-surface: #e0f3f5;
+  --bg-surface-elevated: #ffffff;
+  --bg-sunken: #d1e7ea;
+  --color-primary: #202d41;
+  --color-primary-hover: #2c3e59;
+  --color-secondary: #6e67fb;
+  --color-accent: #c8ff3c;
+  --color-accent-contrast: #202d41;
+  --text-primary: #202d41;
+  --text-secondary: #292a2c;
+  --text-muted: #52627a;
+  --text-on-primary: #ffffff;
+  --shadow-light: rgba(255, 255, 255, 0.92);
+  --shadow-dark: rgba(32, 45, 65, 0.14);
+  --border-subtle: rgba(32, 45, 65, 0.13);
+  --focus-ring: rgba(110, 103, 251, 0.5);
+  --status-success: #167c52;
+  --status-warning: #b56e0e;
+  --status-danger: #c73838;
+  --status-info: #534be2;
+}
+
+/* 6B. template-04 (Dark Mode) */
+[data-theme="template-04"][data-mode="dark"] {
+  color-scheme: dark;
+  --bg-canvas: #141b26;
+  --bg-surface: #202d41;
+  --bg-surface-elevated: #293952;
+  --bg-sunken: #0e131b;
+  --color-primary: #c8ff3c;
+  --color-primary-hover: #d6ff6b;
+  --color-secondary: #6e67fb;
+  --color-accent: #c8ff3c;
+  --color-accent-contrast: #202d41;
+  --text-primary: #ffffff;
+  --text-secondary: #c6d8e8;
+  --text-muted: #8499b3;
+  --text-on-primary: #202d41;
+  --shadow-light: rgba(58, 79, 112, 0.28);
+  --shadow-dark: rgba(5, 8, 12, 0.8);
+  --border-subtle: rgba(238, 254, 254, 0.11);
+  --focus-ring: rgba(200, 255, 60, 0.55);
+  --status-success: #45e596;
+  --status-warning: #f5b742;
+  --status-danger: #f56565;
+  --status-info: #8e88ff;
+}
+
+/* 7A. template-05 — Forest Emerald, Chartreuse Lime & Pistachio Cream (Light Mode) */
+[data-theme="template-05"][data-mode="light"] {
+  color-scheme: light;
+  --bg-canvas: #f3f6ec;
+  --bg-surface: #e4e9d5;
+  --bg-surface-elevated: #ffffff;
+  --bg-sunken: #d6dec3;
+  --color-primary: #144425;
+  --color-primary-hover: #1c5932;
+  --color-secondary: #657d6e;
+  --color-accent: #d3fa53;
+  --color-accent-contrast: #144425;
+  --text-primary: #12291a;
+  --text-secondary: #395243;
+  --text-muted: #587061;
+  --text-on-primary: #ffffff;
+  --shadow-light: rgba(255, 255, 255, 0.88);
+  --shadow-dark: rgba(20, 68, 37, 0.15);
+  --border-subtle: rgba(20, 68, 37, 0.14);
+  --focus-ring: rgba(20, 68, 37, 0.48);
+  --status-success: #147a42;
+  --status-warning: #b57010;
+  --status-danger: #c23832;
+  --status-info: #1f6b82;
+}
+
+/* 7B. template-05 (Dark Mode) */
+[data-theme="template-05"][data-mode="dark"] {
+  color-scheme: dark;
+  --bg-canvas: #0b1f12;
+  --bg-surface: #144425;
+  --bg-surface-elevated: #1c5731;
+  --bg-sunken: #07140c;
+  --color-primary: #d3fa53;
+  --color-primary-hover: #defc7c;
+  --color-secondary: #657d6e;
+  --color-accent: #d3fa53;
+  --color-accent-contrast: #144425;
+  --text-primary: #ffffff;
+  --text-secondary: #e4e9d5;
+  --text-muted: #8fa898;
+  --text-on-primary: #144425;
+  --shadow-light: rgba(42, 110, 66, 0.28);
+  --shadow-dark: rgba(2, 8, 4, 0.82);
+  --border-subtle: rgba(228, 233, 213, 0.12);
+  --focus-ring: rgba(211, 250, 83, 0.55);
+  --status-success: #52e890;
+  --status-warning: #f5b945;
+  --status-danger: #f56b63;
+  --status-info: #5ac4e5;
+}
+
+/* AMOLED Pure-Black Dark Mode Override (Applies cleanly across all 7 dark palettes) */
+[data-mode="dark"][data-amoled="true"] {
+  --bg-canvas: #000000;
+  --bg-sunken: #000000;
+  --shadow-dark: rgba(0, 0, 0, 0.92);
+  --border-subtle: rgba(255, 255, 255, 0.14);
+}
+
+/* Derived Domain & Cross-Component Semantic Tokens */
+@layer base {
+  :root,
+  [data-theme] {
+    --status-success-soft: color-mix(
+      in srgb,
+      var(--status-success) 13%,
+      var(--bg-surface-elevated)
+    );
+    --status-success-border: color-mix(in srgb, var(--status-success) 38%, transparent);
+    --status-warning-soft: color-mix(
+      in srgb,
+      var(--status-warning) 14%,
+      var(--bg-surface-elevated)
+    );
+    --status-warning-border: color-mix(in srgb, var(--status-warning) 40%, transparent);
+    --status-danger-soft: color-mix(in srgb, var(--status-danger) 13%, var(--bg-surface-elevated));
+    --status-danger-border: color-mix(in srgb, var(--status-danger) 40%, transparent);
+    --status-info-soft: color-mix(in srgb, var(--status-info) 13%, var(--bg-surface-elevated));
+    --status-info-border: color-mix(in srgb, var(--status-info) 38%, transparent);
+    --primary-soft: color-mix(in srgb, var(--color-primary) 13%, var(--bg-surface-elevated));
+    --accent-soft: color-mix(in srgb, var(--color-accent) 16%, var(--bg-surface-elevated));
+    --border-strong: color-mix(in srgb, var(--text-primary) 26%, transparent);
+
+    --chart-series-1: var(--status-success);
+    --chart-series-2: var(--status-info);
+    --chart-series-3: var(--status-warning);
+    --chart-series-4: var(--color-secondary);
+    --chart-series-5: var(--status-danger);
+    --chart-series-6: var(--color-accent);
+    --chart-series-7: var(--color-primary);
+    --chart-radar-grid: color-mix(in srgb, var(--text-muted) 34%, transparent);
+    --chart-radar-target: var(--text-muted);
+    --chart-radar-actual-stroke: var(--status-success);
+    --chart-radar-actual-fill: color-mix(in srgb, var(--status-success) 20%, transparent);
+    --chart-weight-bar: var(--status-info);
+    --chart-cost-bar: var(--status-success);
+  }
+
+  :root,
+  [data-mode="light"] {
+    --text-on-danger: #ffffff;
+    --shell-chrome-bg: var(--color-primary);
+    --shell-chrome-fg: var(--text-on-primary);
+    --shell-chrome-muted: color-mix(in srgb, var(--text-on-primary) 72%, transparent);
+    --shell-chrome-accent: var(--color-accent);
+    --shell-chrome-border: color-mix(in srgb, var(--text-on-primary) 15%, transparent);
+    --shell-chrome-btn-bg: color-mix(in srgb, var(--text-on-primary) 12%, transparent);
+    --shell-chrome-btn-hover: color-mix(in srgb, var(--text-on-primary) 22%, transparent);
+    --shell-active-fg: var(--color-primary);
+  }
+
+  [data-mode="dark"] {
+    --text-on-danger: #111111;
+    --shell-chrome-bg: var(--bg-surface);
+    --shell-chrome-fg: var(--text-primary);
+    --shell-chrome-muted: var(--text-secondary);
+    --shell-chrome-accent: var(--color-accent);
+    --shell-chrome-border: var(--border-subtle);
+    --shell-chrome-btn-bg: color-mix(in srgb, var(--text-primary) 10%, transparent);
+    --shell-chrome-btn-hover: color-mix(in srgb, var(--text-primary) 18%, transparent);
+    --shell-active-fg: var(--shell-chrome-accent);
+  }
+
+  [data-theme="template-01"][data-mode="dark"],
+  [data-theme="template-03"][data-mode="dark"] {
+    --shell-chrome-accent: var(--color-primary);
+  }
+}

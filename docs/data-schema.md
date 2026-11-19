@@ -8,6 +8,8 @@ Tipe kanonik didefinisikan di [`src/types/index.ts`](../src/types/index.ts). Dok
 - `NutrientUnit`: `"%" | "kcal/kg" | "MJ/kg" | "mg/kg" | "IU/kg" | "mEq/kg"`
 - `NutrientTier`: `"basic" | "amino_acid" | "fiber_carb" | "mineral_electrolyte" | "anf_physical"`
 - `IngredientCategory`: `"energy" | "protein" | "mineral" | "premix" | "forage" | "additive" | "enzyme"`
+- `FeedClassCode`: `1 | 2 | 3 | 4 | 5 | 6 | 7 | 8` (8 kelas klasifikasi bahan pakan standar IFN / NRC / Hartadi 1980 Tabel 7: `1=Hijauan Kering`, `2=Hijauan Segar`, `3=Silase`, `4=Sumber Energi`, `5=Sumber Protein`, `6=Sumber Mineral`, `7=Sumber Vitamin`, `8=Aditif`)
+- `LivestockSpecies`: `"broiler" | "layer" | "buras" | "duck" | "quail" | "beef" | "dairy" | "goat" | "sheep" | "swine" | "fish" | "custom"`
 - `OptimizationMode`: `1 | 2 | 3 | 4 | 5` (`1=Hemat`, `2=Agak Hemat`, `3=Seimbang`, `4=Presisi`, `5=Presisi Tinggi`)
 - `FormulationStatus`: `"optimal" | "near_feasible" | "infeasible" | "error"`
 - `NutrientStatus`: `"met" | "below_min" | "above_max" | "unconstrained"`
@@ -52,23 +54,24 @@ Tipe kanonik didefinisikan di [`src/types/index.ts`](../src/types/index.ts). Dok
 }
 ```
 
-| Field               | Tipe                             | Keterangan                                                            |
-| ------------------- | -------------------------------- | --------------------------------------------------------------------- |
-| `id`                | `string`                         | identifier unik                                                       |
-| `name` / `nameEn`   | `string`                         | nama bahan ID / EN                                                    |
-| `category`          | `IngredientCategory`             | kategori nutrisi bahan                                                |
-| `pricePerKg`        | `number`                         | harga acuan per kg As-Fed (IDR)                                       |
-| `priceOverride`     | `number?`                        | harga custom sesi pengguna (opsional; menimpa `pricePerKg`)           |
-| `dryMatter`         | `number`                         | persentase Bahan Kering `(0–100]`                                     |
-| `basis`             | `Basis`                          | basis pengukuran nilai `nutrients`                                    |
-| `isActive`          | `boolean?`                       | status centang aktif di formulasi                                     |
-| `nutrients`         | `Record<string, number \| null>` | nilai nutrien; **`null` = data N/A**, **`0` = benar-benar nol**       |
-| `stdDev`            | `Record<string, number>?`        | simpangan baku lab (sigma) untuk formulasi stokastik                  |
-| `inclusion`         | `Bounds?`                        | batas inklusi `{ min?: number, max?: number }` dalam `%` (`0–100`)    |
-| `zeroInclusionRule` | `ZeroInclusionRule?`             | aturan Anti-Nol `{ enforceNonZero: boolean, minIfSelected?: number }` |
-| `groupId`           | `string?`                        | pengelompokan bahan                                                   |
-| `phytateP`          | `number?`                        | estimasi fosfor fitat untuk perhitungan matriks enzim fitase          |
-| `source`            | `string`                         | **wajib** mencantumkan sumber data nutrien                            |
+| Field               | Tipe                             | Keterangan                                                                                        |
+| ------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `id`                | `string`                         | identifier unik                                                                                   |
+| `name` / `nameEn`   | `string`                         | nama bahan ID / EN                                                                                |
+| `category`          | `IngredientCategory`             | kategori nutrisi bahan                                                                            |
+| `feedClass`         | `FeedClassCode?`                 | kelas klasifikasi standar 1–8 (opsional; otomatis diinferensi dari kode IFN/kategori bila kosong) |
+| `pricePerKg`        | `number`                         | harga acuan per kg As-Fed (IDR)                                                                   |
+| `priceOverride`     | `number?`                        | harga custom sesi pengguna (opsional; menimpa `pricePerKg`)                                       |
+| `dryMatter`         | `number`                         | persentase Bahan Kering `(0–100]`                                                                 |
+| `basis`             | `Basis`                          | basis pengukuran nilai `nutrients`                                                                |
+| `isActive`          | `boolean?`                       | status centang aktif di formulasi                                                                 |
+| `nutrients`         | `Record<string, number \| null>` | nilai nutrien; **`null` = data N/A**, **`0` = benar-benar nol**                                   |
+| `stdDev`            | `Record<string, number>?`        | simpangan baku lab (sigma) untuk formulasi stokastik                                              |
+| `inclusion`         | `Bounds?`                        | batas inklusi `{ min?: number, max?: number }` dalam `%` (`0–100`)                                |
+| `zeroInclusionRule` | `ZeroInclusionRule?`             | aturan Anti-Nol `{ enforceNonZero: boolean, minIfSelected?: number }`                             |
+| `groupId`           | `string?`                        | pengelompokan bahan                                                                               |
+| `phytateP`          | `number?`                        | estimasi fosfor fitat untuk perhitungan matriks enzim fitase                                      |
+| `source`            | `string`                         | **wajib** mencantumkan sumber data nutrien                                                        |
 
 ## `Requirement`
 
@@ -87,6 +90,7 @@ Menyimpan parameter aktif workbench formulasi:
 - `activeBasis`: `"as_fed" | "dry_matter"`
 - `batchSizeKg`: `number` (default `100` kg)
 - `enableAdvanceNutrients`: `boolean`
+- `showNdf?`: `boolean` (tampilkan parameter NDF/ADF di grid, target, dan solver meskipun di Mode Simpel)
 - `enableDigestibleBasis`: `boolean`
 - `enableElasticFallback`: `boolean`
 - `globalZeroInclusion`: `ZeroInclusionRule`
@@ -121,7 +125,7 @@ Output hasil formulasi yang dihasilkan oleh engine LP HiGHS WASM di Web Worker (
 ## `Recipe` & `UserPreferences`
 
 - `Recipe`: format `.feed.json` berversi (`schemaVersion: 1`, `id`, `name`, `notes?`, `ingredients`, `requirement`, `config?`, `result`, `createdAt`, `updatedAt`)
-- `UserPreferences`: preferensi antarmuka (`language`, `theme`, `defaultBasis`, `defaultBatchKg`, `zeroInclusionDefaultPct`)
+- `UserPreferences`: preferensi antarmuka (`language`, `theme`, `themePalette?` [`original-default` | `prd-custom` | `template-01`..`template-05`], `themeModeSetting?` [`light` | `dark` | `system`], `amoledPureBlack?`, `defaultBasis`, `defaultBatchKg`, `zeroInclusionDefaultPct`, `simpleMode?`)
 
 ## Penyimpanan IndexedDB & Validasi Batas Sistem
 

@@ -15,7 +15,7 @@ const HIGHLIGHT_CLASS: Record<CardHighlight, string> = {
   amber: "glass-card-amber",
 };
 
-/** Permukaan Pure Crisp White (#FFFFFF) dengan border #E2E8F0 dan shadow statis ringan. */
+/** Permukaan Tactile Neumorphism terkalibrasi luminansi dengan border semantik halus. */
 export function Card({ interactive = true, highlight = "none", className, ...rest }: CardProps) {
   return (
     <div
@@ -34,7 +34,7 @@ export function CardHeader({ className, ...rest }: HTMLAttributes<HTMLDivElement
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-4 border-b border-[#E2E8F0] px-4 py-2.5 dark:border-[#1E333D]",
+        "flex items-center justify-between gap-4 border-b border-[var(--border-subtle)] px-4 py-2.5",
         className,
       )}
       {...rest}

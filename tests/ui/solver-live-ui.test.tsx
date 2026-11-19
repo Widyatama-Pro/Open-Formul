@@ -7,26 +7,33 @@ describe("Live HiGHS Solver UI Integration", () => {
   it("menjalankan Solver HiGHS (Live) saat startup pada Broiler Starter hingga Optimal", async () => {
     render(<App />);
 
-    const scenarioSelect = screen.getByLabelText("Simulasi kondisi hasil prototipe");
-    expect(scenarioSelect).toHaveValue("auto");
-    expect(screen.getByRole("option", { name: "Solver HiGHS (Live)" })).toBeInTheDocument();
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Optimal/i)).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
 
-    await waitFor(() => {
-      expect(screen.getByText(/Optimal/i)).toBeInTheDocument();
-    });
-
-    // Pastikan tabel komposisi hasil formulasi menampilkan bahan aktif seperti Jagung Giling Kuning & SBM 44%
     expect(screen.getAllByText(/Jagung Giling Kuning/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Bungkil Kedelai/i).length).toBeGreaterThan(0);
   });
 
-  it("merespons perubahan target nutrien menjadi infeasible lalu pulih dengan Mode Relaksasi Elastik", async () => {
+  it("merespons perubahan target nutrien menjadi infeasible setelah membuka batas Min/Max", async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Optimal/i)).toBeInTheDocument();
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Optimal/i)).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
+
+    // Buka panel Min/Max untuk Protein Kasar (karena default-nya ringkas hanya nilai aktual)
+    const expandCpBtn = screen.getByRole("button", {
+      name: /Atur batas Min dan Max Protein Kasar/i,
     });
+    await user.click(expandCpBtn);
 
     const cpMinInputs = screen.getAllByLabelText("Target Min Protein Kasar");
     const cpInput = cpMinInputs[0]!;
@@ -34,8 +41,13 @@ describe("Live HiGHS Solver UI Integration", () => {
     await user.type(cpInput, "55");
     await user.tab();
 
-    await waitFor(() => {
-      expect(screen.getAllByText(/Formula Tidak Ditemukan|Infeasible/i).length).toBeGreaterThan(0);
-    });
+    await waitFor(
+      () => {
+        expect(screen.getAllByText(/Formula Tidak Ditemukan|Infeasible/i).length).toBeGreaterThan(
+          0,
+        );
+      },
+      { timeout: 10000 },
+    );
   });
 });

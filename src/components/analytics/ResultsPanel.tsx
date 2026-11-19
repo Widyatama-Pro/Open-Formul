@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 import { Activity } from "lucide-react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
-import { getFormulationStatusLabel, pickLang } from "../../i18n";
+import { getFormulationStatusLabel, getNutrientDisplayName, pickLang } from "../../i18n";
 import type {
   AppLanguage,
   FormulationConfig,
@@ -21,21 +21,24 @@ import { FormulationCharts } from "./FormulationCharts";
 import { ShadowPriceTab } from "./ShadowPriceTab";
 import { WhatIfManualLock } from "./WhatIfManualLock";
 
+export type ResultSubTab = "batch" | "charts" | "dual" | "whatif";
+
 export interface ResultsPanelProps {
   readonly result: FormulationResult;
   readonly ingredients: readonly Ingredient[];
   readonly allNutrients?: readonly Nutrient[];
   readonly requirement?: Requirement;
   readonly config: FormulationConfig;
+  readonly simpleMode?: boolean;
   readonly language?: AppLanguage;
   readonly hideKpiStrip?: boolean;
+  readonly activeSubTab?: ResultSubTab;
+  readonly onSubTabChange?: (tab: ResultSubTab) => void;
   readonly onSetBatchSize: (kg: number) => void;
   readonly onToggleElastic: (enabled: boolean) => void;
   readonly onSetManualLock: (id: string, pct: number | null) => void;
   readonly onClearManualLocks: () => void;
 }
-
-type ResultSubTab = "batch" | "charts" | "dual" | "whatif";
 
 export const ResultsPanel = memo(function ResultsPanel({
   result,
@@ -43,14 +46,23 @@ export const ResultsPanel = memo(function ResultsPanel({
   allNutrients,
   requirement,
   config,
+  simpleMode = !config.enableAdvanceNutrients,
   language = "id",
   hideKpiStrip = false,
+  activeSubTab,
+  onSubTabChange,
   onSetBatchSize,
   onToggleElastic,
   onSetManualLock,
   onClearManualLocks,
 }: ResultsPanelProps) {
-  const [subTab, setSubTab] = useState<ResultSubTab>("batch");
+  const [internalSubTab, setInternalSubTab] = useState<ResultSubTab>("batch");
+  const subTab = activeSubTab ?? internalSubTab;
+  const setSubTab = (next: ResultSubTab) => {
+    setInternalSubTab(next);
+    onSubTabChange?.(next);
+  };
+
   const nutrientsCatalog = allNutrients ?? [...MOCK_NUTRIENTS, ...(config.customNutrients ?? [])];
 
   const statusBadge =
@@ -73,23 +85,23 @@ export const ResultsPanel = memo(function ResultsPanel({
       className="flex h-full flex-col overflow-hidden"
     >
       {!hideKpiStrip && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] px-4 py-2.5 dark:border-[#1E333D]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-subtle)] px-4 py-2.5">
           <div className="flex flex-wrap items-center gap-4">
             <div>
-              <span className="block text-[11px] font-semibold text-[#475569] dark:text-slate-300">
+              <span className="block text-[11px] font-semibold text-[var(--text-secondary)]">
                 {pickLang(language, "Biaya / kg", "Cost / kg")} (
                 {result.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK", "DM")})
               </span>
-              <span className="text-base font-bold tracking-tight tabular-nums text-[#D97706] dark:text-amber-400">
+              <span className="text-base font-bold tracking-tight tabular-nums text-[var(--status-warning)]">
                 {result.costPerKg !== null ? formatCurrencyIdr(result.costPerKg) : "—"}
               </span>
             </div>
 
-            <div className="border-l border-[#E2E8F0] pl-4 dark:border-[#1E333D]">
-              <span className="block text-[11px] font-semibold text-[#475569] dark:text-slate-300">
+            <div className="border-l border-[var(--border-subtle)] pl-4">
+              <span className="block text-[11px] font-semibold text-[var(--text-secondary)]">
                 {pickLang(language, "Biaya", "Cost")} / {config.batchSizeKg} kg
               </span>
-              <span className="text-base font-bold tracking-tight tabular-nums text-[#059669] dark:text-emerald-400">
+              <span className="text-base font-bold tracking-tight tabular-nums text-[var(--status-success)]">
                 {result.batchTotalCost !== null && result.batchTotalCost !== undefined
                   ? formatCurrencyIdr(result.batchTotalCost)
                   : "—"}
@@ -98,7 +110,7 @@ export const ResultsPanel = memo(function ResultsPanel({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-[#475569] dark:text-slate-200">
+            <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-[var(--text-secondary)]">
               <Switch
                 checked={config.enableElasticFallback}
                 onCheckedChange={onToggleElastic}
@@ -116,7 +128,7 @@ export const ResultsPanel = memo(function ResultsPanel({
       )}
 
       {result.status !== "infeasible" && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E2E8F0] px-3 py-2 dark:border-[#1E333D]">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-3 py-2">
           <SegmentedTabs
             ariaLabel={pickLang(
               language,
@@ -132,7 +144,7 @@ export const ResultsPanel = memo(function ResultsPanel({
                 badge: result.composition.length,
               },
               { value: "charts", label: pickLang(language, "Grafik", "Charts") },
-              { value: "dual", label: "Shadow Price" },
+              { value: "dual", label: pickLang(language, "Harga Bayangan", "Shadow Price") },
               {
                 value: "whatif",
                 label: "What-If",
@@ -146,7 +158,7 @@ export const ResultsPanel = memo(function ResultsPanel({
               <Badge tone="sky">
                 {formatCurrencyIdr(result.fractionalCost)} /{" "}
                 {fracNutMeta
-                  ? `${language === "id" ? fracNutMeta.name : (fracNutMeta.nameEn ?? fracNutMeta.name)}`
+                  ? getNutrientDisplayName(fracNutMeta, language, simpleMode)
                   : config.fractionalObjective?.nutrientId}
               </Badge>
             )}
@@ -159,7 +171,7 @@ export const ResultsPanel = memo(function ResultsPanel({
         </div>
       )}
 
-      <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto p-3.5">
+      <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto p-3">
         <ConflictDiagnosticsBanner
           status={result.status}
           conflicts={result.conflicts ?? []}
@@ -185,13 +197,13 @@ export const ResultsPanel = memo(function ResultsPanel({
                 {result.rumenEvaluation && (
                   <div className="glass-card rounded-xl p-3 text-xs">
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="flex items-center gap-1.5 font-bold text-[#0F172A] dark:text-white">
-                        <Activity className="h-3.5 w-3.5 text-[#059669] dark:text-emerald-400" />
+                      <h3 className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]">
+                        <Activity className="h-3.5 w-3.5 text-[var(--status-success)]" />
                         <span>
                           {pickLang(
                             language,
-                            "PR-05 · Evaluator Rumen (CNCPS v6.5 / NASEM 2021)",
-                            "PR-05 · Rumen Biology Evaluator (CNCPS v6.5 / NASEM 2021)",
+                            "Evaluator Rumen (CNCPS / NASEM)",
+                            "Rumen Biology Evaluator (CNCPS / NASEM)",
                           )}
                         </span>
                       </h3>
@@ -214,37 +226,37 @@ export const ResultsPanel = memo(function ResultsPanel({
                     </div>
                     <div className="neu-well grid grid-cols-2 gap-2.5 rounded-lg p-2.5 tabular-nums sm:grid-cols-4">
                       <div>
-                        <span className="block text-[10px] text-[#475569] dark:text-slate-400">
+                        <span className="block text-[10px] text-[var(--text-secondary)]">
                           {pickLang(language, "Hijauan / NDF", "Forage / NDF")}
                         </span>
-                        <span className="font-bold text-[#0F172A] dark:text-white">
+                        <span className="font-bold text-[var(--text-primary)]">
                           {formatNumberLocale(result.rumenEvaluation.forageFractionPct, 1)}% /{" "}
                           {formatNumberLocale(result.rumenEvaluation.ndfPct, 1)}%
                         </span>
                       </div>
                       <div>
-                        <span className="block text-[10px] text-[#475569] dark:text-slate-400">
+                        <span className="block text-[10px] text-[var(--text-secondary)]">
                           peuNDF240 / Est. DMI
                         </span>
-                        <span className="font-bold text-[#0F172A] dark:text-white">
+                        <span className="font-bold text-[var(--text-primary)]">
                           {formatNumberLocale(result.rumenEvaluation.peuNdf240Pct, 1)}% /{" "}
                           {formatNumberLocale(result.rumenEvaluation.estimatedDmiPctBw, 2)}% BW
                         </span>
                       </div>
                       <div>
-                        <span className="block text-[10px] text-[#475569] dark:text-slate-400">
+                        <span className="block text-[10px] text-[var(--text-secondary)]">
                           {pickLang(language, "Laju Alir kp (F/C)", "Passage kp (F/C)")}
                         </span>
-                        <span className="font-bold text-[#0F172A] dark:text-white">
+                        <span className="font-bold text-[var(--text-primary)]">
                           {formatNumberLocale(result.rumenEvaluation.kpForagePctPerH, 2)} /{" "}
                           {formatNumberLocale(result.rumenEvaluation.kpConcPctPerH, 2)} %/h
                         </span>
                       </div>
                       <div>
-                        <span className="block text-[10px] text-[#475569] dark:text-slate-400">
+                        <span className="block text-[10px] text-[var(--text-secondary)]">
                           {pickLang(language, "MCP / Metana eCH4", "MCP / Methane eCH4")}
                         </span>
-                        <span className="font-bold text-[#0F172A] dark:text-white">
+                        <span className="font-bold text-[var(--text-primary)]">
                           {formatNumberLocale(result.rumenEvaluation.microbialProteinGPerKgDm, 0)} /{" "}
                           {formatNumberLocale(result.rumenEvaluation.predictedMethaneGPerKgDm, 1)}{" "}
                           g/kg
@@ -263,6 +275,7 @@ export const ResultsPanel = memo(function ResultsPanel({
                 allNutrients={nutrientsCatalog}
                 ingredients={ingredients}
                 batchTotalCost={result.batchTotalCost ?? null}
+                simpleMode={simpleMode}
                 language={language}
               />
             )}
@@ -277,6 +290,7 @@ export const ResultsPanel = memo(function ResultsPanel({
                 ingredients={ingredients}
                 {...(requirement ? { requirement } : {})}
                 config={config}
+                simpleMode={simpleMode}
                 language={language}
               />
             )}

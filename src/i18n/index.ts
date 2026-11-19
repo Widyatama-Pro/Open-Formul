@@ -5,6 +5,7 @@ import type {
   FormulationStatus,
   IisItem,
   IngredientCategory,
+  Nutrient,
   NutrientStatus,
 } from "../types";
 
@@ -31,6 +32,7 @@ export function getCategoryLabel(language: AppLanguage, category: IngredientCate
 const SPECIES_LABELS: Record<string, { readonly id: string; readonly en: string }> = {
   broiler: { id: "Ayam Broiler", en: "Broiler Chicken" },
   layer: { id: "Ayam Layer", en: "Layer Chicken" },
+  buras: { id: "Ayam Buras / Kampung", en: "Native Chicken" },
   duck: { id: "Itik / Bebek", en: "Duck" },
   cattle_beef: { id: "Sapi Potong", en: "Beef Cattle" },
   cattle_dairy: { id: "Sapi Perah", en: "Dairy Cattle" },
@@ -38,6 +40,60 @@ const SPECIES_LABELS: Record<string, { readonly id: string; readonly en: string 
   goat: { id: "Kambing", en: "Goat" },
   goat_sheep: { id: "Kambing / Domba", en: "Goat / Sheep" },
 };
+
+const NUTRIENT_SHORT_LABELS: Record<string, { readonly id: string; readonly en: string }> = {
+  cp: { id: "PK", en: "CP" },
+  me_poultry: { id: "EM", en: "ME" },
+  tdn: { id: "TDN", en: "TDN" },
+  ee: { id: "LK", en: "EE" },
+  cf: { id: "SK", en: "CF" },
+  ca: { id: "Ca", en: "Ca" },
+  p: { id: "P", en: "P" },
+  lys: { id: "Lys", en: "Lys" },
+  met: { id: "Met", en: "Met" },
+  metcys: { id: "M+S", en: "M+C" },
+  thr: { id: "Thr", en: "Thr" },
+  trp: { id: "Trp", en: "Trp" },
+  val: { id: "Val", en: "Val" },
+  sid_lys: { id: "SID Lys", en: "SID Lys" },
+  avp: { id: "AvP", en: "AvP" },
+  na: { id: "Na", en: "Na" },
+  k: { id: "K", en: "K" },
+  cl: { id: "Cl", en: "Cl" },
+  s: { id: "S", en: "S" },
+  deb: { id: "dEB", en: "dEB" },
+  dcad: { id: "DCAD", en: "DCAD" },
+  ndf: { id: "NDF", en: "NDF" },
+  adf: { id: "ADF", en: "ADF" },
+  starch: { id: "Pati", en: "Starch" },
+  tannin: { id: "Tanin", en: "Tannin" },
+  liquid_fat: { id: "Lmk Cair", en: "Liq Fat" },
+};
+
+/** Nama lengkap nutrien sesuai bahasa aktif. */
+export function getNutrientFullName(nutrient: Nutrient, language: AppLanguage): string {
+  return language === "id" ? nutrient.name : (nutrient.nameEn ?? nutrient.name);
+}
+
+/** Singkatan nutrien standar (mis. Protein Kasar -> PK, Energi Metabolis -> EM). */
+export function getNutrientShortName(nutrient: Nutrient, language: AppLanguage): string {
+  const short = NUTRIENT_SHORT_LABELS[nutrient.id];
+  if (short) {
+    return language === "id" ? short.id : short.en;
+  }
+  return getNutrientFullName(nutrient, language);
+}
+
+/** Mengembalikan singkatan saat Mode Simpel aktif, atau nama lengkap saat Mode Lanjutan aktif. */
+export function getNutrientDisplayName(
+  nutrient: Nutrient,
+  language: AppLanguage,
+  simpleMode: boolean,
+): string {
+  return simpleMode
+    ? getNutrientShortName(nutrient, language)
+    : getNutrientFullName(nutrient, language);
+}
 
 export function getSpeciesLabelI18n(language: AppLanguage, species: string): string {
   const entry = SPECIES_LABELS[species];

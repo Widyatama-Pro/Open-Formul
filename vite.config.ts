@@ -27,17 +27,22 @@ export default defineConfig(({ mode }) => {
             VitePWA({
               registerType: "autoUpdate",
               injectRegister: "auto",
-              includeAssets: ["apple-touch-icon.png", "pwa-192x192.png", "pwa-512x512.png"],
+              includeAssets: [
+                "logo.jpg",
+                "apple-touch-icon.png",
+                "pwa-192x192.png",
+                "pwa-512x512.png",
+              ],
               manifest: {
                 id: "./",
-                name: "OpenFormul — Formulasi Pakan Ternak Presisi",
-                short_name: "OpenFormul",
+                name: "Open Formulasi",
+                short_name: "Open Formulasi",
                 description:
                   "Aplikasi PWA offline-first lintas platform (Desktop & Mobile) untuk formulasi pakan ternak presisi berbasis Linear Programming (HiGHS WASM).",
-                theme_color: "#0E5E6F",
-                background_color: "#DCEEF5",
+                theme_color: "#F5F4EF",
+                background_color: "#F5F4EF",
                 display: "standalone",
-                display_override: ["window-controls-overlay", "standalone"],
+                display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
                 orientation: "any",
                 categories: ["productivity", "utilities", "education"],
                 lang: "id",
@@ -64,7 +69,7 @@ export default defineConfig(({ mode }) => {
               },
               workbox: {
                 maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-                globPatterns: ["**/*.{js,css,html,ico,png,svg,wasm,woff2}"],
+                globPatterns: ["**/*.{js,css,html,ico,png,jpg,svg,wasm,woff2}"],
                 navigateFallback: "index.html",
               },
             }),

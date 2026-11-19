@@ -27,7 +27,7 @@ export function SegmentedTabs<T extends string>({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        "no-scrollbar inline-flex w-full overflow-x-auto rounded-xl border border-[#E2E8F0] bg-[#F1F5F9] p-1 dark:border-[#1E333D] dark:bg-[#0B1519]",
+        "no-scrollbar neu-pressed inline-flex w-full overflow-x-auto rounded-xl p-1",
         className,
       )}
     >
@@ -41,10 +41,10 @@ export function SegmentedTabs<T extends string>({
             aria-selected={active}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "inline-flex min-h-9 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-[transform,background-color,color] duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#059669] md:min-h-7 motion-reduce:transform-none",
+              "inline-flex min-h-9 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-[transform,background-color,color,box-shadow] duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] md:min-h-7 motion-reduce:transform-none",
               active
-                ? "bg-white text-[#0F172A] shadow-[0_1px_2px_rgba(15,23,42,0.06)] dark:bg-[#111F26] dark:text-white"
-                : "text-[#475569] hover:text-[#0F172A] dark:text-slate-300 dark:hover:text-white",
+                ? "bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[var(--shadow-neu-flat)]"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
             )}
           >
             <span className="truncate">{opt.label}</span>
@@ -53,8 +53,8 @@ export function SegmentedTabs<T extends string>({
                 className={cn(
                   "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
                   active
-                    ? "bg-emerald-50 text-[#059669] dark:bg-emerald-950/70 dark:text-emerald-300"
-                    : "bg-white text-[#475569] dark:bg-[#162831] dark:text-slate-300",
+                    ? "bg-[var(--status-success-soft)] text-[var(--status-success)]"
+                    : "bg-[var(--bg-surface)] text-[var(--text-secondary)]",
                 )}
               >
                 {opt.badge}

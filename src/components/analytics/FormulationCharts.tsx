@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
-import { pickLang } from "../../i18n";
+import { getNutrientDisplayName, getNutrientShortName, pickLang } from "../../i18n";
+import { useTheme } from "../../theme";
 import type {
   AppLanguage,
   CompositionItem,
@@ -17,28 +18,36 @@ export interface FormulationChartsProps {
   readonly allNutrients?: readonly Nutrient[];
   readonly ingredients: readonly Ingredient[];
   readonly batchTotalCost: number | null;
+  readonly simpleMode?: boolean;
   readonly language?: AppLanguage;
 }
 
-/** Visualisasi SVG murni & indikator progres: Radar Target vs Aktual, Bar Berat vs Biaya, dan Rentang Nutrien. */
+/** Visualisasi SVG ringkas & reaktif terhadap tema aktif: Radar Target vs Aktual, Bar Berat vs Biaya, dan Rentang Nutrien. */
 export const FormulationCharts = memo(function FormulationCharts({
   composition,
   nutrients,
   allNutrients = MOCK_NUTRIENTS,
   ingredients,
-  batchTotalCost,
+  simpleMode = true,
   language = "id",
 }: FormulationChartsProps) {
+  const { paletteId, resolvedMode, amoledPureBlack } = useTheme();
+  const themeSignature = `${paletteId}-${resolvedMode}-${amoledPureBlack ? "amoled" : "std"}`;
+
   const ingMap = new Map(ingredients.map((i) => [i.id, i]));
   const nutMap = new Map(allNutrients.map((n) => [n.id, n]));
+  const totalCostContribution = composition.reduce(
+    (sum, item) => sum + Math.max(0, item.costContribution ?? 0),
+    0,
+  );
 
   const radarItems = nutrients
     .filter((n) => n.min !== undefined || n.max !== undefined)
     .slice(0, 6);
 
-  const cx = 110;
-  const cy = 110;
-  const maxR = 72;
+  const cx = 90;
+  const cy = 90;
+  const maxR = 54;
 
   const getPolygonPoints = (ratios: readonly number[]) =>
     ratios
@@ -62,26 +71,26 @@ export const FormulationCharts = memo(function FormulationCharts({
   const actualPolygon = getPolygonPoints(actualRatios);
 
   return (
-    <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-2">
-      {/* Radar Chart Target Ideal vs Hasil Aktual */}
-      <div className="glass-card rounded-xl p-3.5">
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-xs font-bold text-[#0F172A] dark:text-white">
+    <div data-theme-chart={themeSignature} className="grid grid-cols-1 gap-2.5 xl:grid-cols-2">
+      {/* Radar Chart Target Ideal vs Hasil Aktual (ukuran ringkas) */}
+      <div className="glass-card rounded-xl p-2.5">
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <h3 className="text-xs font-bold text-[var(--text-primary)]">
             {pickLang(language, "Radar Target Ideal vs Aktual", "Ideal Target vs Actual Radar")}
           </h3>
-          <div className="flex items-center gap-3 text-[11px] font-medium">
-            <span className="inline-flex items-center gap-1 text-[#475569] dark:text-slate-300">
-              <span className="h-2 w-2 rounded-full bg-slate-400" /> Target (100%)
+          <div className="flex items-center gap-2.5 text-[10px] font-medium">
+            <span className="inline-flex items-center gap-1 text-[var(--text-secondary)]">
+              <span className="h-2 w-2 rounded-full bg-[var(--chart-radar-target)]" /> Target
             </span>
-            <span className="inline-flex items-center gap-1 text-[#059669] dark:text-emerald-400">
-              <span className="h-2 w-2 rounded-full bg-[#059669] dark:bg-emerald-400" />{" "}
+            <span className="inline-flex items-center gap-1 text-[var(--chart-radar-actual-stroke)]">
+              <span className="h-2 w-2 rounded-full bg-[var(--chart-radar-actual-stroke)]" />{" "}
               {pickLang(language, "Aktual", "Actual")}
             </span>
           </div>
         </div>
 
         {radarItems.length < 3 ? (
-          <p className="py-10 text-center text-xs text-[#475569] dark:text-slate-300">
+          <p className="py-6 text-center text-xs text-[var(--text-secondary)]">
             {pickLang(
               language,
               "Aktifkan minimal 3 batasan nutrien untuk menampilkan Radar Chart.",
@@ -90,7 +99,7 @@ export const FormulationCharts = memo(function FormulationCharts({
           </p>
         ) : (
           <div className="flex justify-center">
-            <svg viewBox="0 0 220 220" className="h-48 w-48" role="img" aria-label="Radar nutrien">
+            <svg viewBox="0 0 180 180" className="h-32 w-32" role="img" aria-label="Radar nutrien">
               {[0.5, 1].map((ring) => (
                 <circle
                   key={ring}
@@ -98,8 +107,7 @@ export const FormulationCharts = memo(function FormulationCharts({
                   cy={cy}
                   r={maxR * ring}
                   fill="none"
-                  stroke="currentColor"
-                  className="text-slate-300 dark:text-slate-700"
+                  stroke="var(--chart-radar-grid)"
                   strokeDasharray={ring === 0.5 ? "3 3" : undefined}
                 />
               ))}
@@ -107,26 +115,22 @@ export const FormulationCharts = memo(function FormulationCharts({
                 const angle = (Math.PI * 2 * i) / radarItems.length - Math.PI / 2;
                 const x2 = cx + Math.cos(angle) * maxR;
                 const y2 = cy + Math.sin(angle) * maxR;
-                const lx = cx + Math.cos(angle) * (maxR + 18);
-                const ly = cy + Math.sin(angle) * (maxR + 18);
+                const lx = cx + Math.cos(angle) * (maxR + 16);
+                const ly = cy + Math.sin(angle) * (maxR + 16);
+                const meta = nutMap.get(item.nutrientId);
+                const axisLabel = meta ? getNutrientShortName(meta, language) : item.nutrientId;
                 return (
                   <g key={item.nutrientId}>
-                    <line
-                      x1={cx}
-                      y1={cy}
-                      x2={x2}
-                      y2={y2}
-                      stroke="currentColor"
-                      className="text-slate-300 dark:text-slate-700"
-                    />
+                    <line x1={cx} y1={cy} x2={x2} y2={y2} stroke="var(--chart-radar-grid)" />
                     <text
                       x={lx}
                       y={ly}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      className="fill-[#475569] text-[9px] font-bold uppercase dark:fill-slate-300"
+                      fill="var(--text-secondary)"
+                      className="text-[9px] font-bold"
                     >
-                      {item.nutrientId}
+                      {axisLabel}
                     </text>
                   </g>
                 );
@@ -134,50 +138,50 @@ export const FormulationCharts = memo(function FormulationCharts({
               <polygon
                 points={targetPolygon}
                 fill="none"
-                stroke="#94A3B8"
+                stroke="var(--chart-radar-target)"
                 strokeWidth={1.5}
                 strokeDasharray="4 2"
               />
               <polygon
                 points={actualPolygon}
-                fill="rgba(5, 150, 105, 0.18)"
-                stroke="#059669"
-                strokeWidth={2}
+                fill="var(--chart-radar-actual-fill)"
+                stroke="var(--chart-radar-actual-stroke)"
+                strokeWidth={1.75}
               />
             </svg>
           </div>
         )}
       </div>
 
-      {/* Bar Chart Porsi Berat (%) vs Porsi Biaya (%) */}
-      <div className="glass-card rounded-xl p-3.5">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-xs font-bold text-[#0F172A] dark:text-white">
+      {/* Bar Chart Porsi Berat (%) vs Porsi Biaya (%) — kompak */}
+      <div className="glass-card rounded-xl p-2.5">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h3 className="text-xs font-bold text-[var(--text-primary)]">
             {pickLang(
               language,
               "Porsi Berat (%) vs Porsi Biaya (%)",
               "Weight Share (%) vs Cost Share (%)",
             )}
           </h3>
-          <div className="flex items-center gap-3 text-[11px] font-medium">
-            <span className="inline-flex items-center gap-1 text-[#0F3D3E] dark:text-teal-300">
-              <span className="h-2 w-2 rounded-xs bg-[#0F3D3E] dark:bg-teal-400" />{" "}
+          <div className="flex items-center gap-2.5 text-[10px] font-medium">
+            <span className="inline-flex items-center gap-1 text-[var(--chart-weight-bar)]">
+              <span className="h-2 w-2 rounded-xs bg-[var(--chart-weight-bar)]" />{" "}
               {pickLang(language, "Berat", "Weight")}
             </span>
-            <span className="inline-flex items-center gap-1 text-[#059669] dark:text-emerald-300">
-              <span className="h-2 w-2 rounded-xs bg-[#059669]" />{" "}
+            <span className="inline-flex items-center gap-1 text-[var(--chart-cost-bar)]">
+              <span className="h-2 w-2 rounded-xs bg-[var(--chart-cost-bar)]" />{" "}
               {pickLang(language, "Biaya", "Cost")}
             </span>
           </div>
         </div>
 
-        <div className="space-y-2.5">
-          {composition.slice(0, 6).map((item) => {
+        <div className="space-y-1.5">
+          {composition.slice(0, 5).map((item) => {
             const ing = ingMap.get(item.ingredientId);
             const weightPct = item.fraction * 100;
             const costPct =
-              batchTotalCost && batchTotalCost > 0 && item.costContribution !== undefined
-                ? (item.costContribution / batchTotalCost) * 100
+              totalCostContribution > 0 && item.costContribution !== undefined
+                ? (Math.max(0, item.costContribution) / totalCostContribution) * 100
                 : weightPct;
             const ingName = ing
               ? language === "id"
@@ -186,26 +190,26 @@ export const FormulationCharts = memo(function FormulationCharts({
               : item.ingredientId;
 
             return (
-              <div key={item.ingredientId} className="space-y-1 text-[11px]">
+              <div key={item.ingredientId} className="space-y-0.5 text-[11px]">
                 <div className="flex justify-between gap-2">
-                  <span className="truncate font-semibold text-[#0F172A] dark:text-slate-100">
+                  <span className="truncate font-semibold text-[var(--text-primary)]">
                     {ingName}
                   </span>
-                  <span className="shrink-0 tabular-nums text-[#475569] dark:text-slate-300">
-                    {formatNumberLocale(weightPct, 1)}% {pickLang(language, "berat", "weight")} ·{" "}
+                  <span className="shrink-0 text-[10px] tabular-nums text-[var(--text-secondary)]">
+                    {formatNumberLocale(weightPct, 1)}% {pickLang(language, "berat", "wt")} ·{" "}
                     {formatNumberLocale(costPct, 1)}% {pickLang(language, "biaya", "cost")}
                   </span>
                 </div>
-                <div className="space-y-1">
-                  <div className="neu-well h-2 w-full overflow-hidden rounded-full">
+                <div className="grid grid-cols-1 gap-0.5">
+                  <div className="neu-well h-1.5 w-full overflow-hidden rounded-full">
                     <div
-                      className="h-full rounded-full bg-[#0F3D3E] dark:bg-teal-400"
+                      className="h-full rounded-full bg-[var(--chart-weight-bar)]"
                       style={{ width: `${Math.min(100, weightPct)}%` }}
                     />
                   </div>
-                  <div className="neu-well h-2 w-full overflow-hidden rounded-full">
+                  <div className="neu-well h-1.5 w-full overflow-hidden rounded-full">
                     <div
-                      className="h-full rounded-full bg-[#059669]"
+                      className="h-full rounded-full bg-[var(--chart-cost-bar)]"
                       style={{ width: `${Math.min(100, costPct)}%` }}
                     />
                   </div>
@@ -216,16 +220,16 @@ export const FormulationCharts = memo(function FormulationCharts({
         </div>
       </div>
 
-      {/* Bar Rentang Pencapaian Nutrien */}
-      <div className="glass-card rounded-xl p-3.5 xl:col-span-2">
-        <h3 className="mb-3 text-xs font-bold text-[#0F172A] dark:text-white">
+      {/* Bar Rentang Pencapaian Nutrien — kompak */}
+      <div className="glass-card rounded-xl p-2.5 xl:col-span-2">
+        <h3 className="mb-2 text-xs font-bold text-[var(--text-primary)]">
           {pickLang(
             language,
             "Indikator Rentang Pencapaian Nutrien (Min–Max)",
             "Nutrient Target Range Indicators (Min–Max)",
           )}
         </h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {radarItems.map((n) => {
             const meta = nutMap.get(n.nutrientId);
             const lo = n.min ?? 0;
@@ -235,18 +239,16 @@ export const FormulationCharts = memo(function FormulationCharts({
             const maxPct = (hi / scaleMax) * 100;
             const valPct = Math.min(100, Math.max(0, (n.value / scaleMax) * 100));
             const nutName = meta
-              ? language === "id"
-                ? meta.name
-                : (meta.nameEn ?? meta.name)
+              ? getNutrientDisplayName(meta, language, simpleMode)
               : n.nutrientId;
 
             return (
-              <div key={n.nutrientId} className="space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="font-semibold text-[#0F172A] dark:text-slate-100">
+              <div key={n.nutrientId} className="space-y-1 text-[11px]">
+                <div className="flex justify-between gap-1">
+                  <span className="truncate font-semibold text-[var(--text-primary)]">
                     {nutName}
                   </span>
-                  <span className="font-semibold tabular-nums text-[#475569] dark:text-slate-200">
+                  <span className="shrink-0 font-semibold tabular-nums text-[var(--text-secondary)]">
                     {formatNumberLocale(n.value, meta?.unit === "kcal/kg" ? 0 : 2)}{" "}
                     {meta?.unit ?? ""}
                   </span>

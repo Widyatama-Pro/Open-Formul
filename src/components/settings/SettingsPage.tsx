@@ -1,33 +1,35 @@
 import { memo, useState } from "react";
 import {
   AlertTriangle,
-  CheckCircle2,
+  Cpu,
   Database,
   Download,
-  ExternalLink,
-  Laptop,
-  RefreshCw,
   RotateCcw,
   SlidersHorizontal,
-  Smartphone,
   Trash2,
-  Wifi,
-  WifiOff,
 } from "lucide-react";
 import type { PwaStatus } from "../../hooks/use-pwa-status";
 import { pickLang } from "../../i18n";
 import type { StorageStats } from "../../storage";
-import type { Basis, UserPreferences } from "../../types";
+import type { Basis, FormulationConfig, UserPreferences } from "../../types";
+import { cn } from "../../utils/cn";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { GlossySquircleIcon } from "../ui/GlossySquircleIcon";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
+import { Switch } from "../ui/Switch";
+import { ThemeSwitcherMenu, type ThemeChangePayload } from "./ThemeSwitcherMenu";
 
 export interface SettingsPageProps {
   readonly preferences: UserPreferences;
   readonly onUpdate: (patch: Partial<UserPreferences>) => void;
+  readonly config?: FormulationConfig;
+  readonly onToggleAdvance?: (enabled: boolean) => void;
+  readonly onToggleShowNdf?: (enabled: boolean) => void;
+  readonly onSetGlobalZeroInclusion?: (enabled: boolean, minPct?: number) => void;
+  readonly onOpenPrecisionDialog?: () => void;
   readonly storageStats?: StorageStats;
   readonly storageWarnings?: readonly string[];
   readonly pwaStatus?: PwaStatus;
@@ -46,9 +48,13 @@ function formatBytes(bytes: number): string {
 export const SettingsPage = memo(function SettingsPage({
   preferences,
   onUpdate,
+  config,
+  onToggleAdvance,
+  onToggleShowNdf,
+  onSetGlobalZeroInclusion,
+  onOpenPrecisionDialog,
   storageStats,
   storageWarnings = [],
-  pwaStatus,
   onExportAllBackup,
   onResetSampleData,
   onClearAllUserData,
@@ -57,13 +63,48 @@ export const SettingsPage = memo(function SettingsPage({
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<"reset" | "clear" | null>(null);
 
+  const lang = preferences.language;
+  const isAdvanceMode = config ? config.enableAdvanceNutrients : preferences.simpleMode === false;
+  const isSimpleMode = !isAdvanceMode;
+  const isNdfEnabled = config ? config.showNdf === true || config.enableAdvanceNutrients : false;
+  const antiNolEnabled = config ? config.globalZeroInclusion.enforceNonZero : true;
+  const antiNolMinPct =
+    config?.globalZeroInclusion.minIfSelected ?? preferences.zeroInclusionDefaultPct ?? 1;
+
+  const activePrecisionCount = config
+    ? (config.fractionalObjective ? 1 : 0) +
+      (config.enableStochasticSlp ? 1 : 0) +
+      ((config.enzymes?.length ?? 0) > 0 ? 1 : 0)
+    : 0;
+
+  const handleSetFormulationMode = (advance: boolean) => {
+    if (onToggleAdvance) {
+      onToggleAdvance(advance);
+    } else {
+      onUpdate({ simpleMode: !advance });
+    }
+  };
+
+  const handleThemeChange = (next: ThemeChangePayload) => {
+    onUpdate({
+      theme: next.resolvedMode,
+      themePalette: next.paletteId,
+      themeModeSetting: next.modeSetting,
+      amoledPureBlack: next.amoledPureBlack,
+    });
+  };
+
   const handleResetSamples = async () => {
     if (!onResetSampleData) return;
     setBusyAction("reset");
     try {
       await onResetSampleData();
       setActionNotice(
-        "Katalog bahan, standar kebutuhan, dan konfigurasi awal dipulihkan (resep tersimpan Anda tetap aman).",
+        pickLang(
+          lang,
+          "Katalog bahan, standar kebutuhan, dan konfigurasi awal dipulihkan (resep tersimpan Anda tetap aman).",
+          "Default feed catalog, requirement standards, and initial config restored (your saved recipes stay safe).",
+        ),
       );
     } finally {
       setBusyAction(null);
@@ -76,7 +117,13 @@ export const SettingsPage = memo(function SettingsPage({
     try {
       await onClearAllUserData();
       setConfirmClearOpen(false);
-      setActionNotice("Seluruh data lokal IndexedDB dibersihkan dan dikembalikan ke kondisi awal.");
+      setActionNotice(
+        pickLang(
+          lang,
+          "Seluruh data lokal dibersihkan dan dikembalikan ke kondisi awal.",
+          "All local data cleared and restored to initial defaults.",
+        ),
+      );
     } finally {
       setBusyAction(null);
     }
@@ -91,36 +138,30 @@ export const SettingsPage = memo(function SettingsPage({
           icon={<SlidersHorizontal className="h-5 w-5" />}
         />
         <div>
-          <p className="text-xs font-medium text-[#54707E] dark:text-slate-400">
-            {preferences.language === "id" ? "Preferensi Sistem" : "System Preferences"}
-          </p>
-          <h1 className="text-xl font-bold tracking-[-0.025em] text-[#122B36] dark:text-slate-100">
-            {preferences.language === "id" ? "Pengaturan Aplikasi" : "Application Settings"}
+          <h1 className="text-xl font-bold tracking-[-0.025em] text-[var(--text-primary)]">
+            {pickLang(lang, "Pengaturan Aplikasi", "Application Settings")}
           </h1>
-          <p className="mt-0.5 text-xs text-[#54707E] dark:text-slate-400">
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">
             {pickLang(
-              preferences.language,
-              "Preferensi antarmuka, bahasa, basis default, serta status penyimpanan offline IndexedDB.",
-              "Interface preferences, language, default basis, and IndexedDB offline storage status.",
+              lang,
+              "Atur bahasa, palet warna & mode tampilan, mode formulasi (Simpel / Lanjutan), opsi NDF, Anti-Nol, serta penyimpanan data lokal.",
+              "Configure language, color palette & appearance mode, formulation mode (Simple / Advanced), NDF, Anti-Zero, and local data storage.",
             )}
           </p>
         </div>
       </div>
 
-      <Card interactive={false} className="divide-y divide-white/70 dark:divide-cyan-200/10">
+      {/* Kartu 1: Preferensi Umum */}
+      <Card interactive={false} className="divide-y divide-[var(--border-subtle)]">
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
           <div>
-            <p className="text-sm font-semibold text-[#122B36] dark:text-slate-100">
-              {pickLang(
-                preferences.language,
-                "Bahasa Antarmuka (i18n)",
-                "Interface Language (i18n)",
-              )}
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              {pickLang(lang, "Bahasa Antarmuka", "Interface Language")}
             </p>
-            <p className="text-xs text-[#54707E] dark:text-slate-400">Bahasa Indonesia / English</p>
+            <p className="text-xs text-[var(--text-muted)]">Bahasa Indonesia / English</p>
           </div>
           <Select
-            aria-label={pickLang(preferences.language, "Pilih bahasa", "Select language")}
+            aria-label={pickLang(lang, "Pilih bahasa", "Select language")}
             value={preferences.language}
             onChange={(e) => onUpdate({ language: e.target.value as "id" | "en" })}
             className="w-44"
@@ -132,73 +173,39 @@ export const SettingsPage = memo(function SettingsPage({
 
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
           <div>
-            <p className="text-sm font-semibold text-[#122B36] dark:text-slate-100">
-              {pickLang(preferences.language, "Tema Tampilan", "Display Theme")}
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              {pickLang(lang, "Basis Perhitungan Default", "Default Calculation Basis")}
             </p>
-            <p className="text-xs text-[#54707E] dark:text-slate-400">
+            <p className="text-xs text-[var(--text-muted)]">
               {pickLang(
-                preferences.language,
-                "Mode Terang atau Gelap (Dark Mode)",
-                "Light or Dark Mode",
+                lang,
+                "As-Fed (unggas) atau Bahan Kering / BK (ruminansia)",
+                "As-Fed (poultry) or Dry Matter / DM (ruminants)",
               )}
             </p>
           </div>
           <Select
-            aria-label={pickLang(preferences.language, "Pilih tema", "Select theme")}
-            value={preferences.theme}
-            onChange={(e) => onUpdate({ theme: e.target.value as "light" | "dark" })}
-            className="w-44"
-          >
-            <option value="light">
-              {pickLang(preferences.language, "Terang (Light)", "Light")}
-            </option>
-            <option value="dark">{pickLang(preferences.language, "Gelap (Dark)", "Dark")}</option>
-          </Select>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
-          <div>
-            <p className="text-sm font-semibold text-[#122B36] dark:text-slate-100">
-              {pickLang(
-                preferences.language,
-                "Basis Perhitungan Default",
-                "Default Calculation Basis",
-              )}
-            </p>
-            <p className="text-xs text-[#54707E] dark:text-slate-400">
-              {pickLang(
-                preferences.language,
-                "As-Fed (unggas/babi) atau Bahan Kering (ruminansia)",
-                "As-Fed (poultry/swine) or Dry Matter (ruminants)",
-              )}
-            </p>
-          </div>
-          <Select
-            aria-label={pickLang(preferences.language, "Basis default", "Default basis")}
+            aria-label={pickLang(lang, "Basis default", "Default basis")}
             value={preferences.defaultBasis}
             onChange={(e) => onUpdate({ defaultBasis: e.target.value as Basis })}
             className="w-44"
           >
             <option value="as_fed">As-Fed</option>
             <option value="dry_matter">
-              {pickLang(preferences.language, "Bahan Kering (BK)", "Dry Matter (DM)")}
+              {pickLang(lang, "Bahan Kering (BK)", "Dry Matter (DM)")}
             </option>
           </Select>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
           <div>
-            <p className="text-sm font-semibold text-[#122B36] dark:text-slate-100">
-              {pickLang(
-                preferences.language,
-                "Ukuran Batch Adukan Default (kg)",
-                "Default Batch Size (kg)",
-              )}
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              {pickLang(lang, "Ukuran Batch Adukan Default (kg)", "Default Batch Size (kg)")}
             </p>
-            <p className="text-xs text-[#54707E] dark:text-slate-400">
+            <p className="text-xs text-[var(--text-muted)]">
               {pickLang(
-                preferences.language,
-                "Dipakai otomatis saat membuka formulasi baru",
+                lang,
+                "Dipakai otomatis saat memulai formulasi baru",
                 "Applied automatically when starting a new formulation",
               )}
             </p>
@@ -216,204 +223,242 @@ export const SettingsPage = memo(function SettingsPage({
         </div>
       </Card>
 
-      {(storageStats || pwaStatus) && (
-        <Card interactive={false} className="space-y-4 p-4 sm:p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <GlossySquircleIcon tone="mint" size="sm" icon={<Download className="h-4 w-4" />} />
-              <div>
-                <h2 className="text-sm font-bold text-[#122B36] dark:text-slate-100">
-                  {preferences.language === "id"
-                    ? "Unduh & Instal Aplikasi (PC .exe, Android .apk & PWA)"
-                    : "Download & Install App (PC .exe, Android .apk & PWA)"}
-                </h2>
-                <p className="text-xs text-[#54707E] dark:text-slate-400">
-                  {preferences.language === "id"
-                    ? "Unduh installer Windows (.exe) & Android (.apk) dari GitHub Releases atau pasang langsung sebagai PWA 100% offline."
-                    : "Download the Windows (.exe) & Android (.apk) installers from GitHub Releases or install directly as a 100% offline PWA."}
-                </p>
-              </div>
-            </div>
+      {/* Kartu 2: Tema & Palet Warna (7 Palet × Terang/Gelap/Sistem + Android OLED) */}
+      <Card interactive={false} className="overflow-hidden">
+        <ThemeSwitcherMenu language={lang} onThemeChange={handleThemeChange} />
+      </Card>
 
-            {pwaStatus && (
-              <Badge
-                tone={pwaStatus.isInstalled ? "emerald" : pwaStatus.canInstall ? "sky" : "neutral"}
-              >
-                {pwaStatus.isInstalled ? (
-                  <span className="inline-flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" />
-                    {preferences.language === "id" ? "Sudah Terinstal" : "Installed"}
-                  </span>
-                ) : pwaStatus.canInstall ? (
-                  preferences.language === "id" ? (
-                    "Siap Diinstal"
-                  ) : (
-                    "Ready to Install"
-                  )
-                ) : (
-                  "PWA Offline"
+      {/* Kartu 3: Mode Formulasi & Opsi Lanjutan (Simpel/Advance, NDF, Anti-Nol, Presisi LP) */}
+      <Card interactive={false} className="divide-y divide-[var(--border-subtle)]">
+        <div className="p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="max-w-md">
+              <p className="text-sm font-bold text-[var(--text-primary)]">
+                {pickLang(
+                  lang,
+                  "Mode Formulasi (Simpel / Lanjutan)",
+                  "Formulation Mode (Simple / Advanced)",
                 )}
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            {pwaStatus?.canInstall && !pwaStatus.isInstalled && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => {
-                  void pwaStatus.installApp().then((outcome) => {
-                    if (outcome === "accepted") {
-                      setActionNotice(
-                        preferences.language === "id"
-                          ? "OpenFormul berhasil dipasang ke perangkat Anda."
-                          : "OpenFormul has been installed on your device.",
-                      );
-                    }
-                  });
-                }}
-              >
-                <Download className="h-3.5 w-3.5" />
-                <span>
-                  {preferences.language === "id" ? "Instal Aplikasi Sekarang" : "Install App Now"}
-                </span>
-              </Button>
-            )}
-
-            <a
-              href="https://github.com/Widyatama-Pro/OpenFormul/releases"
-              target="_blank"
-              rel="noreferrer"
-              className="neu-pill-btn inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm font-semibold text-[#123340] md:min-h-8 md:px-3 md:text-xs dark:text-slate-100"
+              </p>
+              <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                {pickLang(
+                  lang,
+                  "Mode Simpel otomatis menyingkat istilah nutrisi (PK, EM, TDN, LK, SK) agar tabel lapang. Mode Lanjutan menampilkan asam amino, elektrolit, NDF, dan anti-nutrisi.",
+                  "Simple Mode abbreviates nutrient labels (CP, ME, TDN, EE, CF) for a spacious table. Advanced Mode displays amino acids, electrolytes, NDF, and anti-nutrients.",
+                )}
+              </p>
+            </div>
+            <div
+              role="group"
+              aria-label={pickLang(
+                lang,
+                "Pilih Mode Simpel atau Mode Lanjutan",
+                "Select Simple or Advanced Mode",
+              )}
+              className="neu-pressed inline-flex rounded-lg p-0.5"
             >
-              <ExternalLink className="h-3.5 w-3.5" />
-              <span>
-                {preferences.language === "id"
-                  ? "Unduh .exe & .apk di GitHub Releases"
-                  : "Download .exe & .apk on GitHub Releases"}
+              <button
+                type="button"
+                aria-pressed={isSimpleMode}
+                onClick={() => handleSetFormulationMode(false)}
+                className={cn(
+                  "cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
+                  isSimpleMode
+                    ? "bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[var(--shadow-neu-flat)]"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                )}
+              >
+                {pickLang(lang, "Mode Simpel", "Simple Mode")}
+              </button>
+              <button
+                type="button"
+                aria-pressed={isAdvanceMode}
+                onClick={() => handleSetFormulationMode(true)}
+                className={cn(
+                  "cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
+                  isAdvanceMode
+                    ? "bg-[var(--color-primary)] text-[var(--text-on-primary)] shadow-[var(--shadow-neu-flat)]"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                )}
+              >
+                {pickLang(lang, "Mode Lanjutan", "Advanced Mode")}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
+          <div className="max-w-md">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              {pickLang(lang, "Tampilkan Parameter NDF & ADF", "Show NDF & ADF Parameters")}
+            </p>
+            <p className="text-xs text-[var(--text-muted)]">
+              {pickLang(
+                lang,
+                "Aktifkan kolom & target serat detergen (NDF/ADF) untuk formulasi sapi perah, sapi potong, dan domba tanpa harus membuka seluruh kolom asam amino.",
+                "Enable NDF/ADF fiber columns and targets for ruminant diets without exposing all amino acid columns.",
+              )}
+            </p>
+          </div>
+          <Switch
+            checked={isNdfEnabled}
+            onCheckedChange={(checked) => onToggleShowNdf?.(checked)}
+            disabled={isAdvanceMode}
+            label={pickLang(lang, "Tampilkan Parameter NDF dan ADF", "Show NDF and ADF Parameters")}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
+          <div className="max-w-md">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-[var(--text-primary)]">
+                {pickLang(lang, "Aturan Anti-Nol Otomatis", "Automatic Anti-Zero Rule")}
+              </p>
+              <Badge tone={antiNolEnabled ? "emerald" : "neutral"}>
+                {antiNolEnabled
+                  ? pickLang(lang, "Aktif Otomatis", "Auto Active")
+                  : pickLang(lang, "Nonaktif", "Off")}
+              </Badge>
+            </div>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+              {pickLang(
+                lang,
+                "Menjaga agar bahan makro yang Anda masukkan ke daftar pakan digunakan tidak otomatis menjadi 0%. Bahan mikro (mineral/premix/aditif) tetap aman mengikuti kebutuhan.",
+                "Keeps active macro ingredients from dropping to 0%. Micro-ingredients (minerals/premixes/additives) stay safely unconstrained.",
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-[var(--text-secondary)]">
+                {pickLang(lang, "Min %", "Min %")}
               </span>
-            </a>
+              <Input
+                numeric
+                type="number"
+                min={0.1}
+                max={25}
+                step={0.5}
+                disabled={!antiNolEnabled}
+                aria-label={pickLang(
+                  lang,
+                  "Persentase minimum Anti-Nol",
+                  "Anti-Zero minimum percentage",
+                )}
+                value={antiNolMinPct}
+                onChange={(e) => {
+                  const val = Math.max(0.1, Math.min(25, Number(e.target.value) || 1));
+                  onUpdate({ zeroInclusionDefaultPct: val });
+                  onSetGlobalZeroInclusion?.(antiNolEnabled, val);
+                }}
+                className="w-20"
+              />
+            </div>
+            <Switch
+              checked={antiNolEnabled}
+              onCheckedChange={(checked) => onSetGlobalZeroInclusion?.(checked, antiNolMinPct)}
+              label={pickLang(
+                lang,
+                "Aktifkan Aturan Anti-Nol Otomatis",
+                "Enable Automatic Anti-Zero Rule",
+              )}
+            />
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 gap-2.5 text-xs sm:grid-cols-2">
-            <div className="neu-well rounded-2xl p-3">
-              <div className="flex items-center gap-1.5 font-bold text-[#122B36] dark:text-slate-100">
-                <Laptop className="h-3.5 w-3.5 text-[#0E7490] dark:text-cyan-300" />
-                <span>Desktop PC (Windows .exe / Tauri &amp; PWA)</span>
+        {onOpenPrecisionDialog && (
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
+            <div className="max-w-md">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                  {pickLang(lang, "Opsi Presisi LP (Lanjutan)", "Precision LP Options (Advanced)")}
+                </p>
+                {activePrecisionCount > 0 && (
+                  <Badge tone="emerald">
+                    {activePrecisionCount} {pickLang(lang, "aktif", "active")}
+                  </Badge>
+                )}
               </div>
-              <p className="mt-1 leading-relaxed text-[#466270] dark:text-slate-300">
-                {preferences.language === "id"
-                  ? "Unduh installer Windows (.exe) di GitHub Releases, atau buka di Chrome/Edge lalu klik ikon Instal untuk memasang aplikasi desktop offline."
-                  : "Download the Windows (.exe) installer on GitHub Releases, or open in Chrome/Edge and click Install to add the offline desktop app."}
+              <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                {pickLang(
+                  lang,
+                  "Konfigurasi tingkat lanjut untuk optimasi biaya per energi/nutrien, margin keamanan stokastik, dan matriks multi-enzim.",
+                  "Advanced settings for cost-per-nutrient optimization, stochastic safety margins, and multi-enzyme matrices.",
+                )}
               </p>
             </div>
-            <div className="neu-well rounded-2xl p-3">
-              <div className="flex items-center gap-1.5 font-bold text-[#122B36] dark:text-slate-100">
-                <Smartphone className="h-3.5 w-3.5 text-[#059669] dark:text-emerald-300" />
-                <span>Mobile (Android .apk / Capacitor &amp; PWA)</span>
-              </div>
-              <p className="mt-1 leading-relaxed text-[#466270] dark:text-slate-300">
-                {preferences.language === "id"
-                  ? "Unduh file OpenFormul-Android.apk di GitHub Releases (izinkan pasang dari sumber tidak dikenal), atau instal PWA lewat Chrome/Safari."
-                  : "Download OpenFormul-Android.apk from GitHub Releases (allow unknown sources), or install the PWA via Chrome/Safari."}
-              </p>
-            </div>
+            <Button variant="secondary" size="sm" onClick={onOpenPrecisionDialog}>
+              <Cpu className="h-3.5 w-3.5 text-[var(--status-info)]" />
+              <span>{pickLang(lang, "Atur Presisi LP", "Configure Precision LP")}</span>
+            </Button>
           </div>
-        </Card>
-      )}
+        )}
+      </Card>
 
-      {(storageStats || pwaStatus) && (
+      {/* Kartu 4: Penyimpanan Data Lokal */}
+      {storageStats && (
         <Card interactive={false} className="space-y-4 p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <GlossySquircleIcon tone="sky" size="sm" icon={<Database className="h-4 w-4" />} />
               <div>
-                <h2 className="text-sm font-bold text-[#122B36] dark:text-slate-100">
-                  {pickLang(
-                    preferences.language,
-                    "Penyimpanan Offline (IndexedDB) & Status PWA",
-                    "Offline Storage (IndexedDB) & PWA Status",
-                  )}
+                <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                  {pickLang(lang, "Penyimpanan Data Lokal", "Local Data Storage")}
                 </h2>
-                <p className="text-xs text-[#54707E] dark:text-slate-400">
+                <p className="text-xs text-[var(--text-muted)]">
                   {pickLang(
-                    preferences.language,
-                    "Seluruh bahan, harga kustom, target nutrien, dan resep disimpan lokal di perangkat Anda tanpa server eksternal.",
-                    "All ingredients, custom prices, targets, and recipes stay stored locally on your device.",
+                    lang,
+                    "Seluruh bahan, harga kustom, target nutrien, dan resep disimpan langsung di perangkat Anda tanpa internet.",
+                    "All ingredients, custom prices, targets, and recipes stay saved locally on your device.",
                   )}
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5">
-              {storageStats && (
-                <Badge tone={storageStats.storageMode === "indexeddb" ? "emerald" : "amber"}>
-                  {storageStats.storageMode === "indexeddb"
-                    ? pickLang(preferences.language, "IndexedDB Aktif", "IndexedDB Active")
-                    : pickLang(preferences.language, "Mode Memori", "Memory Mode")}
-                </Badge>
-              )}
-              {pwaStatus && (
-                <Badge tone={pwaStatus.isOnline ? "sky" : "amber"}>
-                  {pwaStatus.isOnline ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Wifi className="h-3 w-3" />
-                      {pwaStatus.offlineReady
-                        ? pickLang(preferences.language, "Siap Offline", "Offline Ready")
-                        : "Online"}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1">
-                      <WifiOff className="h-3 w-3" />
-                      {pickLang(preferences.language, "Mode Offline", "Offline Mode")}
-                    </span>
-                  )}
-                </Badge>
-              )}
+            <Badge tone={storageStats.storageMode === "indexeddb" ? "emerald" : "amber"}>
+              {storageStats.storageMode === "indexeddb"
+                ? pickLang(lang, "Penyimpanan Lokal Aktif", "Local Storage Active")
+                : pickLang(lang, "Mode Memori", "Memory Mode")}
+            </Badge>
+          </div>
+
+          <div className="neu-well grid grid-cols-2 gap-2.5 rounded-2xl p-3 text-xs tabular-nums sm:grid-cols-4">
+            <div>
+              <span className="block text-[10px] font-medium text-[var(--text-muted)]">
+                {pickLang(lang, "Katalog Bahan", "Feed Catalog")}
+              </span>
+              <span className="font-bold text-[var(--text-primary)]">
+                {storageStats.ingredientCount} {pickLang(lang, "bahan", "feeds")}
+              </span>
+            </div>
+            <div>
+              <span className="block text-[10px] font-medium text-[var(--text-muted)]">
+                {pickLang(lang, "Standar Kebutuhan", "Standards")}
+              </span>
+              <span className="font-bold text-[var(--text-primary)]">
+                {storageStats.requirementCount} {pickLang(lang, "profil", "profiles")}
+              </span>
+            </div>
+            <div>
+              <span className="block text-[10px] font-medium text-[var(--text-muted)]">
+                {pickLang(lang, "Resep Tersimpan", "Saved Recipes")}
+              </span>
+              <span className="font-bold text-[var(--text-primary)]">
+                {storageStats.recipeCount} {pickLang(lang, "resep", "recipes")}
+              </span>
+            </div>
+            <div>
+              <span className="block text-[10px] font-medium text-[var(--text-muted)]">
+                {pickLang(lang, "Estimasi Ukuran", "Est. Size")}
+              </span>
+              <span className="font-bold text-[var(--text-primary)]">
+                {formatBytes(storageStats.estimatedBytes)}
+              </span>
             </div>
           </div>
 
-          {storageStats && (
-            <div className="neu-well grid grid-cols-2 gap-2.5 rounded-2xl p-3 text-xs tabular-nums sm:grid-cols-4">
-              <div>
-                <span className="block text-[10px] font-medium text-[#54707E] dark:text-slate-400">
-                  {pickLang(preferences.language, "Katalog Bahan", "Feed Catalog")}
-                </span>
-                <span className="font-bold text-[#122B36] dark:text-slate-100">
-                  {storageStats.ingredientCount} {pickLang(preferences.language, "bahan", "feeds")}
-                </span>
-              </div>
-              <div>
-                <span className="block text-[10px] font-medium text-[#54707E] dark:text-slate-400">
-                  {pickLang(preferences.language, "Standar Kebutuhan", "Standards")}
-                </span>
-                <span className="font-bold text-[#122B36] dark:text-slate-100">
-                  {storageStats.requirementCount}{" "}
-                  {pickLang(preferences.language, "profil", "profiles")}
-                </span>
-              </div>
-              <div>
-                <span className="block text-[10px] font-medium text-[#54707E] dark:text-slate-400">
-                  {pickLang(preferences.language, "Resep Tersimpan", "Saved Recipes")}
-                </span>
-                <span className="font-bold text-[#122B36] dark:text-slate-100">
-                  {storageStats.recipeCount} {pickLang(preferences.language, "resep", "recipes")}
-                </span>
-              </div>
-              <div>
-                <span className="block text-[10px] font-medium text-[#54707E] dark:text-slate-400">
-                  {pickLang(preferences.language, "Estimasi Ukuran", "Est. Size")}
-                </span>
-                <span className="font-bold text-[#122B36] dark:text-slate-100">
-                  {formatBytes(storageStats.estimatedBytes)}
-                </span>
-              </div>
-            </div>
-          )}
-
           {storageWarnings.length > 0 && (
-            <div className="rounded-2xl border border-amber-300/70 bg-amber-50/90 p-3 text-xs text-amber-950 dark:border-amber-700/60 dark:bg-amber-950/45 dark:text-amber-200">
+            <div className="rounded-2xl border border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] p-3 text-xs text-[var(--text-primary)]">
               {storageWarnings.map((w) => (
                 <p key={w}>{w}</p>
               ))}
@@ -423,32 +468,17 @@ export const SettingsPage = memo(function SettingsPage({
           {actionNotice && (
             <div
               role="status"
-              className="rounded-2xl border border-emerald-300/70 bg-emerald-50/90 p-3 text-xs font-medium text-emerald-950 dark:border-emerald-700/60 dark:bg-emerald-950/45 dark:text-emerald-200"
+              className="rounded-2xl border border-[var(--status-success-border)] bg-[var(--status-success-soft)] p-3 text-xs font-medium text-[var(--text-primary)]"
             >
               {actionNotice}
             </div>
           )}
 
           <div className="flex flex-wrap gap-2">
-            {pwaStatus?.needRefresh && (
-              <Button variant="primary" size="sm" onClick={pwaStatus.applyUpdate}>
-                <RefreshCw className="h-3.5 w-3.5" />
-                <span>
-                  {pickLang(preferences.language, "Muat Ulang Versi Baru", "Reload New Version")}
-                </span>
-              </Button>
-            )}
-
             {onExportAllBackup && (
               <Button variant="secondary" size="sm" onClick={onExportAllBackup}>
                 <Download className="h-3.5 w-3.5" />
-                <span>
-                  {pickLang(
-                    preferences.language,
-                    "Unduh Backup Semua (.json)",
-                    "Download Full Backup (.json)",
-                  )}
-                </span>
+                <span>{pickLang(lang, "Unduh Cadangan Data", "Download Backup")}</span>
               </Button>
             )}
 
@@ -460,9 +490,7 @@ export const SettingsPage = memo(function SettingsPage({
                 onClick={() => void handleResetSamples()}
               >
                 <RotateCcw className="h-3.5 w-3.5" />
-                <span>
-                  {pickLang(preferences.language, "Reset Data Bawaan", "Reset Sample Data")}
-                </span>
+                <span>{pickLang(lang, "Reset Data Bawaan", "Reset Sample Data")}</span>
               </Button>
             )}
 
@@ -474,9 +502,7 @@ export const SettingsPage = memo(function SettingsPage({
                 onClick={() => setConfirmClearOpen(true)}
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                <span>
-                  {pickLang(preferences.language, "Hapus Semua Data Lokal", "Clear All Local Data")}
-                </span>
+                <span>{pickLang(lang, "Hapus Semua Data Lokal", "Clear All Local Data")}</span>
               </Button>
             )}
           </div>
@@ -484,23 +510,23 @@ export const SettingsPage = memo(function SettingsPage({
           {confirmClearOpen && onClearAllUserData && (
             <div
               role="alert"
-              className="rounded-2xl border border-rose-300/80 bg-rose-50/95 p-3.5 text-xs text-rose-950 dark:border-rose-700/60 dark:bg-rose-950/50 dark:text-rose-100"
+              className="rounded-2xl border border-[var(--status-danger-border)] bg-[var(--status-danger-soft)] p-3.5 text-xs text-[var(--text-primary)]"
             >
               <div className="flex items-start gap-2.5">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-300" />
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-danger)]" />
                 <div className="flex-1 space-y-2">
                   <p className="font-bold">
                     {pickLang(
-                      preferences.language,
+                      lang,
                       "Hapus seluruh data lokal (termasuk resep tersimpan dan harga kustom)?",
                       "Clear all local data (including saved recipes and custom prices)?",
                     )}
                   </p>
-                  <p className="text-[11px] opacity-90">
+                  <p className="text-[11px] text-[var(--text-secondary)]">
                     {pickLang(
-                      preferences.language,
-                      "Tindakan ini mengosongkan IndexedDB dan memulihkan dataset pabrik awal. Unduh backup `.json` lebih dulu bila masih diperlukan.",
-                      "This clears IndexedDB and restores default factory data. Download a `.json` backup first if needed.",
+                      lang,
+                      "Tindakan ini mengosongkan penyimpanan lokal dan memulihkan dataset awal.",
+                      "This clears local storage and restores the initial factory dataset.",
                     )}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -510,11 +536,7 @@ export const SettingsPage = memo(function SettingsPage({
                       disabled={busyAction !== null}
                       onClick={() => void handleConfirmClearAll()}
                     >
-                      {pickLang(
-                        preferences.language,
-                        "Konfirmasi Hapus Permanen",
-                        "Confirm Permanent Delete",
-                      )}
+                      {pickLang(lang, "Konfirmasi Hapus Permanen", "Confirm Permanent Delete")}
                     </Button>
                     <Button
                       variant="secondary"
@@ -522,7 +544,7 @@ export const SettingsPage = memo(function SettingsPage({
                       disabled={busyAction !== null}
                       onClick={() => setConfirmClearOpen(false)}
                     >
-                      {pickLang(preferences.language, "Batal", "Cancel")}
+                      {pickLang(lang, "Batal", "Cancel")}
                     </Button>
                   </div>
                 </div>

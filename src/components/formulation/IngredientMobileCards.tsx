@@ -45,7 +45,7 @@ function renderCategoryIcon(category: IngredientCategory) {
 
 /**
  * Transformasi tabel matriks bahan untuk layar sempit (<768px):
- * Card-Stack kaca-neumorfik dengan ikon squircle kategori & sorotan aksen coral saat bentrok batas.
+ * Card-Stack Tactile Neumorphism dengan ikon squircle kategori & sorotan aksen bahaya saat bentrok batas.
  */
 export const IngredientMobileCards = memo(function IngredientMobileCards({
   ingredients,
@@ -86,7 +86,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
                   checked={isActive}
                   aria-label={`Aktifkan ${ing.name}`}
                   onChange={(e) => onUpdateIngredient(ing.id, { isActive: e.target.checked })}
-                  className="h-5 w-5 shrink-0 cursor-pointer rounded border-slate-300 accent-[#0E7490]"
+                  className="h-5 w-5 shrink-0 cursor-pointer rounded border-[var(--border-subtle)] accent-[var(--color-primary)]"
                 />
                 <GlossySquircleIcon
                   tone={CATEGORY_TONE[ing.category]}
@@ -94,9 +94,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
                   icon={renderCategoryIcon(ing.category)}
                 />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-[#122B36] dark:text-white">
-                    {ingName}
-                  </p>
+                  <p className="truncate text-sm font-bold text-[var(--text-primary)]">{ingName}</p>
                   <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                     <Badge tone="neutral">{getCategoryLabel(language, ing.category)}</Badge>
                     <Badge tone={ing.basis === "as_fed" ? "sky" : "emerald"}>
@@ -127,7 +125,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
             <div className="mt-3 grid grid-cols-3 gap-2">
               <div>
                 <div className="mb-1 flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[#54707E] dark:text-slate-300">
+                  <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
                     {pickLang(language, "Harga/kg", "Price/kg")}
                   </span>
                   {hasOverride && (
@@ -135,7 +133,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
                       type="button"
                       onClick={() => onResetPriceOverride(ing.id)}
                       aria-label={`Reset harga pasar ${ing.name}`}
-                      className="cursor-pointer text-amber-700 dark:text-amber-300"
+                      className="cursor-pointer text-[var(--status-warning)]"
                     >
                       <RotateCcw className="h-3 w-3" />
                     </button>
@@ -158,7 +156,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
               </div>
 
               <div>
-                <span className="mb-1 block text-[11px] font-semibold text-[#54707E] dark:text-slate-300">
+                <span className="mb-1 block text-[11px] font-semibold text-[var(--text-secondary)]">
                   Min %
                 </span>
                 <NumericCellInput
@@ -175,7 +173,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
               </div>
 
               <div>
-                <span className="mb-1 block text-[11px] font-semibold text-[#54707E] dark:text-slate-300">
+                <span className="mb-1 block text-[11px] font-semibold text-[var(--text-secondary)]">
                   Max %
                 </span>
                 <NumericCellInput
@@ -193,7 +191,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
             </div>
 
             {invalidBounds && (
-              <p className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-400">
+              <p className="mt-2 text-xs font-semibold text-[var(--status-danger)]">
                 {pickLang(
                   language,
                   `Nilai Min (${min}%) tidak boleh melebihi Max (${max}%).`,
@@ -203,10 +201,10 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
             )}
 
             {/* Baris 3: Ringkasan 3 nutrien kunci tabular */}
-            <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/65 pt-2.5 text-[11px] tabular-nums text-[#466270] dark:border-cyan-200/10 dark:text-slate-300">
+            <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-[var(--border-subtle)] pt-2.5 text-[11px] tabular-nums text-[var(--text-secondary)]">
               <span>
                 {pickLang(language, "PK", "CP")}:{" "}
-                <strong className="text-[#122B36] dark:text-white">
+                <strong className="text-[var(--text-primary)]">
                   {cp !== null && cp !== undefined ? `${formatNumberLocale(cp, 1)}%` : "N/A"}
                 </strong>
               </span>
@@ -214,7 +212,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
               <span>
                 {pickLang(language, "BK", "DM")}: {formatNumberLocale(ing.dryMatter, 0)}%
               </span>
-              <span className="ml-auto text-[#6C8693] dark:text-slate-400">
+              <span className="ml-auto text-[var(--text-muted)]">
                 {pickLang(language, "Pasar", "Market")}: {formatCurrencyIdr(ing.pricePerKg)}
               </span>
             </div>

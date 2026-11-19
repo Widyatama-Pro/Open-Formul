@@ -1,0 +1,77 @@
+/* ============================================================================
+ * Portable Multi-Theme Design System — Android / Capacitor / PWA Mobile Adaptive CSS
+ * Calibrated for OLED / AMOLED displays, notch safe-areas, and 44px touch targets.
+ * ========================================================================== */
+
+:root {
+  --touch-target-min: 44px;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --mobile-gutter: 16px;
+}
+
+/* Safe-Area Aware Shell Helpers */
+.safe-area-shell {
+  padding-top: calc(var(--safe-area-top) + 12px);
+  padding-right: calc(var(--safe-area-right) + var(--mobile-gutter));
+  padding-bottom: calc(var(--safe-area-bottom) + 16px);
+  padding-left: calc(var(--safe-area-left) + var(--mobile-gutter));
+}
+
+.safe-area-bottom-nav {
+  padding-bottom: calc(var(--safe-area-bottom) + 0.25rem);
+}
+
+/* Enforce WCAG / Material Touch Target Minimums on Coarse Pointers */
+@media (pointer: coarse), (max-width: 768px) {
+  .neu-button,
+  .theme-touch-target,
+  button[data-theme-control]:not([role="switch"]),
+  [role="tab"] {
+    min-height: var(--touch-target-min);
+  }
+
+  .theme-touch-target-square {
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
+
+  /* Disable sticky hover highlights on touchscreens */
+  .neu-button:hover {
+    transform: none;
+  }
+}
+
+/* OLED / AMOLED Anti-Banding Soft-UI Shadow Calibration (Android WebView / Chrome) */
+@media (max-width: 768px) {
+  [data-mode="dark"] {
+    /* Slightly tighter blur radii prevent 8-bit OLED banding on large mobile surfaces */
+    --shadow-neu-flat:
+      4px 4px 10px var(--shadow-dark), -3px -3px 8px var(--shadow-light),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    --shadow-neu-elevated:
+      8px 8px 20px var(--shadow-dark), -4px -4px 12px var(--shadow-light),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  [data-mode="dark"][data-amoled="true"] .neu-flat,
+  [data-mode="dark"][data-amoled="true"] .neu-elevated,
+  [data-mode="dark"][data-amoled="true"] .glass-card {
+    /* Crisp 1px specular hairline keeps card separation visible on pure #000000 OLED */
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+}
+
+/* Prevent Android Pull-to-Refresh / Overscroll Bounce inside Modal Drawers */
+.mobile-drawer-scroll {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Disable Android WebView default blue tap flash in favor of Tactile Neumorphism press */
+.neu-button,
+[data-theme-control] {
+  -webkit-tap-highlight-color: transparent;
+}

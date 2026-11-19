@@ -1,9 +1,14 @@
 import { useState } from "react";
+import type { ResultSubTab } from "./components/analytics/ResultsPanel";
 import { AddEditIngredientModal } from "./components/database/AddEditIngredientModal";
 import { IngredientLibraryPage } from "./components/database/IngredientLibraryPage";
 import { RequirementLibraryPage } from "./components/database/RequirementLibraryPage";
-import { AdvancedModulesPreview } from "./components/formulation/AdvancedModulesPreview";
+import {
+  AdvancedModulesPreview,
+  type AdvancedShortcutTarget,
+} from "./components/formulation/AdvancedModulesPreview";
 import { FormulationWorkbench } from "./components/formulation/FormulationWorkbench";
+import { PrecisionEngineDialog } from "./components/formulation/PrecisionEngineDialog";
 import { AppShell } from "./components/layout/AppShell";
 import { ExportDialog } from "./components/recipes/ExportDialog";
 import { SaveRecipeDialog } from "./components/recipes/SaveRecipeDialog";
@@ -12,19 +17,50 @@ import { SettingsPage } from "./components/settings/SettingsPage";
 import { usePrototypeStore } from "./hooks/use-prototype-store";
 import { usePwaStatus } from "./hooks/use-pwa-status";
 import { FEED_JSON_MIME } from "./storage";
+import { ThemeProvider, useTheme } from "./theme";
 import { downloadTextFile } from "./utils/download";
 
-export function App() {
+function AppContent() {
   const store = usePrototypeStore();
   const pwa = usePwaStatus();
+  const themeCtx = useTheme();
   const [saveOpen, setSaveOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [addIngredientOpen, setAddIngredientOpen] = useState(false);
+  const [precisionOpen, setPrecisionOpen] = useState(false);
+  const [resultSubTab, setResultSubTab] = useState<ResultSubTab>("batch");
 
   const handleExportAllBackup = () => {
     const json = store.exportAllBackupJson();
     const dateStamp = new Date().toISOString().slice(0, 10);
-    downloadTextFile(json, `openformul-backup-${dateStamp}.json`, FEED_JSON_MIME);
+    downloadTextFile(json, `open-formulasi-backup-${dateStamp}.json`, FEED_JSON_MIME);
+  };
+
+  const handleAdvancedShortcut = (target: AdvancedShortcutTarget) => {
+    if (target === "shadow_price") {
+      setResultSubTab("dual");
+      store.setRoute("formulation");
+    } else if (target === "what_if") {
+      setResultSubTab("whatif");
+      store.setRoute("formulation");
+    } else if (target === "precision_lp") {
+      store.setRoute("formulation");
+      setPrecisionOpen(true);
+    } else {
+      store.toggleAdvanceNutrients(true);
+      store.setRoute("formulation");
+    }
+  };
+
+  const handleToggleLightDark = () => {
+    const nextResolved = themeCtx.resolvedMode === "light" ? "dark" : "light";
+    themeCtx.toggleLightDark();
+    store.updatePreferences({
+      theme: nextResolved,
+      themePalette: themeCtx.paletteId,
+      themeModeSetting: nextResolved,
+      amoledPureBlack: themeCtx.amoledPureBlack,
+    });
   };
 
   return (
@@ -32,8 +68,8 @@ export function App() {
       route={store.route}
       onNavigate={store.setRoute}
       language={store.preferences.language}
-      theme={store.preferences.theme}
-      onToggleTheme={() => store.setTheme(store.preferences.theme === "light" ? "dark" : "light")}
+      theme={themeCtx.resolvedMode}
+      onToggleTheme={handleToggleLightDark}
       onToggleLanguage={() => store.setLanguage(store.preferences.language === "id" ? "en" : "id")}
       isOnline={pwa.isOnline}
       offlineReady={pwa.offlineReady}
@@ -48,6 +84,8 @@ export function App() {
       {store.route === "formulation" && (
         <FormulationWorkbench
           store={store}
+          resultSubTab={resultSubTab}
+          onResultSubTabChange={setResultSubTab}
           onOpenSaveDialog={() => setSaveOpen(true)}
           onOpenExportDialog={() => setExportOpen(true)}
           onOpenAddIngredient={() => setAddIngredientOpen(true)}
@@ -84,6 +122,7 @@ export function App() {
       {store.route === "recipes" && (
         <SavedRecipesPage
           recipes={store.recipes}
+          nutrientsCatalog={store.allNutrients}
           language={store.preferences.language}
           onLoadRecipe={store.loadRecipe}
           onOpenSaveCurrent={() => setSaveOpen(true)}
@@ -97,6 +136,7 @@ export function App() {
         <AdvancedModulesPreview
           language={store.preferences.language}
           onOpenWorkbench={() => store.setRoute("formulation")}
+          onOpenShortcut={handleAdvancedShortcut}
         />
       )}
 
@@ -104,6 +144,11 @@ export function App() {
         <SettingsPage
           preferences={store.preferences}
           onUpdate={store.updatePreferences}
+          config={store.config}
+          onToggleAdvance={store.toggleAdvanceNutrients}
+          onToggleShowNdf={store.toggleShowNdf}
+          onSetGlobalZeroInclusion={store.setGlobalZeroInclusion}
+          onOpenPrecisionDialog={() => setPrecisionOpen(true)}
           storageStats={store.storageStats}
           storageWarnings={store.storageWarnings}
           pwaStatus={pwa}
@@ -142,7 +187,25 @@ export function App() {
         onClose={() => setAddIngredientOpen(false)}
         onSave={store.addIngredient}
       />
+
+      <PrecisionEngineDialog
+        open={precisionOpen}
+        onClose={() => setPrecisionOpen(false)}
+        config={store.config}
+        allNutrients={store.allNutrients}
+        stochasticIterations={store.result.stochasticIterations}
+        language={store.preferences.language}
+        onUpdatePrecision={store.updatePrecisionConfig}
+      />
     </AppShell>
+  );
+}
+
+export function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

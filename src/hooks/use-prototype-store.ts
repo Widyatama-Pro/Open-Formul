@@ -64,6 +64,18 @@ const KEARL_HARTADI_STARTER_IDS = new Set([
   "hartadi-bis-ekspeller",
 ]);
 
+const POULTRY_STARTER_IDS = new Set([
+  "corn-ground",
+  "sbm-44",
+  "rice-bran",
+  "fish-meal-local",
+  "cpo-oil",
+  "limestone",
+  "dcp-mineral",
+  "dl-methionine",
+  "premix-vitmin",
+]);
+
 function mergeRecipeIngredientsNonDestructive(
   catalog: readonly Ingredient[],
   recipeIngredients: readonly Ingredient[],
@@ -132,6 +144,7 @@ export interface PrototypeStore {
   readonly setOptimizationMode: (mode: OptimizationMode) => void;
   readonly setBatchSizeKg: (kg: number) => void;
   readonly toggleAdvanceNutrients: (enabled: boolean) => void;
+  readonly toggleShowNdf: (enabled: boolean) => void;
   readonly toggleDigestibleBasis: (enabled: boolean) => void;
   readonly toggleElasticFallback: (enabled: boolean) => void;
   readonly updatePrecisionConfig: (patch: {
@@ -249,15 +262,6 @@ export function usePrototypeStore(): PrototypeStore {
     return () => clearTimeout(timer);
   }, [isHydrated, storageMode, preferences]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (preferences.theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-  }, [preferences.theme]);
-
   const activeRequirement = useMemo(
     () =>
       activeRequirementOverride ??
@@ -295,7 +299,12 @@ export function usePrototypeStore(): PrototypeStore {
       }));
       setSessionDirty(false);
 
-      if (target.id.startsWith("kearl") || target.id.startsWith("nrc88-")) {
+      if (
+        target.id.startsWith("kearl") ||
+        target.id.startsWith("nrc88-") ||
+        target.id.startsWith("sni-3148") ||
+        target.id.startsWith("sni-8819")
+      ) {
         setIngredients((prev) =>
           prev.map((ing) => ({
             ...ing,
@@ -306,6 +315,22 @@ export function usePrototypeStore(): PrototypeStore {
         setIngredients((prev) =>
           prev.map((ing) => (ing.id === "napier-grass" ? { ...ing, isActive: true } : ing)),
         );
+      } else if (
+        target.species === "broiler" ||
+        target.species === "layer" ||
+        target.species === "buras" ||
+        target.species === "duck"
+      ) {
+        setIngredients((prev) => {
+          const hasPoultryEnergy = prev.some(
+            (i) => i.isActive !== false && (i.nutrients.me_poultry ?? 0) > 0,
+          );
+          if (hasPoultryEnergy) return prev;
+          return prev.map((ing) => ({
+            ...ing,
+            isActive: POULTRY_STARTER_IDS.has(ing.id),
+          }));
+        });
       }
     },
     [requirements],
@@ -530,6 +555,12 @@ export function usePrototypeStore(): PrototypeStore {
   const toggleAdvanceNutrients = useCallback((enableAdvanceNutrients: boolean) => {
     setSessionDirty(true);
     setConfig((prev) => ({ ...prev, enableAdvanceNutrients }));
+    setPreferences((prev) => ({ ...prev, simpleMode: !enableAdvanceNutrients }));
+  }, []);
+
+  const toggleShowNdf = useCallback((showNdf: boolean) => {
+    setSessionDirty(true);
+    setConfig((prev) => ({ ...prev, showNdf }));
   }, []);
 
   const toggleDigestibleBasis = useCallback((enableDigestibleBasis: boolean) => {
@@ -888,6 +919,10 @@ export function usePrototypeStore(): PrototypeStore {
 
   const updatePreferences = useCallback((patch: Partial<UserPreferences>) => {
     setPreferences((prev) => ({ ...prev, ...patch }));
+    if (patch.simpleMode !== undefined) {
+      setSessionDirty(true);
+      setConfig((prev) => ({ ...prev, enableAdvanceNutrients: !patch.simpleMode }));
+    }
   }, []);
 
   const resetAllSampleData = useCallback(async () => {
@@ -964,6 +999,7 @@ export function usePrototypeStore(): PrototypeStore {
     setOptimizationMode,
     setBatchSizeKg,
     toggleAdvanceNutrients,
+    toggleShowNdf,
     toggleDigestibleBasis,
     toggleElasticFallback,
     updatePrecisionConfig,

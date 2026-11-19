@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Lock, Unlock } from "lucide-react";
+import { Info, Lock, Unlock } from "lucide-react";
 import { pickLang } from "../../i18n";
 import type { AppLanguage, CompositionItem, Ingredient } from "../../types";
 import { formatNumberLocale } from "../../utils/locale-number";
@@ -16,7 +16,7 @@ export interface WhatIfManualLockProps {
   readonly onClearLocks: () => void;
 }
 
-/** Simulasi "What-If" Manual Lock dengan elevasi crisp card. */
+/** Simulasi "What-If" Manual Lock dengan penjelasan singkat ramah peternak. */
 export const WhatIfManualLock = memo(function WhatIfManualLock({
   ingredients,
   composition,
@@ -30,26 +30,37 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
   const totalLocked = Object.values(manualLocks).reduce((acc, v) => acc + v, 0);
 
   return (
-    <div className="space-y-3 text-xs">
+    <div className="space-y-2.5 text-xs">
+      <div className="flex items-start gap-2.5 rounded-xl border border-[var(--status-info-border)] bg-[var(--status-info-soft)] p-2.5 text-[11px] text-[var(--text-primary)]">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-info)]" />
+        <p className="leading-relaxed text-[var(--text-secondary)]">
+          {pickLang(
+            language,
+            'Simulasi "What-If" berguna untuk menguji skenario tukar/habiskan stok bahan: kunci persentase bahan tertentu dengan slider atau angka (mis. jagung 45%), lalu sistem otomatis menghitung ulang bahan lainnya tanpa mengubah batas Min/Max asli di tabel.',
+            '"What-If" lets you lock one or more ingredient percentages manually (e.g., fix corn at 45%) so the solver recalculates the rest of the ration without modifying permanent table bounds.',
+          )}
+        </p>
+      </div>
+
       <div className="neu-well flex flex-wrap items-center justify-between gap-2 rounded-xl p-2.5">
         <div>
-          <p className="font-bold text-[#0F172A] dark:text-white">
+          <p className="font-bold text-[var(--text-primary)]">
             {pickLang(
               language,
               'Simulasi Tukar Bahan Cepat ("What-If" Lock)',
               'Quick Feed Substitution Simulator ("What-If" Lock)',
             )}
           </p>
-          <p className="text-[11px] text-[#475569] dark:text-slate-300">
+          <p className="text-[11px] text-[var(--text-secondary)]">
             {pickLang(
               language,
-              "Kunci persentase bahan tertentu (total terkunci:",
-              "Lock specific ingredient percentages (total locked:",
+              "Total persentase bahan yang sedang dikunci:",
+              "Total currently locked ingredient share:",
             )}{" "}
-            <strong className="tabular-nums text-[#0F172A] dark:text-white">
+            <strong className="tabular-nums text-[var(--text-primary)]">
               {formatNumberLocale(totalLocked, 1)}%
             </strong>{" "}
-            / 100%)
+            / 100%
           </p>
         </div>
         {Object.keys(manualLocks).length > 0 && (
@@ -59,7 +70,7 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
         )}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {active.map((ing) => {
           const lockedVal = manualLocks[ing.id];
           const isLocked = lockedVal !== undefined;
@@ -70,19 +81,19 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
             <Card
               key={ing.id}
               highlight={isLocked ? "amber" : "none"}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl p-2.5"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-2.5 py-2"
             >
               <button
                 type="button"
                 onClick={() =>
                   onSetManualLock(ing.id, isLocked ? null : Number(currentPct.toFixed(1)))
                 }
-                className="inline-flex min-h-8 cursor-pointer items-center gap-2 text-left font-semibold text-[#0F172A] dark:text-white"
+                className="inline-flex min-h-7 cursor-pointer items-center gap-2 text-left font-semibold text-[var(--text-primary)]"
               >
                 {isLocked ? (
-                  <Lock className="h-3.5 w-3.5 text-[#D97706] dark:text-amber-400" />
+                  <Lock className="h-3.5 w-3.5 text-[var(--status-warning)]" />
                 ) : (
-                  <Unlock className="h-3.5 w-3.5 text-[#475569]" />
+                  <Unlock className="h-3.5 w-3.5 text-[var(--text-muted)]" />
                 )}
                 <span>{ingName}</span>
               </button>
@@ -96,7 +107,7 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
                   value={currentPct}
                   aria-label={`Slider What-If ${ingName}`}
                   onChange={(e) => onSetManualLock(ing.id, Number(e.target.value))}
-                  className="w-24 cursor-pointer accent-[#059669] sm:w-32"
+                  className="w-24 cursor-pointer accent-[var(--color-primary)] sm:w-32"
                 />
                 <div className="w-20">
                   <NumericCellInput

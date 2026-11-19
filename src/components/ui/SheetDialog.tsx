@@ -13,7 +13,7 @@ export interface SheetDialogProps {
   readonly variant?: "bottom-sheet" | "dialog" | "responsive";
 }
 
-/** Dialog adaptif crisp surface (#FFFFFF) tanpa backdrop blur agar tetap 60fps. */
+/** Dialog adaptif Tactile Neumorphism tanpa backdrop blur agar tetap 60fps. */
 export function SheetDialog({
   open,
   onClose,
@@ -50,7 +50,7 @@ export function SheetDialog({
 
   return (
     <div
-      className={cn("fixed inset-0 z-50 flex bg-[#0F172A]/45", containerMode)}
+      className={cn("fixed inset-0 z-50 flex bg-black/50", containerMode)}
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -58,34 +58,36 @@ export function SheetDialog({
     >
       <div
         className={cn(
-          "flex w-full flex-col overflow-hidden overscroll-contain border border-[#E2E8F0] bg-white shadow-[0_20px_48px_-12px_rgba(15,23,42,0.22)] dark:border-[#1E333D] dark:bg-[#111F26]",
+          "flex w-full flex-col overflow-hidden overscroll-contain border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[var(--shadow-neu-elevated)]",
           panelRadius,
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-[#E2E8F0] px-5 py-3.5 dark:border-[#1E333D]">
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--border-subtle)] px-5 py-3.5">
           <div className="min-w-0">
-            <h2 className="truncate text-base font-bold tracking-tight text-[#0F172A] dark:text-slate-100">
+            <h2 className="truncate text-base font-bold tracking-tight text-[var(--text-primary)]">
               {title}
             </h2>
             {subtitle !== undefined && (
-              <p className="mt-0.5 text-xs text-[#475569] dark:text-slate-300">{subtitle}</p>
+              <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{subtitle}</p>
             )}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Tutup panel"
-            className="neu-pill-btn inline-flex min-h-10 min-w-10 cursor-pointer items-center justify-center rounded-full text-[#475569] md:min-h-8 md:min-w-8 dark:text-slate-200"
+            className="neu-pill-btn inline-flex min-h-10 min-w-10 cursor-pointer items-center justify-center rounded-full text-[var(--text-secondary)] md:min-h-8 md:min-w-8"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="custom-scrollbar flex-1 overflow-y-auto p-5">{children}</div>
+        <div className="custom-scrollbar mobile-drawer-scroll flex-1 overflow-y-auto p-5">
+          {children}
+        </div>
 
         {footer !== undefined && (
-          <div className="border-t border-[#E2E8F0] bg-[#F8FAFC] px-5 py-3 dark:border-[#1E333D] dark:bg-[#0B1519]">
+          <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] px-5 py-3">
             {footer}
           </div>
         )}

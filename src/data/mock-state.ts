@@ -1,5 +1,6 @@
 import { HARTADI_FEEDS } from "./hartadi-feeds";
 import { KEARL_REQUIREMENTS, NRC_1988_DAIRY_REQUIREMENTS } from "./kearl-requirements";
+import { SNI_REQUIREMENTS } from "./sni-requirements";
 import type {
   Basis,
   BoundDualItem,
@@ -498,7 +499,7 @@ export const MOCK_INGREDIENTS: readonly Ingredient[] = [
   ...HARTADI_FEEDS,
 ];
 
-export { HARTADI_FEEDS, KEARL_REQUIREMENTS, NRC_1988_DAIRY_REQUIREMENTS };
+export { HARTADI_FEEDS, KEARL_REQUIREMENTS, NRC_1988_DAIRY_REQUIREMENTS, SNI_REQUIREMENTS };
 
 export const MOCK_REQUIREMENTS: readonly Requirement[] = [
   {
@@ -540,7 +541,7 @@ export const MOCK_REQUIREMENTS: readonly Requirement[] = [
         max: 2.0,
       },
     ],
-    source: "SNI 3931 / Adaptasi NRC (1994)",
+    source: "SNI 8173.2:2015 / Adaptasi NRC (1994)",
   },
   {
     id: "layer-peak",
@@ -568,7 +569,7 @@ export const MOCK_REQUIREMENTS: readonly Requirement[] = [
         max: 7.5,
       },
     ],
-    source: "SNI Ayam Ras Petelur / NRC (1994)",
+    source: "SNI 8290.5:2016 / Adaptasi NRC (1994)",
   },
   {
     id: "beef-fattening",
@@ -596,8 +597,9 @@ export const MOCK_REQUIREMENTS: readonly Requirement[] = [
         max: 2.5,
       },
     ],
-    source: "NRC Beef Cattle (2016) / SNI Konsentrat Sapi",
+    source: "SNI 3148-2:2017 / NRC Beef Cattle (2016)",
   },
+  ...SNI_REQUIREMENTS,
   ...KEARL_REQUIREMENTS,
   ...NRC_1988_DAIRY_REQUIREMENTS,
 ];
@@ -607,9 +609,10 @@ export const DEFAULT_CONFIG: FormulationConfig = {
   activeBasis: "as_fed",
   batchSizeKg: 100,
   enableAdvanceNutrients: false,
+  showNdf: false,
   enableDigestibleBasis: false,
   enableElasticFallback: true,
-  globalZeroInclusion: { enforceNonZero: false, minIfSelected: 1 },
+  globalZeroInclusion: { enforceNonZero: true, minIfSelected: 1 },
   manualLocks: {},
   customNutrients: [],
 };
@@ -620,6 +623,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   defaultBasis: "as_fed",
   defaultBatchKg: 100,
   zeroInclusionDefaultPct: 1,
+  simpleMode: true,
 };
 
 export const MOCK_SAVED_RECIPES: readonly Recipe[] = [

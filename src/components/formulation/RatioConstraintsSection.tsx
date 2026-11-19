@@ -21,14 +21,12 @@ export function RatioConstraintsSection({
   if (ratios.length === 0) return null;
 
   return (
-    <div className="mt-4 space-y-2 border-t border-white/65 pt-3.5 dark:border-cyan-200/10">
+    <div className="mt-4 space-y-2 border-t border-[var(--border-subtle)] pt-3.5">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold tracking-tight text-[#375563] dark:text-slate-200">
+        <h3 className="text-xs font-bold tracking-tight text-[var(--text-secondary)]">
           {pickLang(language, "Pengunci Rasio Nutrien", "Nutrient Ratio Locks")}
         </h3>
-        <span className="text-[11px] font-medium text-[#6C8693] dark:text-slate-400">
-          Linearized LP
-        </span>
+        <span className="text-[11px] font-medium text-[var(--text-muted)]">Linearized LP</span>
       </div>
 
       <div className="space-y-2">
@@ -59,15 +57,15 @@ export function RatioConstraintsSection({
               className="neu-well flex flex-wrap items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-xs"
             >
               <div>
-                <p className="font-semibold text-[#122B36] dark:text-slate-100">
+                <p className="font-semibold text-[var(--text-primary)]">
                   {ratio.label ?? `${numLabel} : ${denLabel}`}
                 </p>
-                <p className="text-[11px] tabular-nums text-[#54707E] dark:text-slate-400">
+                <p className="text-[11px] tabular-nums text-[var(--text-secondary)]">
                   Target: {ratio.min ?? "—"} {pickLang(language, "s/d", "to")} {ratio.max ?? "—"}
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-bold tabular-nums text-[#122B36] dark:text-white">
+                <span className="font-bold tabular-nums text-[var(--text-primary)]">
                   {actualRatio !== null ? `${formatNumberLocale(actualRatio, 2)} : 1` : "—"}
                 </span>
                 <Badge tone={actualRatio === null ? "neutral" : isMet ? "emerald" : "rose"}>

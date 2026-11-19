@@ -14,7 +14,7 @@ export interface MobileStickyActionBarProps {
   readonly onShowResults: () => void;
 }
 
-/** Bar aksi lengket di mobile tepat di atas Bottom Navigation Bar (tanpa backdrop blur). */
+/** Bar aksi lengket di mobile tepat di atas Bottom Navigation Bar (safe-area aware). */
 export const MobileStickyActionBar = memo(function MobileStickyActionBar({
   status,
   costPerKg,
@@ -32,15 +32,15 @@ export const MobileStickyActionBar = memo(function MobileStickyActionBar({
     );
 
   return (
-    <div className="fixed inset-x-0 bottom-14 z-30 flex items-center justify-between gap-3 border-t border-[#E2E8F0] bg-white px-4 py-2 shadow-[0_-4px_12px_rgba(15,23,42,0.06)] md:hidden dark:border-[#1E333D] dark:bg-[#111F26]">
+    <div className="fixed inset-x-0 bottom-[calc(3.5rem+var(--safe-area-bottom))] z-30 flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-4 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] md:hidden">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold text-[#475569] dark:text-slate-300">
+          <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
             {pickLang(language, "Estimasi/kg", "Est./kg")}
           </span>
           {statusBadge}
         </div>
-        <p className="truncate text-sm font-bold tabular-nums text-[#0F172A] dark:text-white">
+        <p className="truncate text-sm font-bold tabular-nums text-[var(--text-primary)]">
           {costPerKg !== null
             ? formatCurrencyIdr(costPerKg)
             : pickLang(language, "Belum layak", "Not feasible")}

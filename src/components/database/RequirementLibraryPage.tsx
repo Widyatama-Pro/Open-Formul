@@ -1,27 +1,15 @@
-import { memo, useMemo, useState, type ReactNode } from "react";
-import { Beef, Bird, Check, Egg, Milk, Plus, Search, Target } from "lucide-react";
+import { memo, useMemo, useState } from "react";
+import { Check, Plus, Search } from "lucide-react";
 import { getSpeciesLabelI18n, pickLang } from "../../i18n";
 import type { AppLanguage, Basis, Requirement } from "../../types";
+import { cn } from "../../utils/cn";
+import { formatNumberLocale } from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
-import { GlossySquircleIcon, type SquircleTone } from "../ui/GlossySquircleIcon";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
 import { SheetDialog } from "../ui/SheetDialog";
-
-function getSpeciesVisual(species: string): { tone: SquircleTone; icon: ReactNode } {
-  const s = species.toLowerCase();
-  if (s.includes("layer")) return { tone: "amber", icon: <Egg className="h-4 w-4" /> };
-  if (s.includes("broiler") || s.includes("duck")) {
-    return { tone: "sky", icon: <Bird className="h-4 w-4" /> };
-  }
-  if (s.includes("dairy")) return { tone: "indigo", icon: <Milk className="h-4 w-4" /> };
-  if (s.includes("beef") || s.includes("cattle") || s.includes("goat") || s.includes("sheep")) {
-    return { tone: "mint", icon: <Beef className="h-4 w-4" /> };
-  }
-  return { tone: "petrol", icon: <Target className="h-4 w-4" /> };
-}
 
 export interface RequirementLibraryPageProps {
   readonly requirements: readonly Requirement[];
@@ -31,6 +19,35 @@ export interface RequirementLibraryPageProps {
   readonly onCreateProfile: (req: Requirement) => void;
 }
 
+type GroupFilter = "all" | "sni" | "poultry" | "ruminant";
+
+function formatBoundCell(min: number | undefined, max: number | undefined, digits: number): string {
+  if (min !== undefined && max !== undefined) {
+    return `${formatNumberLocale(min, digits)}–${formatNumberLocale(max, digits)}`;
+  }
+  if (min !== undefined) return `≥ ${formatNumberLocale(min, digits)}`;
+  if (max !== undefined) return `≤ ${formatNumberLocale(max, digits)}`;
+  return "—";
+}
+
+function extractShortSource(req: Requirement): string {
+  const src = req.source ?? "";
+  const sniMatch = /SNI\s+[\d.-]+:\d{4}/i.exec(src);
+  if (sniMatch) return sniMatch[0];
+  if (/Kearl\s*\(1982\)/i.test(src)) return "Kearl (1982)";
+  if (/NRC\s*\(1988\)/i.test(src)) return "NRC (1988)";
+  if (/NRC.*1994/i.test(src)) return "NRC (1994)";
+  if (/NRC.*2016/i.test(src)) return "NRC (2016)";
+  return src.length > 28 ? `${src.slice(0, 26)}…` : src || "Standar";
+}
+
+function isPoultrySpecies(species: string): boolean {
+  return species === "broiler" || species === "layer" || species === "buras" || species === "duck";
+}
+
+/**
+ * Halaman Profil Kebutuhan Ternak dengan tabel ringkas, sederhana, dan mudah dipindai.
+ */
 export const RequirementLibraryPage = memo(function RequirementLibraryPage({
   requirements,
   activeRequirementId,
@@ -43,23 +60,34 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
   const [species, setSpecies] = useState("broiler");
   const [basis, setBasis] = useState<Basis>("as_fed");
   const [query, setQuery] = useState("");
-  const [showAll, setShowAll] = useState(false);
+  const [groupFilter, setGroupFilter] = useState<GroupFilter>("all");
 
   const filteredRequirements = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return requirements;
-    return requirements.filter(
-      (req) =>
+    return requirements.filter((req) => {
+      if (
+        groupFilter === "sni" &&
+        !req.id.startsWith("sni-") &&
+        !(req.source ?? "").includes("SNI")
+      ) {
+        return false;
+      }
+      if (groupFilter === "poultry" && !isPoultrySpecies(req.species)) {
+        return false;
+      }
+      if (groupFilter === "ruminant" && isPoultrySpecies(req.species)) {
+        return false;
+      }
+      if (!q) return true;
+      return (
         req.name.toLowerCase().includes(q) ||
         (req.nameEn?.toLowerCase().includes(q) ?? false) ||
         (req.source?.toLowerCase().includes(q) ?? false) ||
-        getSpeciesLabelI18n(language, req.species).toLowerCase().includes(q),
-    );
-  }, [requirements, query, language]);
-
-  const isWindowed = query.trim() === "" && filteredRequirements.length > 50;
-  const displayedRequirements =
-    isWindowed && !showAll ? filteredRequirements.slice(0, 36) : filteredRequirements;
+        (req.phase?.toLowerCase().includes(q) ?? false) ||
+        getSpeciesLabelI18n(language, req.species).toLowerCase().includes(q)
+      );
+    });
+  }, [requirements, query, groupFilter, language]);
 
   const handleCreate = () => {
     if (!name.trim()) return;
@@ -79,23 +107,25 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
     setOpenCreate(false);
   };
 
+  const filterTabs: ReadonlyArray<{ readonly key: GroupFilter; readonly label: string }> = [
+    { key: "all", label: pickLang(language, "Semua Standar", "All Standards") },
+    { key: "sni", label: pickLang(language, "Standar SNI", "SNI Standards") },
+    { key: "poultry", label: pickLang(language, "Unggas", "Poultry") },
+    { key: "ruminant", label: pickLang(language, "Sapi & Ruminansia", "Ruminants") },
+  ];
+
   return (
-    <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-5">
+    <div className="mx-auto max-w-6xl space-y-4 p-4 sm:p-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-medium text-[#54707E] dark:text-slate-400">
-            {language === "id" ? "Standar Nutrisi" : "Nutrient Standards"}
-          </p>
-          <h1 className="text-xl font-bold tracking-[-0.025em] text-[#122B36] dark:text-slate-100">
-            {language === "id"
-              ? "Database Standar Kebutuhan Ternak"
-              : "Livestock Requirement Standards"}
+          <h1 className="text-xl font-bold tracking-[-0.025em] text-[var(--text-primary)]">
+            {pickLang(language, "Profil Kebutuhan Pakan Ternak", "Livestock Requirement Profiles")}
           </h1>
-          <p className="mt-0.5 text-xs text-[#54707E] dark:text-slate-400">
+          <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
             {pickLang(
               language,
-              "Preset standar nutrisi berdasarkan komoditas dan fase pemeliharaan (terpisah dari database bahan).",
-              "Nutrient standard presets by livestock species and growth phase (decoupled from Ingredient DB).",
+              "Pilih standar nutrisi SNI, Kearl (1982), atau NRC (1988) untuk langsung dipakai pada formulasi.",
+              "Select SNI, Kearl (1982), or NRC (1988) standards to apply directly in formulation.",
             )}
           </p>
         </div>
@@ -105,105 +135,155 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
         </Button>
       </div>
 
-      <div className="relative">
-        <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-[#54707E] dark:text-slate-400" />
-        <Input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={pickLang(
-            language,
-            "Cari profil fase, bobot badan, spesies, atau standar (Kearl, NRC, SNI)…",
-            "Search phase profile, body weight, species, or standard (Kearl, NRC, SNI)…",
-          )}
-          aria-label={pickLang(
-            language,
-            "Cari standar kebutuhan ternak",
-            "Search livestock requirement standards",
-          )}
-          className="pl-10"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {displayedRequirements.map((req) => {
-          const isCurrent = req.id === activeRequirementId;
-          const visual = getSpeciesVisual(req.species);
-          return (
-            <Card key={req.id} highlight={isCurrent ? "emerald" : "none"} className="p-4 sm:p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-3">
-                  <GlossySquircleIcon
-                    tone={visual.tone}
-                    size="sm"
-                    icon={visual.icon}
-                    className="mt-0.5"
-                  />
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <h2 className="text-sm font-bold tracking-[-0.015em] text-[#122B36] dark:text-slate-100">
-                        {language === "id" ? req.name : (req.nameEn ?? req.name)}
-                      </h2>
-                      <Badge tone={req.basis === "as_fed" ? "sky" : "emerald"}>
-                        {req.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK (DM)", "DM")}
-                      </Badge>
-                    </div>
-                    <p className="mt-1 text-[11px] text-[#54707E] dark:text-slate-400">
-                      {pickLang(language, "Spesies:", "Species:")}{" "}
-                      {getSpeciesLabelI18n(language, req.species)} ·{" "}
-                      {pickLang(language, "Sumber:", "Source:")}{" "}
-                      {req.source ?? pickLang(language, "Standar internal", "Internal standard")}
-                    </p>
-                  </div>
-                </div>
-
-                <Button
-                  variant={isCurrent ? "secondary" : "primary"}
-                  size="sm"
-                  onClick={() => onSelectAndUse(req.id)}
-                >
-                  {isCurrent && (
-                    <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                  )}
-                  <span>
-                    {isCurrent
-                      ? pickLang(language, "Aktif", "Active")
-                      : pickLang(language, "Gunakan", "Use")}
-                  </span>
-                </Button>
-              </div>
-
-              <div className="neu-well mt-3.5 flex flex-wrap gap-1.5 rounded-2xl p-2.5">
-                {req.constraints
-                  .filter((c) => c.enabled !== false)
-                  .slice(0, 6)
-                  .map((c) => (
-                    <Badge key={c.nutrientId} tone="neutral">
-                      {c.nutrientId.toUpperCase()}: {c.min ?? "—"}..{c.max ?? "—"}
-                    </Badge>
-                  ))}
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      {isWindowed && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/75 bg-white/55 px-4 py-3 text-xs text-[#54707E] dark:border-cyan-200/10 dark:bg-[#0D2E3B]/60 dark:text-slate-300">
-          <span>
-            {pickLang(
-              language,
-              `Menampilkan ${displayedRequirements.length} dari ${filteredRequirements.length} profil kebutuhan ternak.`,
-              `Showing ${displayedRequirements.length} of ${filteredRequirements.length} livestock requirement profiles.`,
-            )}
-          </span>
-          <Button variant="secondary" size="sm" onClick={() => setShowAll((prev) => !prev)}>
-            {showAll
-              ? pickLang(language, "Ringkas Tampilan", "Collapse List")
-              : `${pickLang(language, "Tampilkan Semua", "Show All")} (${filteredRequirements.length} ${pickLang(language, "profil", "profiles")})`}
-          </Button>
+      {/* Bar Pencarian + Filter Kelompok Kompak */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Filter standar ternak">
+          {filterTabs.map((tab) => {
+            const active = groupFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setGroupFilter(tab.key)}
+                className={cn(
+                  "cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
+                  active
+                    ? "border-transparent bg-[var(--color-primary)] text-[var(--text-on-primary)] shadow-[var(--shadow-neu-flat)]"
+                    : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]",
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
-      )}
+
+        <div className="relative min-w-60 flex-1 sm:max-w-80">
+          <Search className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
+          <Input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={pickLang(
+              language,
+              "Cari broiler, layer, sapi, SNI 8173…",
+              "Search broiler, layer, cattle, SNI…",
+            )}
+            aria-label={pickLang(
+              language,
+              "Cari standar kebutuhan ternak",
+              "Search livestock requirement standards",
+            )}
+            className="pl-9 text-xs"
+          />
+        </div>
+      </div>
+
+      {/* Tabel Ringkas Standar Kebutuhan */}
+      <Card interactive={false} className="overflow-hidden">
+        <div className="custom-scrollbar max-h-[68vh] overflow-auto">
+          <table className="w-full border-collapse text-left text-xs">
+            <thead className="sticky top-0 z-10 bg-[var(--bg-sunken)] text-[11px] font-bold text-[var(--text-secondary)]">
+              <tr>
+                <th className="border-b border-[var(--border-subtle)] px-3 py-2.5">
+                  {pickLang(language, "Profil & Fase Ternak", "Livestock Profile & Phase")}
+                </th>
+                <th className="border-b border-[var(--border-subtle)] px-2.5 py-2.5">
+                  {pickLang(language, "Standar / Tahun", "Standard / Year")}
+                </th>
+                <th className="border-b border-[var(--border-subtle)] px-2 py-2.5 text-center">
+                  Basis
+                </th>
+                <th className="border-b border-[var(--border-subtle)] px-2.5 py-2.5 text-right">
+                  {pickLang(language, "PK (%)", "CP (%)")}
+                </th>
+                <th className="border-b border-[var(--border-subtle)] px-2.5 py-2.5 text-right">
+                  {pickLang(language, "EM / TDN", "ME / TDN")}
+                </th>
+                <th className="border-b border-[var(--border-subtle)] px-2.5 py-2.5 text-right">
+                  Ca / P (%)
+                </th>
+                <th className="w-28 border-b border-[var(--border-subtle)] px-3 py-2.5 text-right">
+                  {pickLang(language, "Aksi", "Action")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border-subtle)]">
+              {filteredRequirements.map((req) => {
+                const isCurrent = req.id === activeRequirementId;
+                const cp = req.constraints.find((c) => c.nutrientId === "cp");
+                const me = req.constraints.find((c) => c.nutrientId === "me_poultry");
+                const tdn = req.constraints.find((c) => c.nutrientId === "tdn");
+                const ca = req.constraints.find((c) => c.nutrientId === "ca");
+                const p = req.constraints.find((c) => c.nutrientId === "p");
+
+                const energyLabel = me
+                  ? `${formatBoundCell(me.min, me.max, 0)} kcal`
+                  : tdn
+                    ? `${formatBoundCell(tdn.min, tdn.max, 1)}% TDN`
+                    : "—";
+
+                return (
+                  <tr
+                    key={req.id}
+                    className={cn(
+                      "transition-colors hover:bg-[var(--bg-sunken)]",
+                      isCurrent && "bg-[var(--status-success-soft)]",
+                    )}
+                  >
+                    <td className="px-3 py-2">
+                      <div className="font-semibold text-[var(--text-primary)]">
+                        {language === "id" ? req.name : (req.nameEn ?? req.name)}
+                      </div>
+                      <div className="text-[10px] text-[var(--text-muted)]">
+                        {getSpeciesLabelI18n(language, req.species)}
+                        {req.phase ? ` · ${req.phase}` : ""}
+                      </div>
+                    </td>
+                    <td className="px-2.5 py-2 whitespace-nowrap">
+                      <Badge tone={req.id.startsWith("sni-") ? "emerald" : "neutral"}>
+                        {extractShortSource(req)}
+                      </Badge>
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      <Badge tone={req.basis === "as_fed" ? "sky" : "emerald"}>
+                        {req.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK", "DM")}
+                      </Badge>
+                    </td>
+                    <td className="px-2.5 py-2 text-right font-semibold tabular-nums text-[var(--text-primary)]">
+                      {cp ? formatBoundCell(cp.min, cp.max, 1) : "—"}
+                    </td>
+                    <td className="px-2.5 py-2 text-right tabular-nums text-[var(--text-secondary)]">
+                      {energyLabel}
+                    </td>
+                    <td className="px-2.5 py-2 text-right whitespace-nowrap tabular-nums text-[var(--text-secondary)]">
+                      {ca ? formatBoundCell(ca.min, ca.max, 2) : "—"} /{" "}
+                      {p ? formatBoundCell(p.min, p.max, 2) : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <Button
+                        variant={isCurrent ? "secondary" : "primary"}
+                        size="sm"
+                        onClick={() => onSelectAndUse(req.id)}
+                        className="min-h-7 px-2.5 text-[11px] md:min-h-7"
+                      >
+                        {isCurrent && <Check className="h-3 w-3 text-[var(--status-success)]" />}
+                        <span>
+                          {isCurrent
+                            ? pickLang(language, "Aktif", "Active")
+                            : pickLang(language, "Gunakan", "Use")}
+                        </span>
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       <SheetDialog
         open={openCreate}
@@ -226,7 +306,7 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
       >
         <div className="space-y-3 text-xs">
           <div>
-            <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
+            <label className="mb-1 block font-medium text-[var(--text-primary)]">
               {pickLang(language, "Nama Profil / Fase", "Profile / Phase Name")}
             </label>
             <Input
@@ -241,12 +321,13 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
+              <label className="mb-1 block font-medium text-[var(--text-primary)]">
                 {pickLang(language, "Komoditas / Spesies", "Species")}
               </label>
               <Select value={species} onChange={(e) => setSpecies(e.target.value)}>
                 <option value="broiler">{getSpeciesLabelI18n(language, "broiler")}</option>
                 <option value="layer">{getSpeciesLabelI18n(language, "layer")}</option>
+                <option value="buras">{getSpeciesLabelI18n(language, "buras")}</option>
                 <option value="duck">{getSpeciesLabelI18n(language, "duck")}</option>
                 <option value="cattle_beef">{getSpeciesLabelI18n(language, "cattle_beef")}</option>
                 <option value="cattle_dairy">
@@ -256,7 +337,7 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
               </Select>
             </div>
             <div>
-              <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
+              <label className="mb-1 block font-medium text-[var(--text-primary)]">
                 {pickLang(language, "Basis Standar", "Standard Basis")}
               </label>
               <Select value={basis} onChange={(e) => setBasis(e.target.value as Basis)}>

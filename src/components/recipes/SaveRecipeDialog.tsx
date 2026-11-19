@@ -53,13 +53,13 @@ export function SaveRecipeDialog({
     >
       <div className="space-y-3.5 text-xs">
         <div>
-          <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
+          <label className="mb-1 block font-medium text-[var(--text-primary)]">
             {pickLang(language, "Nama Resep", "Recipe Name")}
           </label>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div>
-          <label className="mb-1 block font-medium text-[#122B36] dark:text-slate-200">
+          <label className="mb-1 block font-medium text-[var(--text-primary)]">
             {pickLang(language, "Catatan Lapangan (Opsional)", "Field Notes (Optional)")}
           </label>
           <Input

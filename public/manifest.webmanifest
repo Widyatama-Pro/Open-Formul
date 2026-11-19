@@ -1,0 +1,45 @@
+{
+  "name": "Open Formulasi",
+  "short_name": "Open Formulasi",
+  "description": "Aplikasi PWA offline-first lintas platform (Desktop & Mobile) untuk formulasi pakan ternak presisi berbasis Linear Programming (HiGHS WASM).",
+  "id": "./",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "lang": "id",
+  "theme_color": "#F5F4EF",
+  "background_color": "#F5F4EF",
+  "categories": ["productivity", "utilities", "education"],
+  "icons": [
+    {
+      "src": "pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "x_theme_placeholders": {
+    "defaultPalette": "original-default",
+    "defaultMode": "light",
+    "syncWith": "src/theme/pwa-theme-sync.ts",
+    "tokens": {
+      "theme_color": "var(--bg-canvas)",
+      "background_color": "var(--bg-canvas)",
+      "accent_color": "var(--color-accent)"
+    }
+  }
+}

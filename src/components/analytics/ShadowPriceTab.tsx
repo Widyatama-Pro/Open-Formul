@@ -1,7 +1,7 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { TrendingUp } from "lucide-react";
+import { Info, TrendingUp } from "lucide-react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
-import { formatIisBound, pickLang } from "../../i18n";
+import { getNutrientDisplayName, getNutrientFullName, pickLang } from "../../i18n";
 import { computeCriticalPriceLadder, type CriticalStep } from "../../solver";
 import type {
   AppLanguage,
@@ -28,6 +28,7 @@ export interface ShadowPriceTabProps {
   readonly ingredients: readonly Ingredient[];
   readonly requirement?: Requirement;
   readonly config?: FormulationConfig;
+  readonly simpleMode?: boolean;
   readonly language?: AppLanguage;
 }
 
@@ -40,6 +41,7 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
   ingredients,
   requirement,
   config,
+  simpleMode = true,
   language = "id",
 }: ShadowPriceTabProps) {
   const ingMap = useMemo(() => new Map(ingredients.map((i) => [i.id, i])), [ingredients]);
@@ -80,69 +82,83 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
     }
   };
 
-  // Unused import guard: formatIisBound stays available for future dual bound extensions if needed
-  void formatIisBound;
-
   return (
-    <div className="space-y-3.5 text-xs">
-      {/* Shadow Price Nutrisi */}
-      <div className="glass-card rounded-xl p-3.5">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="font-bold text-[#0F172A] dark:text-white">
+    <div className="space-y-3 text-xs">
+      {/* Kotak penjelasan ramah peternak tentang fungsi Harga Bayangan */}
+      <div className="flex items-start gap-2.5 rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-soft)] p-3 text-[11px] text-[var(--text-primary)]">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-success)]" />
+        <div className="space-y-0.5 leading-relaxed">
+          <p className="font-bold text-[var(--status-success)]">
+            {pickLang(language, "Apa itu Harga Bayangan (Shadow Price)?", "What is Shadow Price?")}
+          </p>
+          <p className="text-[var(--text-secondary)]">
             {pickLang(
               language,
-              "Shadow Price Kendala Nutrisi (Dual Value)",
-              "Nutrient Constraint Shadow Prices (Dual Value)",
+              "Harga Bayangan menunjukkan perkiraan perubahan biaya pakan per kg jika target suatu nutrien diubah 1 satuan. Contoh: jika PK bernilai Rp 180, menurunkan syarat minimal PK sebesar 1% dapat menghemat sekitar Rp 180/kg pakan. Nilai Rp 0 (Longgar) artinya batas nutrien tersebut tidak sedang menaikkan biaya.",
+              "Shadow Price estimates how much feed cost per kg changes when a nutrient bound shifts by 1 unit. A value of Rp 0 (Slack) means that constraint is not currently driving up ration cost.",
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* Harga Bayangan Nutrisi */}
+      <div className="glass-card rounded-xl p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h3 className="font-bold text-[var(--text-primary)]">
+            {pickLang(
+              language,
+              "Harga Bayangan Kendala Nutrisi",
+              "Nutrient Constraint Shadow Prices",
             )}
           </h3>
-          <Badge tone="emerald">HiGHS Simplex Dual</Badge>
+          <Badge tone="emerald">
+            {pickLang(language, "Analisis Sensitivitas", "Sensitivity Analysis")}
+          </Badge>
         </div>
-        <p className="mb-2.5 text-[11px] text-[#475569] dark:text-slate-300">
-          {pickLang(
-            language,
-            "Estimasi perubahan biaya per 1 unit pelonggaran batas nutrien (dipisahkan dari Bound Duals batas bahan).",
-            "Estimated cost change per 1-unit shift of nutrient bound (separated from ingredient Bound Duals).",
-          )}
-        </p>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
-            <thead className="border-b border-[#E2E8F0] text-[11px] font-bold text-[#475569] dark:border-[#1E333D] dark:text-slate-300">
+            <thead className="border-b border-[var(--border-subtle)] text-[11px] font-bold text-[var(--text-secondary)]">
               <tr>
                 <th className="py-1.5 text-left">{pickLang(language, "Nutrien", "Nutrient")}</th>
-                <th className="py-1.5 text-right">Shadow Price</th>
                 <th className="py-1.5 text-right">
-                  {pickLang(language, "Rentang RHS Valid", "Valid RHS Range")}
+                  {pickLang(language, "Harga Bayangan", "Shadow Price")}
+                </th>
+                <th className="py-1.5 text-right">
+                  {pickLang(language, "Rentang Batas Valid", "Valid Bound Range")}
                 </th>
                 <th className="py-1.5 text-right">
                   {pickLang(language, "Status Batas", "Bound Status")}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E2E8F0] dark:divide-[#1E333D]">
+            <tbody className="divide-y divide-[var(--border-subtle)]">
               {nutrients.map((n) => {
                 const meta = nutMap.get(n.nutrientId);
                 const sp = n.shadowPrice ?? 0;
-                const nutLabel =
-                  language === "id"
-                    ? (meta?.name ?? n.nutrientId)
-                    : (meta?.nameEn ?? meta?.name ?? n.nutrientId);
+                const nutLabel = meta
+                  ? getNutrientDisplayName(meta, language, simpleMode)
+                  : n.nutrientId;
+                const nutTitle = meta ? getNutrientFullName(meta, language) : n.nutrientId;
                 return (
                   <tr key={n.nutrientId}>
-                    <td className="py-1.5 font-semibold text-[#0F172A] dark:text-slate-100">
+                    <td
+                      title={nutTitle}
+                      className="py-1.5 font-semibold text-[var(--text-primary)]"
+                    >
                       {nutLabel} ({meta?.unit ?? ""})
                     </td>
-                    <td className="py-1.5 text-right font-medium tabular-nums text-[#0F172A] dark:text-slate-100">
+                    <td className="py-1.5 text-right font-medium tabular-nums text-[var(--text-primary)]">
                       <div>{sp !== 0 ? formatCurrencyIdr(sp) : "Rp 0"}</div>
                       {n.isDegenerate &&
                         (n.shadowPriceDown !== undefined || n.shadowPriceUp !== undefined) && (
-                          <div className="text-[10px] font-normal text-[#475569] dark:text-slate-400">
+                          <div className="text-[10px] font-normal text-[var(--text-muted)]">
                             ↓{" "}
                             {n.shadowPriceDown != null ? formatCurrencyIdr(n.shadowPriceDown) : "—"}{" "}
                             · ↑ {n.shadowPriceUp != null ? formatCurrencyIdr(n.shadowPriceUp) : "—"}
                           </div>
                         )}
                     </td>
-                    <td className="py-1.5 text-right font-medium tabular-nums text-[#475569] dark:text-slate-300">
+                    <td className="py-1.5 text-right font-medium tabular-nums text-[var(--text-secondary)]">
                       {n.rhsRange && (n.rhsRange.min !== null || n.rhsRange.max !== null)
                         ? `${n.rhsRange.min !== null ? formatNumberLocale(n.rhsRange.min, 2) : "0"} – ${
                             n.rhsRange.max !== null ? formatNumberLocale(n.rhsRange.max, 2) : "∞"
@@ -155,7 +171,7 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
                       ) : (
                         <Badge tone={sp !== 0 ? "amber" : "neutral"}>
                           {sp !== 0
-                            ? pickLang(language, "Mengikat", "Binding")
+                            ? pickLang(language, "Mengikat Biaya", "Binding")
                             : pickLang(language, "Longgar", "Slack")}
                         </Badge>
                       )}
@@ -168,26 +184,26 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
         </div>
       </div>
 
-      {/* PR-02: Kurva Tangga Harga Beli (Critical-Region Stepping) */}
+      {/* Peta Tangga Harga Beli */}
       {requirement && config && activeIngredients.length > 0 && (
-        <div className="glass-card rounded-xl p-3.5">
+        <div className="glass-card rounded-xl p-3">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h3 className="flex items-center gap-1.5 font-bold text-[#0F172A] dark:text-white">
-                <TrendingUp className="h-3.5 w-3.5 text-[#0E7490] dark:text-cyan-300" />
+              <h3 className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]">
+                <TrendingUp className="h-3.5 w-3.5 text-[var(--status-info)]" />
                 <span>
                   {pickLang(
                     language,
-                    "PR-02 · Peta Tangga Harga Beli (Buy / No-Buy Ladder)",
-                    "PR-02 · Parametric Buy / No-Buy Price Ladder",
+                    "Peta Tangga Harga Beli (Titik Layak Beli)",
+                    "Buy / No-Buy Price Ladder",
                   )}
                 </span>
               </h3>
-              <p className="mt-0.5 text-[11px] text-[#475569] dark:text-slate-300">
+              <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
                 {pickLang(
                   language,
-                  "Menelusuri titik breakpoint harga di mana porsi bahan berubah basisnya di HiGHS.",
-                  "Walks exact cost breakpoints where ingredient inclusion shifts in HiGHS simplex.",
+                  "Menunjukkan pada titik harga berapa persentase suatu bahan berubah dalam racikan.",
+                  "Shows the exact price breakpoints where an ingredient's inclusion share shifts.",
                 )}
               </p>
             </div>
@@ -224,15 +240,15 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
           {ladderLoading && (
             <div className="space-y-2 py-2" aria-label="Menghitung tangga harga">
               <div className="skeleton-shimmer h-4 w-2/3 rounded" />
-              <div className="skeleton-shimmer h-16 w-full rounded-lg" />
+              <div className="skeleton-shimmer h-14 w-full rounded-lg" />
             </div>
           )}
 
           {!ladderLoading && ladderSteps && ladderSteps.length === 0 && (
-            <p className="text-[11px] text-[#475569] dark:text-slate-300">
+            <p className="text-[11px] text-[var(--text-secondary)]">
               {pickLang(
                 language,
-                "Kurva tangga tidak tersedia pada kondisi infeasible atau error.",
+                "Kurva tangga tidak tersedia pada kondisi target tidak terpenuhi.",
                 "Price ladder unavailable when formulation is infeasible.",
               )}
             </p>
@@ -241,7 +257,7 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
           {!ladderLoading && ladderSteps && ladderSteps.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
-                <thead className="border-b border-[#E2E8F0] text-[11px] font-bold text-[#475569] dark:border-[#1E333D] dark:text-slate-300">
+                <thead className="border-b border-[var(--border-subtle)] text-[11px] font-bold text-[var(--text-secondary)]">
                   <tr>
                     <th className="py-1.5 text-left">
                       {pickLang(language, "Titik Harga Bahan", "Ingredient Price")}
@@ -254,20 +270,20 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E2E8F0] dark:divide-[#1E333D]">
+                <tbody className="divide-y divide-[var(--border-subtle)]">
                   {ladderSteps.map((step, idx) => {
                     const frac =
                       step.composition.find((c) => c.ingredientId === effectiveTargetId)
                         ?.fraction ?? 0;
                     return (
                       <tr key={`${step.price}-${idx}`}>
-                        <td className="py-1.5 font-semibold tabular-nums text-[#0F172A] dark:text-slate-100">
+                        <td className="py-1.5 font-semibold tabular-nums text-[var(--text-primary)]">
                           {formatCurrencyIdr(step.price)}
                         </td>
-                        <td className="py-1.5 text-right font-semibold tabular-nums text-[#059669] dark:text-emerald-400">
+                        <td className="py-1.5 text-right font-semibold tabular-nums text-[var(--status-success)]">
                           {formatNumberLocale(frac * 100, 2)}%
                         </td>
-                        <td className="py-1.5 text-right tabular-nums text-[#475569] dark:text-slate-200">
+                        <td className="py-1.5 text-right tabular-nums text-[var(--text-secondary)]">
                           {step.costPerKg !== null ? formatCurrencyIdr(step.costPerKg) : "—"}
                         </td>
                       </tr>
@@ -280,17 +296,17 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
         </div>
       )}
 
-      {/* Price Range bahan terpilih & Opportunity Cost bahan 0% */}
-      <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-2">
-        <div className="glass-card rounded-xl p-3.5">
-          <h3 className="mb-2.5 font-bold text-[#0F172A] dark:text-white">
+      {/* Rentang Harga Aman & Harga Impas bahan belum terpakai */}
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <div className="glass-card rounded-xl p-3">
+          <h3 className="mb-2 font-bold text-[var(--text-primary)]">
             {pickLang(
               language,
               "Rentang Harga Aman Bahan Terpilih",
               "Safe Price Range (Selected Feeds)",
             )}
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {composition.map((item) => {
               const ing = ingMap.get(item.ingredientId);
               const ingLabel = ing
@@ -301,12 +317,12 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
               return (
                 <div
                   key={item.ingredientId}
-                  className="flex items-center justify-between gap-2 border-b border-[#E2E8F0] pb-1.5 last:border-b-0 dark:border-[#1E333D]"
+                  className="flex items-center justify-between gap-2 border-b border-[var(--border-subtle)] pb-1.5 last:border-b-0"
                 >
-                  <span className="truncate font-semibold text-[#0F172A] dark:text-slate-100">
+                  <span className="truncate font-semibold text-[var(--text-primary)]">
                     {ingLabel}
                   </span>
-                  <span className="shrink-0 font-medium tabular-nums text-[#475569] dark:text-slate-200">
+                  <span className="shrink-0 font-medium tabular-nums text-[var(--text-secondary)]">
                     {item.priceRange?.minPrice !== null && item.priceRange?.minPrice !== undefined
                       ? formatCurrencyIdr(item.priceRange.minPrice)
                       : "0"}{" "}
@@ -321,19 +337,19 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
           </div>
         </div>
 
-        <div className="glass-card rounded-xl p-3.5">
-          <h3 className="mb-2.5 font-bold text-[#0F172A] dark:text-white">
+        <div className="glass-card rounded-xl p-3">
+          <h3 className="mb-2 font-bold text-[var(--text-primary)]">
             {pickLang(
               language,
-              "Opportunity Cost (Bahan Tidak Terpakai 0%)",
+              "Harga Impas Bahan Belum Dipakai (0%)",
               "Opportunity Cost (Unused Feeds 0%)",
             )}
           </h3>
           {opportunityCosts.length === 0 ? (
-            <p className="text-[11px] text-[#475569] dark:text-slate-300">
+            <p className="text-[11px] text-[var(--text-secondary)]">
               {pickLang(
                 language,
-                "Semua bahan aktif masuk dalam formula.",
+                "Semua bahan aktif sudah masuk dalam formula.",
                 "All active ingredients are included in the ration.",
               )}
             </p>
@@ -347,15 +363,15 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
                     : (ing.nameEn ?? ing.name)
                   : opp.ingredientId;
                 return (
-                  <div key={opp.ingredientId} className="neu-well rounded-lg p-2.5">
-                    <div className="flex justify-between font-semibold text-[#0F172A] dark:text-white">
+                  <div key={opp.ingredientId} className="neu-well rounded-lg p-2">
+                    <div className="flex justify-between font-semibold text-[var(--text-primary)]">
                       <span>{ingLabel}</span>
-                      <span className="tabular-nums text-[#059669] dark:text-emerald-300">
-                        {pickLang(language, "Impas ≤", "Break-even ≤")}{" "}
+                      <span className="tabular-nums text-[var(--status-success)]">
+                        {pickLang(language, "Layak ≤", "Break-even ≤")}{" "}
                         {formatCurrencyIdr(opp.opportunityPrice)}/kg
                       </span>
                     </div>
-                    <p className="mt-0.5 text-[11px] tabular-nums text-[#475569] dark:text-slate-300">
+                    <p className="mt-0.5 text-[11px] tabular-nums text-[var(--text-secondary)]">
                       {pickLang(
                         language,
                         `Harga saat ini ${formatCurrencyIdr(opp.currentPrice)} (turunkan ${formatCurrencyIdr(opp.reducedCost)} agar masuk ransum)`,
@@ -369,11 +385,11 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
           )}
 
           {boundDuals.length > 0 && (
-            <div className="mt-3 border-t border-[#E2E8F0] pt-2.5 dark:border-[#1E333D]">
-              <p className="mb-1 text-[11px] font-bold text-[#0F172A] dark:text-slate-200">
+            <div className="mt-3 border-t border-[var(--border-subtle)] pt-2">
+              <p className="mb-1 text-[11px] font-bold text-[var(--text-primary)]">
                 {pickLang(
                   language,
-                  "Bound Duals (Bahan Menempel Batas Min/Max)",
+                  "Dampak Batas Bahan (Menempel Min/Maks)",
                   "Bound Duals (Feeds at Min/Max Bounds)",
                 )}
               </p>
@@ -387,12 +403,12 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
                 return (
                   <div
                     key={bd.ingredientId}
-                    className="flex justify-between text-[11px] tabular-nums text-[#475569] dark:text-slate-300"
+                    className="flex justify-between text-[11px] tabular-nums text-[var(--text-secondary)]"
                   >
                     <span>
-                      {ingLabel} ({bd.boundHit})
+                      {ingLabel} ({bd.boundHit === "min" ? "Min" : "Maks"})
                     </span>
-                    <span>{formatNumberLocale(bd.dualValue, 0)} IDR/%</span>
+                    <span>{formatNumberLocale(bd.dualValue, 0)} Rp/%</span>
                   </div>
                 );
               })}

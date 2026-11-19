@@ -51,8 +51,8 @@ npm run build
 
 - **HiGHS LP/SLP Solver in Web Worker:** 5 optimization modes (including Mode 5 Chebyshev minimax $\epsilon$-lexicographic), priority-tiered L1 elastic relaxation (`near_feasible`), Chinneck minimal IIS diagnostics, RHS validity ranges & directional duals, parametric Buy/No-Buy price ladder, Dinkelbach fractional cost-per-nutrient LP, Munford/Cantelli stochastic chance constraints, and sub-additive multi-enzyme matrices.
 - **Consistent Nutritional Basis & Rumen Biology:** Automatic As-Fed ↔ Dry Matter (BK/DM) normalization (including stochastic $\sigma$ scaling), linearized nutrient ratios (`Ca:P`), active `dEB`/`DCAD` electrolyte balance, post-solve CNCPS v6.5 / NASEM 2021 rumen evaluation (`peuNDF240`, `DMI`, `kp`, `MCP`, `eCH4`), strict `0` vs `N/A` (`null`) distinction, and full custom nutrient definitions.
-- **Built-in Reference Libraries & Full Bilingual UI (`ID / EN`):** 304 feeds from Hartadi 1980, 82 Kearl 1982 profiles, and 24 NRC 1988 dairy profiles archived under [`docs/references/`](docs/references/), plus complete Indonesian/English localization (`src/i18n/`).
-- **Spreadsheet & Mill I/O:** Excel/Sheets TSV block paste directly into the ingredient grid, non-destructive CSV/JSON merge, `.feed.json` (v1) recipe portability, `.xlsx` workbooks, and operator-safe `batch_only` PDFs gated on `optimal` solver status.
+- **Built-in Reference Libraries & Full Bilingual UI (`ID / EN`):** 304 feeds from Hartadi 1980 grouped into the 8 standard International Feed Classes (`src/data/feed-classes.ts`), **22 official SNI livestock requirement profiles** with publication years (`src/data/sni-requirements.ts`: SNI 8173:2015, 8290:2016, 7783:2013, 3908–3910:2017, 3148:2017, 8819:2019), 82 Kearl 1982 profiles, and 24 NRC 1988 dairy profiles archived under [`docs/references/`](docs/references/), plus complete Indonesian/English localization (`src/i18n/`).
+- **Farmer-Focused Desktop Workbench, Multi-Theme Tactile UI & PDF Reporting:** Clean **Open Formulasi** header & collapsible sidebar, 7 color palettes × Light/Dark (**14 Tactile Neumorphism variants** + Android OLED `#000000` managed via `ThemeProvider` & progressive-disclosure `ThemeSwitcherMenu` inside Settings with dynamic PWA `<meta name="theme-color">` and Capacitor StatusBar/NavigationBar luminance sync), split **Pakan yang Digunakan** (column show/hide checkboxes, slide-resizable name column, Mode Simpel abbreviations) and virtualized **Daftar Semua Bahan** tables, actual-first expandable Target Nutrien panel, reactive theme-aware charts, Indonesian **Harga Bayangan** & **What-If** guidance, automatic macro-safe Anti-Nol & NDF/LP precision settings, plus crisp light-paper columnar PDF 1.4 exports (`full`, operator `batch_only`, ingredient database, and saved recipes, invariant in Dark/AMOLED mode) alongside spreadsheet TSV block paste.
 
 ## Architecture
 
@@ -67,12 +67,13 @@ flowchart LR
 
 ```text
 src/
-├── components/   # Precision Agritech UI, formulation grid, precision LP modal, analytics, export dialogs
-├── data/         # Sample JSON, Hartadi 1980 (304), Kearl 1982 (82), NRC 1988 (24)
+├── components/   # Tactile Neumorphism UI, formulation grid, precision LP modal, analytics, Settings theme switcher, export dialogs
+├── data/         # Sample JSON, 8 IFN feed classes, SNI standards (22), Hartadi 1980 (304), Kearl 1982 (82), NRC 1988 (24)
 ├── hooks/        # Store orchestration & PWA lifecycle hooks
 ├── i18n/         # Full ID / EN localization helpers & conflict translators
 ├── solver/       # Pure LP/SLP builder, IIS, stepping, stochastic, enzymes, rumen evaluator, HiGHS worker
 ├── storage/      # IndexedDB (idb), .feed.json, CSV/OOXML .xlsx, PDF 1.4 generators
+├── theme/        # 7-palette × Light/Dark (14 variants + AMOLED) tokens, Tactile Neumorphism shadows, PWA & Android system bar sync
 ├── types/        # Canonical domain TypeScript types
 └── utils/        # Basis math, nutrition equations, validators, TSV paste
 ```

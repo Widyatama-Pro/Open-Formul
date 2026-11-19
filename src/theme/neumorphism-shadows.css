@@ -1,0 +1,250 @@
+/* ============================================================================
+ * Portable Multi-Theme Design System — Tactile Neumorphism Shadows
+ * Calibrated by surface relative luminance (Y) across all 7 palettes x 2 modes
+ * Variables provided:
+ *   --shadow-neu-flat
+ *   --shadow-neu-pressed
+ *   --shadow-neu-elevated
+ * ========================================================================== */
+
+/* Default Light Fallback & Shared Structural Rules */
+:root,
+[data-mode="light"] {
+  --neu-rim: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  --shadow-neu-flat:
+    6px 6px 14px var(--shadow-dark), -6px -6px 14px var(--shadow-light),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --shadow-neu-pressed:
+    inset 4px 4px 10px var(--shadow-dark), inset -4px -4px 10px var(--shadow-light);
+  --shadow-neu-elevated:
+    12px 12px 26px var(--shadow-dark), -10px -10px 22px var(--shadow-light),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+[data-mode="dark"] {
+  --neu-rim: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --shadow-neu-flat:
+    6px 6px 16px var(--shadow-dark), -4px -4px 12px var(--shadow-light),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-neu-pressed:
+    inset 4px 4px 10px var(--shadow-dark), inset -3px -3px 8px var(--shadow-light);
+  --shadow-neu-elevated:
+    14px 14px 32px var(--shadow-dark), -6px -6px 18px var(--shadow-light),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+/* Per-Palette Luminance-Calibrated Overrides (14 Variants) */
+[data-theme="original-default"][data-mode="light"] {
+  --shadow-neu-flat:
+    6px 6px 14px rgba(18, 36, 32, 0.14), -6px -6px 14px rgba(255, 255, 255, 0.82),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --shadow-neu-pressed:
+    inset 4px 4px 9px rgba(18, 36, 32, 0.16), inset -4px -4px 9px rgba(255, 255, 255, 0.78);
+  --shadow-neu-elevated:
+    12px 12px 26px rgba(18, 36, 32, 0.18), -10px -10px 22px rgba(255, 255, 255, 0.86),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+[data-theme="original-default"][data-mode="dark"] {
+  --shadow-neu-flat:
+    6px 6px 16px rgba(4, 9, 8, 0.72), -4px -4px 12px rgba(46, 78, 70, 0.26),
+    inset 0 1px 0 rgba(231, 235, 230, 0.07);
+  --shadow-neu-pressed:
+    inset 4px 4px 10px rgba(4, 9, 8, 0.78), inset -3px -3px 8px rgba(46, 78, 70, 0.22);
+  --shadow-neu-elevated:
+    14px 14px 30px rgba(4, 9, 8, 0.8), -6px -6px 16px rgba(46, 78, 70, 0.3),
+    inset 0 1px 0 rgba(231, 235, 230, 0.09);
+}
+
+[data-theme="prd-custom"][data-mode="light"] {
+  --shadow-neu-flat:
+    6px 6px 14px rgba(22, 38, 33, 0.15), -6px -6px 14px rgba(255, 255, 255, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+  --shadow-neu-pressed:
+    inset 4px 4px 9px rgba(22, 38, 33, 0.17), inset -4px -4px 9px rgba(255, 255, 255, 0.82);
+  --shadow-neu-elevated:
+    12px 12px 26px rgba(22, 38, 33, 0.19), -10px -10px 22px rgba(255, 255, 255, 0.88),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
+}
+[data-theme="prd-custom"][data-mode="dark"] {
+  --shadow-neu-flat:
+    6px 6px 16px rgba(3, 6, 5, 0.76), -4px -4px 12px rgba(45, 66, 61, 0.25),
+    inset 0 1px 0 rgba(231, 236, 234, 0.06);
+  --shadow-neu-pressed:
+    inset 4px 4px 10px rgba(3, 6, 5, 0.82), inset -3px -3px 8px rgba(45, 66, 61, 0.22);
+  --shadow-neu-elevated:
+    14px 14px 30px rgba(3, 6, 5, 0.84), -6px -6px 16px rgba(45, 66, 61, 0.28),
+    inset 0 1px 0 rgba(231, 236, 234, 0.09);
+}
+
+[data-theme="template-01"][data-mode="light"] {
+  --shadow-neu-flat:
+    6px 6px 14px rgba(17, 17, 17, 0.14), -6px -6px 14px rgba(255, 255, 255, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  --shadow-neu-pressed:
+    inset 4px 4px 9px rgba(17, 17, 17, 0.16), inset -4px -4px 9px rgba(255, 255, 255, 0.86);
+  --shadow-neu-elevated:
+    12px 12px 26px rgba(17, 17, 17, 0.18), -10px -10px 22px rgba(255, 255, 255, 0.94),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+[data-theme="template-01"][data-mode="dark"] {
+  --shadow-neu-flat:
+    6px 6px 16px rgba(0, 0, 0, 0.8), -4px -4px 12px rgba(65, 65, 65, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --shadow-neu-pressed:
+    inset 4px 4px 10px rgba(0, 0, 0, 0.84), inset -3px -3px 8px rgba(65, 65, 65, 0.22);
+  --shadow-neu-elevated:
+    14px 14px 32px rgba(0, 0, 0, 0.88), -6px -6px 18px rgba(65, 65, 65, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="template-02"][data-mode="light"] {
+  --shadow-neu-flat:
+    6px 6px 14px rgba(36, 36, 36, 0.13), -6px -6px 14px rgba(255, 255, 255, 0.92),
+    inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  --shadow-neu-pressed:
+    inset 4px 4px 9px rgba(36, 36, 36, 0.15), inset -4px -4px 9px rgba(255, 255, 255, 0.9);
+  --shadow-neu-elevated:
+    12px 12px 26px rgba(36, 36, 36, 0.17), -10px -10px 22px rgba(255, 255, 255, 0.96),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+[data-theme="template-02"][data-mode="dark"] {
+  --shadow-neu-flat:
+    6px 6px 16px rgba(6, 7, 9, 0.78), -4px -4px 12px rgba(72, 76, 94, 0.28),
+    inset 0 1px 0 rgba(251, 251, 251, 0.07);
+  --shadow-neu-pressed:
+    inset 4px 4px 10px rgba(6, 7, 9, 0.82), inset -3px -3px 8px rgba(72, 76, 94, 0.24);
+  --shadow-neu-elevated:
+    14px 14px 32px rgba(6, 7, 9, 0.86), -6px -6px 18px rgba(72, 76, 94, 0.3),
+    inset 0 1px 0 rgba(251, 251, 251, 0.1);
+}
+
+[data-theme="template-03"][data-mode="light"] {
+  --shadow-neu-flat:
+    6px 6px 14px rgba(14, 15, 11, 0.15), -6px -6px 14px rgba(255, 255, 255, 0.88),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --shadow-neu-pressed:
+    inset 4px 4px 9px rgba(14, 15, 11, 0.17), inset -4px -4px 9px rgba(255, 255, 255, 0.85);
+  --shadow-neu-elevated:
+    12px 12px 26px rgba(14, 15, 11, 0.19), -10px -10px 22px rgba(255, 255, 255, 0.92),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+[data-theme="template-03"][data-mode="dark"] {
+  --shadow-neu-flat:
+    6px 6px 16px rgba(2, 3, 2, 0.82), -4px -4px 12px rgba(52, 58, 46, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --shadow-neu-pressed:
+    inset 4px 4px 10px rgba(2, 3, 2, 0.86), inset -3px -3px 8px rgba(52, 58, 46, 0.24);
+  --shadow-neu-elevated:
+    14px 14px 32px rgba(2, 3, 2, 0.88), -6px -6px 18px rgba(52, 58, 46, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="template-04"][data-mode="light"] {
+  --shadow-neu-flat:
+    6px 6px 14px rgba(32, 45, 65, 0.14), -6px -6px 14px rgba(255, 255, 255, 0.92),
+    inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  --shadow-neu-pressed:
+    inset 4px 4px 9px rgba(32, 45, 65, 0.16), inset -4px -4px 9px rgba(255, 255, 255, 0.9);
+  --shadow-neu-elevated:
+    12px 12px 26px rgba(32, 45, 65, 0.18), -10px -10px 22px rgba(255, 255, 255, 0.96),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+[data-theme="template-04"][data-mode="dark"] {
+  --shadow-neu-flat:
+    6px 6px 16px rgba(5, 8, 12, 0.8), -4px -4px 12px rgba(58, 79, 112, 0.28),
+    inset 0 1px 0 rgba(238, 254, 254, 0.07);
+  --shadow-neu-pressed:
+    inset 4px 4px 10px rgba(5, 8, 12, 0.84), inset -3px -3px 8px rgba(58, 79, 112, 0.24);
+  --shadow-neu-elevated:
+    14px 14px 32px rgba(5, 8, 12, 0.86), -6px -6px 18px rgba(58, 79, 112, 0.32),
+    inset 0 1px 0 rgba(238, 254, 254, 0.1);
+}
+
+[data-theme="template-05"][data-mode="light"] {
+  --shadow-neu-flat:
+    6px 6px 14px rgba(20, 68, 37, 0.15), -6px -6px 14px rgba(255, 255, 255, 0.88),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --shadow-neu-pressed:
+    inset 4px 4px 9px rgba(20, 68, 37, 0.17), inset -4px -4px 9px rgba(255, 255, 255, 0.85);
+  --shadow-neu-elevated:
+    12px 12px 26px rgba(20, 68, 37, 0.19), -10px -10px 22px rgba(255, 255, 255, 0.92),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+[data-theme="template-05"][data-mode="dark"] {
+  --shadow-neu-flat:
+    6px 6px 16px rgba(2, 8, 4, 0.82), -4px -4px 12px rgba(42, 110, 66, 0.28),
+    inset 0 1px 0 rgba(228, 233, 213, 0.08);
+  --shadow-neu-pressed:
+    inset 4px 4px 10px rgba(2, 8, 4, 0.86), inset -3px -3px 8px rgba(42, 110, 66, 0.24);
+  --shadow-neu-elevated:
+    14px 14px 32px rgba(2, 8, 4, 0.88), -6px -6px 18px rgba(42, 110, 66, 0.32),
+    inset 0 1px 0 rgba(228, 233, 213, 0.11);
+}
+
+/* AMOLED Pure-Black Override for OLED Android Displays (Crisp Rim, Zero Banding) */
+[data-mode="dark"][data-amoled="true"] {
+  --shadow-neu-flat: 0 4px 12px rgba(0, 0, 0, 0.92), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --shadow-neu-pressed:
+    inset 0 2px 6px rgba(0, 0, 0, 0.94), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --shadow-neu-elevated: 0 12px 28px rgba(0, 0, 0, 0.96), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+/* Ready-to-Use Tactile Neumorphism Surface Utility Classes (Tailwind v4 layered) */
+@layer components {
+  .neu-flat {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-neu-flat);
+  }
+
+  .neu-pressed {
+    background-color: var(--bg-sunken);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-neu-pressed);
+  }
+
+  .neu-elevated {
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-neu-elevated);
+  }
+
+  .neu-button {
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-neu-flat);
+    transition:
+      transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 180ms ease-out,
+      background-color 180ms ease-out,
+      border-color 180ms ease-out;
+  }
+
+  .neu-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    background-color: var(--bg-surface-elevated);
+  }
+
+  .neu-button:active:not(:disabled) {
+    transform: scale3d(0.97, 0.97, 1);
+    box-shadow: var(--shadow-neu-pressed);
+  }
+
+  .neu-button:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .neu-input {
+    background-color: var(--bg-sunken);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-neu-pressed);
+  }
+
+  .neu-input:focus {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+  }
+}

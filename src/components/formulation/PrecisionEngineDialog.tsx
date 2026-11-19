@@ -1,4 +1,5 @@
 import { FlaskConical, Gauge, RotateCcw, Sliders } from "lucide-react";
+import { pickLang } from "../../i18n";
 import type {
   AppLanguage,
   EnzymeConfig,
@@ -6,7 +7,6 @@ import type {
   Nutrient,
   NutrientId,
 } from "../../types";
-import { pickLang } from "../../i18n";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
@@ -109,13 +109,13 @@ export function PrecisionEngineDialog({
       onClose={onClose}
       title={pickLang(
         language,
-        "Modul Presisi Solver (PR-03 · PR-04 · PR-05)",
-        "Precision Solver Modules (PR-03 · PR-04 · PR-05)",
+        "Pengaturan Presisi LP (Lanjutan)",
+        "Precision LP Settings (Advanced)",
       )}
       subtitle={pickLang(
         language,
-        "Berjalan 100% offline di Web Worker HiGHS WASM tanpa mengganggu kesederhanaan grid utama.",
-        "Runs 100% offline inside the HiGHS WASM Web Worker.",
+        "Opsi lanjutan untuk optimasi biaya per nutrien, margin keamanan variasi bahan, dan matriks multi-enzim.",
+        "Advanced options for cost-per-nutrient optimization, stochastic safety margins, and multi-enzyme matrices.",
       )}
       footer={
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -145,12 +145,12 @@ export function PrecisionEngineDialog({
         <div className="glass-card rounded-2xl p-3.5">
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Gauge className="h-4 w-4 text-[#0E7490] dark:text-cyan-300" />
-              <h3 className="font-bold text-[#0F172A] dark:text-white">
+              <Gauge className="h-4 w-4 text-[var(--status-info)]" />
+              <h3 className="font-bold text-[var(--text-primary)]">
                 {pickLang(
                   language,
-                  "PR-03 · Sasaran Objektif Fraksional (Charnes–Cooper)",
-                  "PR-03 · Fractional Objective (Charnes–Cooper)",
+                  "Sasaran Objektif Fraksional (Biaya / Nutrien)",
+                  "Fractional Objective (Cost / Nutrient)",
                 )}
               </h3>
             </div>
@@ -160,7 +160,7 @@ export function PrecisionEngineDialog({
                 : pickLang(language, "Standar Rp/kg", "Standard Cost/kg")}
             </Badge>
           </div>
-          <p className="mb-2.5 text-[11px] text-[#475569] dark:text-slate-300">
+          <p className="mb-2.5 text-[11px] text-[var(--text-secondary)]">
             {pickLang(
               language,
               "Minimalkan biaya per unit energi atau asam amino (Rp/Mcal atau Rp/% nutrien) melalui iterasi Dinkelbach dengan pelindung penyebut 0/0.",
@@ -201,12 +201,12 @@ export function PrecisionEngineDialog({
         <div className="glass-card rounded-2xl p-3.5">
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Sliders className="h-4 w-4 text-[#D97706] dark:text-amber-300" />
-              <h3 className="font-bold text-[#0F172A] dark:text-white">
+              <Sliders className="h-4 w-4 text-[var(--status-warning)]" />
+              <h3 className="font-bold text-[var(--text-primary)]">
                 {pickLang(
                   language,
-                  "PR-04 · Formulasi Stokastik (Munford SLP & Cantelli)",
-                  "PR-04 · Stochastic Formulation (Munford SLP & Cantelli)",
+                  "Formulasi Stokastik & Margin Keamanan",
+                  "Stochastic Formulation & Safety Margins",
                 )}
               </h3>
             </div>
@@ -220,7 +220,7 @@ export function PrecisionEngineDialog({
               )}
             />
           </div>
-          <p className="mb-2.5 text-[11px] text-[#475569] dark:text-slate-300">
+          <p className="mb-2.5 text-[11px] text-[var(--text-secondary)]">
             {pickLang(
               language,
               "Memperhitungkan simpangan baku nutrien bahan (σ di Detail Bahan) dan varians kebutuhan ternak (di panel Target Nutrien).",
@@ -231,7 +231,7 @@ export function PrecisionEngineDialog({
             <div>
               <label
                 htmlFor="stochastic-max-iter"
-                className="mb-1 block text-[11px] font-semibold text-[#0F172A] dark:text-slate-200"
+                className="mb-1 block text-[11px] font-semibold text-[var(--text-primary)]"
               >
                 {pickLang(language, "Maks Iterasi SLP", "Max SLP Iterations")}
               </label>
@@ -252,7 +252,7 @@ export function PrecisionEngineDialog({
             <div>
               <label
                 htmlFor="stochastic-damping"
-                className="mb-1 block text-[11px] font-semibold text-[#0F172A] dark:text-slate-200"
+                className="mb-1 block text-[11px] font-semibold text-[var(--text-primary)]"
               >
                 {pickLang(language, "Redaman α (0,1–1,0)", "Damping α (0.1–1.0)")}
               </label>
@@ -273,7 +273,7 @@ export function PrecisionEngineDialog({
             </div>
           </div>
           {config.enableStochasticSlp === true && stochasticIterations !== undefined && (
-            <p className="mt-2 text-[11px] font-medium text-[#059669] dark:text-emerald-300">
+            <p className="mt-2 text-[11px] font-medium text-[var(--status-success)]">
               {pickLang(
                 language,
                 `Terakhir konvergen dalam ${stochasticIterations} iterasi SLP.`,
@@ -287,12 +287,12 @@ export function PrecisionEngineDialog({
         <div className="glass-card rounded-2xl p-3.5">
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <FlaskConical className="h-4 w-4 text-[#059669] dark:text-emerald-300" />
-              <h3 className="font-bold text-[#0F172A] dark:text-white">
+              <FlaskConical className="h-4 w-4 text-[var(--status-success)]" />
+              <h3 className="font-bold text-[var(--text-primary)]">
                 {pickLang(
                   language,
-                  "PR-05 · Matriks Multi-Enzim Sub-Aditif",
-                  "PR-05 · Sub-Additive Multi-Enzyme Matrix",
+                  "Matriks Multi-Enzim Sub-Aditif",
+                  "Sub-Additive Multi-Enzyme Matrix",
                 )}
               </h3>
             </div>
@@ -300,7 +300,7 @@ export function PrecisionEngineDialog({
               {activeEnzymes.length} {pickLang(language, "enzim aktif", "active")}
             </Badge>
           </div>
-          <p className="mb-2.5 text-[11px] text-[#475569] dark:text-slate-300">
+          <p className="mb-2.5 text-[11px] text-[var(--text-secondary)]">
             {pickLang(
               language,
               "Menambahkan uplift nutrien sesuai retensi termal peleting dan plafon anti hitung ganda ψ.",
@@ -316,19 +316,19 @@ export function PrecisionEngineDialog({
                   key={preset.id}
                   className="neu-well flex flex-wrap items-center justify-between gap-2 rounded-xl p-2.5"
                 >
-                  <label className="flex cursor-pointer items-center gap-2 font-semibold text-[#0F172A] dark:text-slate-100">
+                  <label className="flex cursor-pointer items-center gap-2 font-semibold text-[var(--text-primary)]">
                     <input
                       type="checkbox"
                       checked={Boolean(active)}
                       onChange={() => toggleEnzymePreset(preset)}
-                      className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-[#059669]"
+                      className="h-4 w-4 cursor-pointer rounded border-[var(--border-subtle)] accent-[var(--color-primary)]"
                     />
                     <span>{language === "id" ? preset.labelId : preset.labelEn}</span>
                   </label>
 
                   {active && (
                     <div className="flex items-center gap-1.5 text-[11px]">
-                      <span className="text-[#475569] dark:text-slate-300">
+                      <span className="text-[var(--text-secondary)]">
                         {pickLang(language, "Retensi Termal:", "Thermal Ret.:")}
                       </span>
                       <Select
@@ -349,8 +349,8 @@ export function PrecisionEngineDialog({
             })}
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#E2E8F0] pt-2.5 dark:border-[#1E333D]">
-            <span className="text-[11px] font-semibold text-[#0F172A] dark:text-slate-200">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-2.5">
+            <span className="text-[11px] font-semibold text-[var(--text-primary)]">
               {pickLang(
                 language,
                 "Plafon Sub-Aditif Gabungan (ψ)",

@@ -1,8 +1,17 @@
 import { memo, useState } from "react";
-import { AlertTriangle, PanelRightClose, Plus, Trash2, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  ChevronsRight,
+  Plus,
+  SlidersHorizontal,
+  Trash2,
+  X,
+} from "lucide-react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
 import type { ConstraintPatch } from "../../hooks/use-prototype-store";
-import { getTierLabel, pickLang } from "../../i18n";
+import { getNutrientDisplayName, getNutrientFullName, getTierLabel, pickLang } from "../../i18n";
 import type {
   AppLanguage,
   Basis,
@@ -30,6 +39,8 @@ export interface NutrientTargetsPanelProps {
   readonly allNutrients?: readonly Nutrient[];
   readonly activeBasis: Basis;
   readonly enableAdvance: boolean;
+  readonly showNdf?: boolean;
+  readonly simpleMode?: boolean;
   readonly enableDigestible: boolean;
   readonly enableStochastic?: boolean;
   readonly onToggleDigestible: (val: boolean) => void;
@@ -58,17 +69,39 @@ const NUTRIENT_UNITS: readonly NutrientUnit[] = [
   "mEq/kg",
 ];
 
+const NDF_IDS = new Set(["ndf", "adf"]);
 const TIER_CYCLE: readonly ConstraintTier[] = ["tier0", "tier1", "tier2", "tier3"];
 
+function formatCompactBoundSummary(
+  min: number | undefined,
+  max: number | undefined,
+  digits: number,
+  language: AppLanguage,
+): string {
+  if (min !== undefined && max !== undefined) {
+    return `${formatNumberLocale(min, digits)}–${formatNumberLocale(max, digits)}`;
+  }
+  if (min !== undefined) {
+    return `≥ ${formatNumberLocale(min, digits)}`;
+  }
+  if (max !== undefined) {
+    return `≤ ${formatNumberLocale(max, digits)}`;
+  }
+  return pickLang(language, "Tanpa batas", "No limit");
+}
+
 /**
- * Panel inspector Target Nutrien ramping (maks 310px di desktop) dengan scrollbar ultra-tipis
- * dan tata letak ringkas bebas overflow horizontal.
+ * Panel Target Nutrien ramping:
+ * - Default menampilkan nilai aktual secara ringkas & jelas
+ * - Input Min & Max tersembunyi secara default dan melebar (expand) saat nutrien diaktifkan
  */
 export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
   requirement,
   allNutrients = MOCK_NUTRIENTS,
   activeBasis,
   enableAdvance,
+  showNdf = false,
+  simpleMode = !enableAdvance,
   enableDigestible,
   enableStochastic = false,
   onToggleDigestible,
@@ -88,6 +121,7 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
   const [customMinRaw, setCustomMinRaw] = useState("");
   const [customMaxRaw, setCustomMaxRaw] = useState("");
   const [customError, setCustomError] = useState<string | null>(null);
+  const [expandedNutrients, setExpandedNutrients] = useState<ReadonlySet<string>>(() => new Set());
 
   const resultMap = new Map<string, NutrientResult>(nutrientResults.map((r) => [r.nutrientId, r]));
   const achievedMap = new Map<string, number>(nutrientResults.map((r) => [r.nutrientId, r.value]));
@@ -96,10 +130,31 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
     if (nut.isCustom) return true;
     const isBasic = (nut.tier ?? "basic") === "basic";
     if (isBasic) return true;
+    if (showNdf && NDF_IDS.has(nut.id)) return true;
     if (!enableAdvance) return false;
     if (nut.isDigestibleVariant && !enableDigestible) return false;
     return true;
   });
+
+  const allExpanded =
+    visibleNutrients.length > 0 && visibleNutrients.every((n) => expandedNutrients.has(n.id));
+
+  const toggleNutrientExpanded = (id: string) => {
+    setExpandedNutrients((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleExpandAll = () => {
+    if (allExpanded) {
+      setExpandedNutrients(new Set());
+    } else {
+      setExpandedNutrients(new Set(visibleNutrients.map((n) => n.id)));
+    }
+  };
 
   const handleSaveCustom = () => {
     if (!onAddCustomNutrient) return;
@@ -146,12 +201,30 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
 
   return (
     <Card interactive={false} className="flex h-full flex-col overflow-hidden">
-      <div className="border-b border-[#E2E8F0] px-3 py-2.5 dark:border-[#1E333D]">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="truncate text-xs font-bold tracking-tight text-[#0F172A] dark:text-white">
+      <div className="border-b border-[var(--border-subtle)] px-3 py-2.5">
+        <div className="flex items-center justify-between gap-1.5">
+          <h2 className="truncate text-xs font-bold tracking-tight text-[var(--text-primary)]">
             {pickLang(language, "Target Nutrien", "Nutrient Targets")}
           </h2>
           <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleExpandAll}
+              title={
+                allExpanded
+                  ? pickLang(language, "Sembunyikan semua input Min/Max", "Hide all Min/Max bounds")
+                  : pickLang(language, "Buka semua input Min/Max", "Expand all Min/Max bounds")
+              }
+              className="min-h-7 px-1.5 text-[10px] md:min-h-7"
+            >
+              <SlidersHorizontal className="h-3 w-3" />
+              <span>
+                {allExpanded
+                  ? pickLang(language, "Ringkas", "Compact")
+                  : pickLang(language, "Edit Batas", "Edit Bounds")}
+              </span>
+            </Button>
             {onAddCustomNutrient && (
               <Button
                 variant="secondary"
@@ -162,7 +235,7 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
                   setCustomError(null);
                 }}
                 aria-label={pickLang(language, "Tambah Nutrien Kustom", "Add Custom Nutrient")}
-                className="min-h-7 px-2 text-[11px] md:min-h-7"
+                className="min-h-7 px-2 text-[10px] md:min-h-7"
               >
                 {showCustomForm ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
                 <span>
@@ -189,13 +262,13 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
                 )}
                 className="hidden min-h-7 w-7 p-0 lg:inline-flex"
               >
-                <PanelRightClose className="h-3.5 w-3.5" />
+                <ChevronsRight className="h-4 w-4" />
               </Button>
             )}
           </div>
         </div>
         <div className="mt-1 flex items-center justify-between gap-2">
-          <p className="min-w-0 truncate text-[11px] font-medium text-[#475569] dark:text-slate-300">
+          <p className="min-w-0 truncate text-[11px] font-medium text-[var(--text-secondary)]">
             {language === "id" ? requirement.name : (requirement.nameEn ?? requirement.name)}
           </p>
           <Badge tone={activeBasis === "as_fed" ? "sky" : "emerald"}>
@@ -205,10 +278,10 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
         </div>
       </div>
 
-      <div className="custom-scrollbar flex-1 overflow-y-auto p-3">
+      <div className="custom-scrollbar flex-1 overflow-y-auto p-2.5">
         {showCustomForm && onAddCustomNutrient && (
-          <div className="mb-3 space-y-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 text-xs dark:border-[#1E333D] dark:bg-[#0B1519]">
-            <p className="font-bold text-[#0F172A] dark:text-white">
+          <div className="neu-pressed mb-3 space-y-2 rounded-xl p-2.5 text-xs">
+            <p className="font-bold text-[var(--text-primary)]">
               {pickLang(language, "Tambah Nutrien Kustom", "Add Custom Nutrient")}
             </p>
             <Input
@@ -266,10 +339,7 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
               {pickLang(language, "Simpan Nutrien", "Save Nutrient")}
             </Button>
             {customError && (
-              <p
-                role="alert"
-                className="text-[11px] font-semibold text-rose-600 dark:text-rose-300"
-              >
+              <p role="alert" className="text-[11px] font-semibold text-[var(--status-danger)]">
                 {customError}
               </p>
             )}
@@ -277,12 +347,12 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
         )}
 
         {enableAdvance && (
-          <div className="neu-well mb-3 flex items-center justify-between gap-2 rounded-lg px-2.5 py-2">
+          <div className="neu-well mb-2.5 flex items-center justify-between gap-2 rounded-lg px-2.5 py-2">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold text-[#0F172A] dark:text-white">
+              <p className="text-[11px] font-semibold text-[var(--text-primary)]">
                 {pickLang(language, "Basis Tercerna (SID & AvP)", "Digestible Basis (SID & AvP)")}
               </p>
-              <p className="text-[10px] text-[#475569] dark:text-slate-300">
+              <p className="text-[10px] text-[var(--text-secondary)]">
                 Standardized Ileal Digestible &amp; AvP
               </p>
             </div>
@@ -301,22 +371,33 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
         {advanceNullWarning && (
           <div
             role="alert"
-            className="mb-3 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-[11px] text-[#B45309] dark:border-amber-700/70 dark:bg-amber-950/45 dark:text-amber-100"
+            className="mb-2.5 flex items-start gap-2 rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] p-2 text-[11px] text-[var(--text-primary)]"
           >
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#D97706] dark:text-amber-400" />
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--status-warning)]" />
             <div>
               <p className="font-semibold">{advanceNullWarning.message}</p>
               {advanceNullWarning.suggestion && (
-                <p className="mt-0.5 text-[10px] opacity-90">{advanceNullWarning.suggestion}</p>
+                <p className="mt-0.5 text-[10px] text-[var(--text-secondary)]">
+                  {advanceNullWarning.suggestion}
+                </p>
               )}
             </div>
           </div>
         )}
 
-        {/* Daftar Kendala Nutrien Kompak (muat rapi di lebar inspector 300px–320px maupun mobile) */}
-        <div className="space-y-2">
+        <p className="mb-2 text-[10px] text-[var(--text-muted)]">
+          {pickLang(
+            language,
+            "Nilai aktual tampil otomatis. Klik baris nutrien untuk membuka batas Min/Max.",
+            "Actual values shown by default. Click any row to expand Min/Max bounds.",
+          )}
+        </p>
+
+        {/* Daftar Nutrien Kompak: Default tampil Aktual dulu, Min/Max expand saat diklik */}
+        <div className="space-y-1.5">
           {visibleNutrients.map((nut) => {
-            const nutName = language === "id" ? nut.name : (nut.nameEn ?? nut.name);
+            const displayName = getNutrientDisplayName(nut, language, simpleMode);
+            const fullName = getNutrientFullName(nut, language);
             const c = requirement.constraints.find((item) => item.nutrientId === nut.id);
             const res = resultMap.get(nut.id);
             const isCustomRow = nut.isCustom === true;
@@ -327,6 +408,8 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
               nut.unit === "kcal/kg" || nut.unit === "mg/kg" || nut.unit === "mEq/kg" ? 0 : 2;
             const isAlert = res?.status === "below_min" || res?.status === "above_max";
             const activeTier = c?.tier ?? "tier2";
+            const isExpanded = expandedNutrients.has(nut.id) || invalidRange;
+            const boundSummary = formatCompactBoundSummary(c?.min, c?.max, digits, language);
 
             const cycleTier = () => {
               const idx = TIER_CYCLE.indexOf(activeTier);
@@ -338,56 +421,70 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
               <div
                 key={nut.id}
                 className={cn(
-                  "rounded-lg border p-2 transition-colors duration-150",
+                  "rounded-lg border transition-colors duration-150",
                   isAlert || invalidRange
-                    ? "border-rose-300 bg-rose-50/60 dark:border-rose-700/70 dark:bg-rose-950/25"
-                    : "border-[#E2E8F0] bg-[#F8FAFC] dark:border-[#1E333D] dark:bg-[#0B1519]",
+                    ? "border-[var(--status-danger-border)] bg-[var(--status-danger-soft)]"
+                    : "border-[var(--border-subtle)] bg-[var(--bg-sunken)]",
                   !enabled && "opacity-55",
                 )}
               >
-                <div className="flex items-center justify-between gap-1.5">
-                  <div className="flex min-w-0 items-center gap-1.5">
+                {/* Baris Ringkas Default: Nama + Target Ringkas + Nilai Aktual Menonjol + Status */}
+                <div className="flex items-center justify-between gap-1.5 px-2 py-1.5">
+                  <div className="flex min-w-0 flex-1 items-center gap-1.5">
                     {(isAdvanceRow || isCustomRow) && (
                       <input
                         type="checkbox"
                         checked={enabled}
-                        aria-label={`${pickLang(language, "Kontrol", "Toggle")} ${nutName}`}
+                        aria-label={`${pickLang(language, "Kontrol", "Toggle")} ${fullName}`}
                         onChange={(e) => onUpdateConstraint(nut.id, { enabled: e.target.checked })}
-                        className="h-3.5 w-3.5 shrink-0 cursor-pointer rounded border-slate-300 accent-[#059669]"
+                        className="h-3.5 w-3.5 shrink-0 cursor-pointer rounded border-[var(--border-subtle)] accent-[var(--color-primary)]"
                       />
                     )}
-                    <div className="min-w-0 truncate text-xs">
-                      <span className="font-semibold text-[#0F172A] dark:text-slate-100">
-                        {nutName}
-                      </span>{" "}
-                      <span className="text-[10px] text-[#475569] dark:text-slate-400">
-                        ({nut.unit})
-                      </span>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleNutrientExpanded(nut.id)}
+                      aria-expanded={isExpanded}
+                      aria-label={pickLang(
+                        language,
+                        `Atur batas Min dan Max ${fullName}`,
+                        `Edit Min and Max bounds for ${fullName}`,
+                      )}
+                      title={`${fullName} (${nut.unit})`}
+                      className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-1.5 text-left"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-baseline gap-1 truncate">
+                          <span className="text-xs font-bold text-[var(--text-primary)]">
+                            {displayName}
+                          </span>
+                          <span className="text-[10px] text-[var(--text-secondary)]">
+                            ({nut.unit})
+                          </span>
+                        </div>
+                        <div className="text-[10px] tabular-nums text-[var(--text-muted)]">
+                          {pickLang(language, "Target:", "Target:")} {boundSummary}
+                        </div>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <div className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 py-0.5 text-right">
+                          <span className="block text-[8px] font-medium uppercase text-[var(--text-muted)]">
+                            {pickLang(language, "Aktual", "Actual")}
+                          </span>
+                          <span className="text-xs font-bold tabular-nums text-[var(--text-primary)]">
+                            {res ? formatNumberLocale(res.value, digits) : "—"}
+                          </span>
+                        </div>
+                        {isExpanded ? (
+                          <ChevronUp className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+                        )}
+                      </div>
+                    </button>
                   </div>
 
                   <div className="flex shrink-0 items-center gap-1">
-                    {enableAdvance && enabled && (
-                      <button
-                        type="button"
-                        onClick={cycleTier}
-                        title={pickLang(
-                          language,
-                          `Prioritas relaksasi: ${getTierLabel(language, activeTier)} (klik untuk ubah)`,
-                          `Relaxation priority: ${getTierLabel(language, activeTier)} (click to cycle)`,
-                        )}
-                        className={cn(
-                          "cursor-pointer rounded px-1.5 py-0.5 text-[10px] font-bold transition-colors",
-                          activeTier === "tier0"
-                            ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200"
-                            : activeTier === "tier1"
-                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200"
-                              : "bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-                        )}
-                      >
-                        {activeTier.replace("tier", "T")}
-                      </button>
-                    )}
                     {isCustomRow && (
                       <>
                         {onUpdateCustomNutrientBasis && (
@@ -401,7 +498,7 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
                                   : "as_fed",
                               )
                             }
-                            className="cursor-pointer rounded bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold text-[#0F3D3E] transition-colors hover:bg-teal-100 dark:bg-teal-950 dark:text-teal-300"
+                            className="cursor-pointer rounded bg-[var(--status-info-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--status-info)] transition-colors hover:brightness-95"
                             title={pickLang(
                               language,
                               "Klik untuk ubah basis nutrien kustom",
@@ -417,8 +514,8 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
                           <button
                             type="button"
                             onClick={() => onRemoveCustomNutrient(nut.id)}
-                            aria-label={`${pickLang(language, "Hapus", "Remove")} ${nutName}`}
-                            className="cursor-pointer rounded p-0.5 text-rose-600 hover:bg-rose-100 dark:text-rose-400 dark:hover:bg-rose-950"
+                            aria-label={`${pickLang(language, "Hapus", "Remove")} ${fullName}`}
+                            className="cursor-pointer rounded p-0.5 text-[var(--status-danger)] hover:bg-[var(--status-danger-soft)]"
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
@@ -434,84 +531,116 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
                   </div>
                 </div>
 
-                <div className="mt-1.5 grid grid-cols-[1fr_1fr_auto] items-end gap-1.5">
-                  <div>
-                    <span className="mb-0.5 block text-[10px] font-medium text-[#475569] dark:text-slate-400">
-                      Min
-                    </span>
-                    <NumericCellInput
-                      value={c?.min ?? null}
-                      allowNull
-                      disabled={!enabled}
-                      fractionDigits={digits}
-                      invalid={invalidRange}
-                      errorTooltip={pickLang(
-                        language,
-                        "Min tidak boleh > Max",
-                        "Min cannot exceed Max",
-                      )}
-                      ariaLabel={`${pickLang(language, "Target Min", "Min Target")} ${nutName}`}
-                      onCommit={(next) => onUpdateConstraint(nut.id, { min: next })}
-                    />
-                  </div>
-                  <div>
-                    <span className="mb-0.5 block text-[10px] font-medium text-[#475569] dark:text-slate-400">
-                      Max
-                    </span>
-                    <NumericCellInput
-                      value={c?.max ?? null}
-                      allowNull
-                      disabled={!enabled}
-                      fractionDigits={digits}
-                      invalid={invalidRange}
-                      errorTooltip={pickLang(language, "Max harus >= Min", "Max must be >= Min")}
-                      ariaLabel={`${pickLang(language, "Target Max", "Max Target")} ${nutName}`}
-                      onCommit={(next) => onUpdateConstraint(nut.id, { max: next })}
-                    />
-                  </div>
-                  <div className="min-w-14 rounded-md border border-[#E2E8F0] bg-white px-2 py-1 text-right dark:border-[#1E333D] dark:bg-[#111F26]">
-                    <span className="block text-[9px] font-medium text-[#475569] dark:text-slate-400">
-                      {pickLang(language, "Aktual", "Actual")}
-                    </span>
-                    <span className="text-xs font-bold tabular-nums text-[#0F172A] dark:text-white">
-                      {res ? formatNumberLocale(res.value, digits) : "—"}
-                    </span>
-                  </div>
-                </div>
-
-                {enableStochastic && enabled && (c?.min !== undefined || c?.max !== undefined) && (
-                  <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-[#E2E8F0] pt-1.5 text-[10px] dark:border-[#1E333D]">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[#475569] dark:text-slate-400">p:</span>
-                      <select
-                        aria-label={`Target probability ${nutName}`}
-                        value={String(c?.targetProbability ?? 0.95)}
-                        onChange={(e) =>
-                          onUpdateConstraint(nut.id, { targetProbability: Number(e.target.value) })
-                        }
-                        className="rounded border border-[#E2E8F0] bg-white px-1 py-0.5 text-[10px] dark:border-[#1E333D] dark:bg-[#111F26]"
-                      >
-                        <option value="0.9">90%</option>
-                        <option value="0.95">95%</option>
-                        <option value="0.99">99%</option>
-                      </select>
-                      <label className="inline-flex cursor-pointer items-center gap-1 text-[#475569] dark:text-slate-300">
-                        <input
-                          type="checkbox"
-                          checked={c?.useCantelli === true}
-                          onChange={(e) =>
-                            onUpdateConstraint(nut.id, { useCantelli: e.target.checked })
-                          }
-                          className="h-3 w-3 accent-[#D97706]"
+                {/* Area Batas Min & Max: Hanya tampil saat di-expand */}
+                {isExpanded && (
+                  <div className="border-t border-[var(--border-subtle)] px-2 pt-1.5 pb-2">
+                    <div className="grid grid-cols-2 items-end gap-1.5">
+                      <div>
+                        <span className="mb-0.5 block text-[10px] font-medium text-[var(--text-secondary)]">
+                          Min ({nut.unit})
+                        </span>
+                        <NumericCellInput
+                          value={c?.min ?? null}
+                          allowNull
+                          disabled={!enabled}
+                          fractionDigits={digits}
+                          invalid={invalidRange}
+                          errorTooltip={pickLang(
+                            language,
+                            "Min tidak boleh > Max",
+                            "Min cannot exceed Max",
+                          )}
+                          ariaLabel={`${pickLang(language, "Target Min", "Min Target")} ${fullName}`}
+                          onCommit={(next) => onUpdateConstraint(nut.id, { min: next })}
                         />
-                        <span>Cantelli</span>
-                      </label>
+                      </div>
+                      <div>
+                        <span className="mb-0.5 block text-[10px] font-medium text-[var(--text-secondary)]">
+                          Max ({nut.unit})
+                        </span>
+                        <NumericCellInput
+                          value={c?.max ?? null}
+                          allowNull
+                          disabled={!enabled}
+                          fractionDigits={digits}
+                          invalid={invalidRange}
+                          errorTooltip={pickLang(
+                            language,
+                            "Max harus >= Min",
+                            "Max must be >= Min",
+                          )}
+                          ariaLabel={`${pickLang(language, "Target Max", "Max Target")} ${fullName}`}
+                          onCommit={(next) => onUpdateConstraint(nut.id, { max: next })}
+                        />
+                      </div>
                     </div>
-                    {res?.stochasticMargin !== undefined && res.stochasticMargin > 0 && (
-                      <span className="font-semibold tabular-nums text-[#D97706] dark:text-amber-300">
-                        ±{formatNumberLocale(res.stochasticMargin, digits)}
-                      </span>
+
+                    {enableAdvance && enabled && (
+                      <div className="mt-1.5 flex items-center justify-between text-[10px]">
+                        <span className="text-[var(--text-secondary)]">
+                          {pickLang(language, "Prioritas Batas:", "Bound Priority:")}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={cycleTier}
+                          title={pickLang(
+                            language,
+                            `Prioritas relaksasi: ${getTierLabel(language, activeTier)} (klik untuk ubah)`,
+                            `Relaxation priority: ${getTierLabel(language, activeTier)} (click to cycle)`,
+                          )}
+                          className={cn(
+                            "cursor-pointer rounded px-1.5 py-0.5 text-[10px] font-bold transition-colors",
+                            activeTier === "tier0"
+                              ? "bg-[var(--status-danger-soft)] text-[var(--status-danger)]"
+                              : activeTier === "tier1"
+                                ? "bg-[var(--status-warning-soft)] text-[var(--status-warning)]"
+                                : "bg-[var(--bg-surface)] text-[var(--text-secondary)]",
+                          )}
+                        >
+                          {getTierLabel(language, activeTier)}
+                        </button>
+                      </div>
                     )}
+
+                    {enableStochastic &&
+                      enabled &&
+                      (c?.min !== undefined || c?.max !== undefined) && (
+                        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-[var(--border-subtle)] pt-1.5 text-[10px]">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[var(--text-secondary)]">p:</span>
+                            <select
+                              aria-label={`Target probability ${fullName}`}
+                              value={String(c?.targetProbability ?? 0.95)}
+                              onChange={(e) =>
+                                onUpdateConstraint(nut.id, {
+                                  targetProbability: Number(e.target.value),
+                                })
+                              }
+                              className="rounded border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1 py-0.5 text-[10px] text-[var(--text-primary)]"
+                            >
+                              <option value="0.9">90%</option>
+                              <option value="0.95">95%</option>
+                              <option value="0.99">99%</option>
+                            </select>
+                            <label className="inline-flex cursor-pointer items-center gap-1 text-[var(--text-secondary)]">
+                              <input
+                                type="checkbox"
+                                checked={c?.useCantelli === true}
+                                onChange={(e) =>
+                                  onUpdateConstraint(nut.id, { useCantelli: e.target.checked })
+                                }
+                                className="h-3 w-3 accent-[var(--status-warning)]"
+                              />
+                              <span>Cantelli</span>
+                            </label>
+                          </div>
+                          {res?.stochasticMargin !== undefined && res.stochasticMargin > 0 && (
+                            <span className="font-semibold tabular-nums text-[var(--status-warning)]">
+                              ±{formatNumberLocale(res.stochasticMargin, digits)}
+                            </span>
+                          )}
+                        </div>
+                      )}
                   </div>
                 )}
               </div>

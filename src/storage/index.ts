@@ -26,7 +26,15 @@ export {
   neutralizeSpreadsheetFormula,
   type FormulationExportInput,
 } from "./exportCsvXlsx";
-export { generateFormulationPdf, type PdfExportInput, type PdfExportMode } from "./exportPdf";
+export {
+  generateFormulationPdf,
+  generateIngredientDatabasePdf,
+  generateRecipePdf,
+  type IngredientDatabasePdfInput,
+  type PdfExportInput,
+  type PdfExportMode,
+  type RecipePdfInput,
+} from "./exportPdf";
 export {
   FEED_FILE_EXTENSION,
   FEED_JSON_MIME,

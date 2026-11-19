@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import App from "../../src/App";
+import { FormulationCharts } from "../../src/components/analytics/FormulationCharts";
 import {
   DEFAULT_CONFIG,
   MOCK_INGREDIENTS,
@@ -9,25 +10,69 @@ import {
   evaluateMockFormulation,
 } from "../../src/data/mock-state";
 
-describe("OpenFormul Fase 1 UI Prototype Flow", () => {
-  it("merender workbench formulasi default beserta daftar bahan aktif dan KPI biaya", () => {
+describe("Open Formulasi Desktop UI Flow", () => {
+  it("merender header Open Formulasi tanpa keterangan tambahan, dua tabel terpisah, dan KPI biaya", () => {
     render(<App />);
+
+    const header = screen.getByRole("banner");
+    expect(screen.getAllByAltText("Logo Open Formulasi").length).toBeGreaterThan(0);
+    expect(within(header).getByText("Open")).toBeInTheDocument();
+    expect(within(header).getByText("Formulasi")).toBeInTheDocument();
+    expect(screen.queryByText(/Formulasi Pakan Presisi/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Workspace$/i)).not.toBeInTheDocument();
 
     expect(screen.getByLabelText("Kontrol utama formulasi")).toBeInTheDocument();
     expect(screen.getByLabelText("Panel Bahan Pakan")).toBeInTheDocument();
+    expect(screen.getByLabelText("Tabel Semua Bahan Pakan")).toBeInTheDocument();
     expect(screen.getByLabelText("Panel Target Nutrien")).toBeInTheDocument();
     expect(screen.getByLabelText("Panel Hasil Formulasi")).toBeInTheDocument();
+
+    // Tidak ada lagi tombol Muat +50 maupun teks Menampilkan X dari Y
+    expect(screen.queryByRole("button", { name: /Muat \+50/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Menampilkan \d+ dari \d+/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Simulasi kondisi hasil prototipe")).not.toBeInTheDocument();
 
     expect(screen.getAllByText(/Jagung Giling Kuning/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Biaya \/ kg/i)).toBeInTheDocument();
   });
 
-  it("beralih preset ternak ke Sapi Potong otomatis mengganti basis menjadi BK (DM)", async () => {
+  it("mendukung checkbox tampil/sembunyi kolom dan resize lebar kolom nama bahan", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const usedPanel = screen.getByLabelText("Panel Bahan Pakan");
+    // Mode Simpel default menyingkat Protein Kasar -> PK
+    expect(within(usedPanel).getAllByRole("columnheader", { name: /PK/i }).length).toBeGreaterThan(
+      0,
+    );
+
+    // Sembunyikan kolom Harga/kg lewat checkbox
+    const priceToggle = within(usedPanel).getByLabelText("Harga");
+    expect(priceToggle).toBeChecked();
+    await user.click(priceToggle);
+    expect(
+      within(usedPanel).queryByRole("columnheader", { name: "Harga/kg" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(priceToggle);
+    expect(
+      within(usedPanel).getAllByRole("columnheader", { name: "Harga/kg" }).length,
+    ).toBeGreaterThan(0);
+
+    // Resize kolom nama bahan via keyboard ArrowLeft
+    const resizer = screen.getByRole("separator", { name: /Geser lebar kolom nama bahan/i });
+    const beforeVal = Number(resizer.getAttribute("aria-valuenow"));
+    fireEvent.keyDown(resizer, { key: "ArrowLeft" });
+    const afterVal = Number(resizer.getAttribute("aria-valuenow"));
+    expect(afterVal).toBeLessThan(beforeVal);
+  });
+
+  it("beralih preset ternak SNI & Sapi Potong mengganti basis otomatis", async () => {
     const user = userEvent.setup();
     render(<App />);
 
     const presetSelect = screen.getByLabelText(/Standar Ternak/i);
-    await user.selectOptions(presetSelect, "beef-fattening");
+    await user.selectOptions(presetSelect, "sni-3148-2-penggemukan-2017");
 
     expect(screen.getByText("Basis: BK (DM)")).toBeInTheDocument();
 
@@ -36,17 +81,16 @@ describe("OpenFormul Fase 1 UI Prototype Flow", () => {
     expect(screen.getByText("Basis: As-Fed")).toBeInTheDocument();
   });
 
-  it("toggle Mode Advance dan SID/AvP menampilkan baris asam amino lanjutan dan fraksi tercerna", async () => {
+  it("beralih Mode Simpel ke Mode Lanjutan menampilkan nama nutrisi lengkap serta asam amino & SID/AvP", async () => {
     const user = userEvent.setup();
     render(<App />);
 
     expect(screen.queryByText(/Triptofan/i)).not.toBeInTheDocument();
 
-    const advanceSwitch = screen.getByRole("switch", {
-      name: "Aktifkan Mode Presisi Tinggi Advance",
-    });
-    await user.click(advanceSwitch);
+    const advanceBtn = screen.getByRole("button", { name: "Mode Lanjutan" });
+    await user.click(advanceBtn);
 
+    expect(screen.getAllByText("Protein Kasar").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Lisin").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Triptofan").length).toBeGreaterThan(0);
 
@@ -76,7 +120,24 @@ describe("OpenFormul Fase 1 UI Prototype Flow", () => {
     expect(nullConflict?.message).toContain("Dedak Padi Halus");
   });
 
-  it("mengubah ukuran batch 500 kg dan menavigasi sub-tab Grafik, Shadow Price, What-If", async () => {
+  it("Target Nutrien default menampilkan nilai aktual dulu dan Min/Max expand saat diaktifkan", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    // Default input Min/Max tersembunyi
+    expect(screen.queryByLabelText("Target Min Protein Kasar")).not.toBeInTheDocument();
+
+    // Klik baris Protein Kasar untuk expand Min/Max
+    const expandCpBtn = screen.getByRole("button", {
+      name: /Atur batas Min dan Max Protein Kasar/i,
+    });
+    await user.click(expandCpBtn);
+
+    expect(screen.getByLabelText("Target Min Protein Kasar")).toBeInTheDocument();
+    expect(screen.getByLabelText("Target Max Protein Kasar")).toBeInTheDocument();
+  });
+
+  it("mengubah ukuran batch 500 kg dan menavigasi sub-tab Grafik, Harga Bayangan, What-If", async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -87,56 +148,68 @@ describe("OpenFormul Fase 1 UI Prototype Flow", () => {
     expect(screen.getByText(/Radar Target Ideal vs Aktual/i)).toBeInTheDocument();
     expect(screen.getByText(/Porsi Berat \(%\) vs Porsi Biaya \(%\)/i)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: "Shadow Price" }));
-    expect(screen.getByText(/Shadow Price Kendala Nutrisi \(Dual Value\)/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Harga Bayangan" }));
+    expect(screen.getByText(/Apa itu Harga Bayangan/i)).toBeInTheDocument();
+    expect(screen.getByText(/Harga Bayangan Kendala Nutrisi/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: "What-If" }));
     expect(screen.getByText(/Simulasi Tukar Bahan Cepat/i)).toBeInTheDocument();
   });
 
-  it("menampilkan banner near_feasible dan infeasible beserta saran perbaikan saat skenario demo diubah", async () => {
+  it("bernavigasi antar tab Database (8 kelas & PDF), Profil Kebutuhan (tabel SNI), Project Resep (PDF), Modul Lanjutan (pintasan klik), dan Pengaturan", async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    const demoSelect = screen.getByLabelText("Simulasi kondisi hasil prototipe");
-
-    await user.selectOptions(demoSelect, "near_feasible");
-    expect(screen.getByText("Near-Feasible (Elastik)")).toBeInTheDocument();
-    expect(screen.getByText(/Protein Kasar meleset/i)).toBeInTheDocument();
-
-    await user.selectOptions(demoSelect, "infeasible");
-    expect(screen.getAllByText("Infeasible").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Target Protein Kasar \(Min 26%\)/i)).toBeInTheDocument();
-  });
-
-  it("bernavigasi antar halaman Database Bahan, Resep & Ekspor, dan Pengaturan Bahasa/Tema", async () => {
-    const user = userEvent.setup();
-    render(<App />);
-
+    // 1. Database Bahan: 8 klasifikasi & hanya Ekspor PDF
     await user.click(screen.getAllByRole("button", { name: /Database Bahan/i })[0]!);
     expect(
       screen.getByRole("heading", { name: /Database Kandungan Bahan Pakan/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Tambah Bahan/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Semua 8 Kelas/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Ekspor PDF/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Ekspor CSV/i })).not.toBeInTheDocument();
 
+    // 2. Profil Kebutuhan Pakan: tabel ringkas + filter SNI
+    await user.click(screen.getAllByRole("button", { name: /Profil Kebutuhan Ternak/i })[0]!);
+    expect(
+      screen.getByRole("heading", { name: /Profil Kebutuhan Pakan Ternak/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Standar SNI/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/SNI 8173\.2:2015/i).length).toBeGreaterThan(0);
+
+    // 3. Project Resep: ringkas & ekspor PDF (tanpa .feed.json)
     await user.click(screen.getAllByRole("button", { name: /Resep & Ekspor/i })[0]!);
-    expect(screen.getByRole("heading", { name: /Proyek & Resep Tersimpan/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Project Resep Tersimpan/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Ekspor PDF/i }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /\.feed\.json/i })).not.toBeInTheDocument();
 
+    // 4. Modul Lanjutan: tanpa jargon teknis & pintasan siap pakai bisa diklik
+    await user.click(screen.getAllByRole("button", { name: /Modul Lanjutan/i })[0]!);
+    expect(screen.getByRole("heading", { name: "Modul Lanjutan" })).toBeInTheDocument();
+    expect(screen.queryByText(/Out of Scope/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/CLI \/ Build-Time/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Single-Mix/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Buka Harga Bayangan/i }));
+    expect(screen.getByText(/Apa itu Harga Bayangan/i)).toBeInTheDocument();
+
+    // 5. Pengaturan: Mode Simpel/Lanjutan, NDF, Anti-Nol Otomatis, Presisi LP, & Bahasa EN
     await user.click(screen.getAllByRole("button", { name: /Pengaturan/i })[0]!);
+    expect(screen.getByText(/Aturan Anti-Nol Otomatis/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tampilkan Parameter NDF & ADF/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Atur Presisi LP/i })).toBeInTheDocument();
+
     await user.selectOptions(screen.getByLabelText("Pilih bahasa"), "en");
     expect(screen.getByRole("heading", { name: "Application Settings" })).toBeInTheDocument();
 
-    // Cek propagasi bahasa EN ke Workbench Formulasi & Modul Lanjutan
     await user.click(screen.getAllByRole("button", { name: /Ration Formulation/i })[0]!);
     expect(screen.getByRole("heading", { name: "Ration Formulation" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Precision LP/i })).toBeInTheDocument();
   });
 
   it("mendukung penambahan nutrien kustom penuh (nama, satuan, basis dinamis)", async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    // Tambah nutrien kustom melalui Target Nutrien (tanpa perlu Mode Advance)
     await user.click(screen.getAllByRole("button", { name: /Tambah Nutrien Kustom/i })[0]!);
     fireEvent.change(screen.getAllByLabelText("Nama Nutrien Kustom")[0]!, {
       target: { value: "Beta-Glukan" },
@@ -147,7 +220,6 @@ describe("OpenFormul Fase 1 UI Prototype Flow", () => {
 
     expect(screen.getAllByText(/Beta-Glukan/i).length).toBeGreaterThan(0);
 
-    // Ubah basis dinamis & hapus nutrien kustom
     const toggleBasisBtn = screen.getAllByTitle("Klik untuk ubah basis nutrien kustom")[0]!;
     expect(toggleBasisBtn).toHaveTextContent("BK");
     await user.click(toggleBasisBtn);
@@ -157,78 +229,53 @@ describe("OpenFormul Fase 1 UI Prototype Flow", () => {
     expect(screen.queryByTitle("Klik untuk ubah basis nutrien kustom")).not.toBeInTheDocument();
   });
 
-  it("mendukung windowing progresif katalog >50 item di Workbench dan Database Kebutuhan", async () => {
-    const user = userEvent.setup();
-    render(<App />);
-
-    // Windowing progresif katalog >50 bahan pada workbench formulasi
-    const loadMoreBtn = screen.getAllByRole("button", { name: /Muat \+50/i })[0]!;
-    await user.click(loadMoreBtn);
-    expect(screen.getAllByRole("button", { name: /Ringkas Daftar/i }).length).toBeGreaterThan(0);
-    await user.click(screen.getAllByRole("button", { name: /Ringkas Daftar/i })[0]!);
-
-    // Cek windowing & pencarian pada Database Kebutuhan Ternak
-    await user.click(screen.getAllByRole("button", { name: /Kebutuhan Ternak/i })[0]!);
-    expect(screen.getByRole("button", { name: /Tampilkan Semua \(1/i })).toBeInTheDocument();
-  });
-
-  it("menampilkan status aktif modul Fase 4A (PR-01..PR-05), klasifikasi Fase 5–6, dan panduan instalasi Desktop/Mobile", async () => {
-    const user = userEvent.setup();
-    render(<App />);
-
-    await user.click(screen.getAllByRole("button", { name: /Modul Lanjutan/i })[0]!);
-    expect(
-      screen.getByRole("heading", { name: /Modul Presisi, Pabrik & Enterprise/i }),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText("Aktif").length).toBe(5);
-    expect(screen.getAllByText("Opsional Single-Mix").length).toBe(3);
-    expect(screen.getAllByText("CLI / Build-Time").length).toBe(1);
-    expect(screen.getAllByText("Out of Scope PWA").length).toBe(6);
-    expect(screen.getByText(/Diagnosis Konflik Cerdas \(IIS\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/Urutan Batch Bebas Kontaminasi/i)).toBeInTheDocument();
-
-    // Filter tahap Presisi & Risiko menampilkan 5 modul Aktif
-    await user.click(screen.getByRole("tab", { name: /Presisi & Risiko \(5\)/i }));
-    expect(screen.getAllByText("Aktif").length).toBe(5);
-
-    // Tombol Buka di Workbench membuka dialog Presisi LP (PR-03..PR-05)
-    await user.click(screen.getByRole("button", { name: /Buka di Workbench/i }));
-    await user.click(screen.getByRole("button", { name: /Presisi LP/i }));
-    expect(screen.getByText(/Sasaran Objektif Fraksional/i)).toBeInTheDocument();
-    expect(screen.getByText(/Formulasi Stokastik/i)).toBeInTheDocument();
-    expect(screen.getByText(/Matriks Multi-Enzim Sub-Aditif/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Selesai/i }));
-
-    // Cek kartu unduh/instal lintas platform di Pengaturan
-    await user.click(screen.getAllByRole("button", { name: /Pengaturan/i })[0]!);
-    expect(
-      screen.getByRole("heading", {
-        name: /Unduh & Instal Aplikasi \(PC \.exe, Android \.apk & PWA\)/i,
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Desktop PC \(Windows \.exe \/ Tauri & PWA\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/Mobile \(Android \.apk \/ Capacitor & PWA\)/i)).toBeInTheDocument();
-  });
-
-  it("menampilkan kolom Inklusi % pada tabel bahan dan mendukung collapse/expand panel Target Nutrien", async () => {
+  it("menampilkan kolom Inklusi % dan mendukung collapse/expand panel Target Nutrien & Sidebar", async () => {
     const user = userEvent.setup();
     render(<App />);
 
     expect(screen.getAllByRole("columnheader", { name: "Inklusi %" }).length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Panel Target Nutrien")).toBeInTheDocument();
 
-    const collapseBtn = screen.getByRole("button", {
-      name: /Sembunyikan panel target nutrien/i,
-    });
-    await user.click(collapseBtn);
-
+    await user.click(
+      screen.getByRole("button", {
+        name: /Sembunyikan panel target nutrien/i,
+      }),
+    );
     expect(screen.queryByLabelText("Panel Target Nutrien")).not.toBeInTheDocument();
 
-    const expandBtn = screen.getByRole("button", {
-      name: /Tampilkan panel target nutrien/i,
-    });
-    await user.click(expandBtn);
-
+    await user.click(
+      screen.getByRole("button", {
+        name: /Tampilkan panel target nutrien/i,
+      }),
+    );
     expect(screen.getByLabelText("Panel Target Nutrien")).toBeInTheDocument();
+
+    // Expand & collapse desktop sidebar
+    const expandSidebarBtn = screen.getByRole("button", { name: /Perbesar sidebar navigasi/i });
+    await user.click(expandSidebarBtn);
+    expect(screen.getByRole("button", { name: /Perkecil sidebar navigasi/i })).toBeInTheDocument();
+  });
+
+  it("menghitung Porsi Biaya (%) di FormulationCharts secara akurat baik untuk costContribution per-kg maupun per-batch", () => {
+    render(
+      <FormulationCharts
+        composition={[
+          { ingredientId: "corn-ground", fraction: 0.7, weightKg: 70, costContribution: 3000 },
+          { ingredientId: "soybean-meal", fraction: 0.3, weightKg: 30, costContribution: 2000 },
+        ]}
+        nutrients={[
+          { nutrientId: "cp", value: 21, min: 20, max: 23, status: "met" },
+          { nutrientId: "me_poultry", value: 3000, min: 2950, max: 3150, status: "met" },
+          { nutrientId: "ca", value: 1, min: 0.9, max: 1.1, status: "met" },
+        ]}
+        ingredients={MOCK_INGREDIENTS}
+        batchTotalCost={500000}
+        simpleMode
+        language="id"
+      />,
+    );
+
+    expect(screen.getByText(/70,0% berat · 60,0% biaya/i)).toBeInTheDocument();
+    expect(screen.getByText(/30,0% berat · 40,0% biaya/i)).toBeInTheDocument();
   });
 });

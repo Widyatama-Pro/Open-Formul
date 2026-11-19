@@ -8,14 +8,13 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
-  neutral:
-    "border-[#E2E8F0] bg-[#F1F5F9] text-[#475569] dark:border-[#1E333D] dark:bg-[#162831] dark:text-slate-300",
+  neutral: "border-[var(--border-subtle)] bg-[var(--bg-sunken)] text-[var(--text-secondary)]",
   emerald:
-    "border-emerald-200 bg-emerald-50 text-[#047857] dark:border-emerald-800/70 dark:bg-emerald-950/65 dark:text-emerald-300",
+    "border-[var(--status-success-border)] bg-[var(--status-success-soft)] text-[var(--status-success)]",
   amber:
-    "border-amber-200 bg-amber-50 text-[#B45309] dark:border-amber-800/70 dark:bg-amber-950/65 dark:text-amber-200",
-  rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800/70 dark:bg-rose-950/65 dark:text-rose-200",
-  sky: "border-teal-200 bg-teal-50 text-[#0F3D3E] dark:border-teal-800/70 dark:bg-teal-950/65 dark:text-teal-200",
+    "border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] text-[var(--status-warning)]",
+  rose: "border-[var(--status-danger-border)] bg-[var(--status-danger-soft)] text-[var(--status-danger)]",
+  sky: "border-[var(--status-info-border)] bg-[var(--status-info-soft)] text-[var(--status-info)]",
 };
 
 /** Lencana status kapsul kontras tinggi tanpa backdrop blur (selalu berpasangan teks/ikon). */

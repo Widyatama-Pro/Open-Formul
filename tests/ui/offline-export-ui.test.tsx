@@ -51,7 +51,7 @@ function makeOptimalResult(): FormulationResult {
   };
 }
 
-describe("Task 5 — Fase 3 UI Wiring: Export Gates, CSV/Feed Import, TSV Paste & IndexedDB Settings", () => {
+describe("UI Export PDF-Only, 8 Kelas Database, TSV Paste & Settings Formulasi", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -60,8 +60,7 @@ describe("Task 5 — Fase 3 UI Wiring: Export Gates, CSV/Feed Import, TSV Paste 
     vi.restoreAllMocks();
   });
 
-  it("ExportDialog: mengekspor .feed.json, CSV, .xlsx, PDF lengkap & PDF batch_only saat Optimal, dan menegakkan gerbang keamanan Near-Feasible / Infeasible", async () => {
-    const textSpy = vi.spyOn(downloadUtils, "downloadTextFile").mockImplementation(() => {});
+  it("ExportDialog: khusus PDF (Lengkap & Lembar Timbang Gudang) dengan gerbang keamanan Near-Feasible / Infeasible", async () => {
     const binSpy = vi.spyOn(downloadUtils, "downloadBinaryFile").mockImplementation(() => {});
     const user = userEvent.setup();
 
@@ -77,34 +76,25 @@ describe("Task 5 — Fase 3 UI Wiring: Export Gates, CSV/Feed Import, TSV Paste 
       />,
     );
 
-    const feedBtn = screen.getByRole("button", { name: /Resep Portabel.*\.feed\.json/i });
-    const csvBtn = screen.getByRole("button", { name: /Unduh CSV/i });
-    const xlsxBtn = screen.getByRole("button", { name: /Unduh Excel/i });
-    const pdfFullBtn = screen.getByRole("button", { name: /PDF Lembar Formula Lengkap/i });
-    const pdfBatchBtn = screen.getByRole("button", { name: /PDF Print Batch Only/i });
+    // Pastikan CSV / Excel / .feed.json sudah dihapus dari dialog ekspor peternak
+    expect(screen.queryByRole("button", { name: /Unduh CSV/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Unduh Excel/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /\.feed\.json/i })).not.toBeInTheDocument();
 
-    expect(feedBtn).toBeEnabled();
-    expect(csvBtn).toBeEnabled();
-    expect(xlsxBtn).toBeEnabled();
+    const pdfFullBtn = screen.getByRole("button", { name: /PDF Lembar Formula Lengkap/i });
+    const pdfBatchBtn = screen.getByRole("button", { name: /PDF Lembar Timbang Gudang/i });
+
     expect(pdfFullBtn).toBeEnabled();
     expect(pdfBatchBtn).toBeEnabled();
 
-    await user.click(feedBtn);
-    await user.click(csvBtn);
-    await user.click(xlsxBtn);
     await user.click(pdfFullBtn);
     await user.click(pdfBatchBtn);
 
-    expect(textSpy).toHaveBeenCalledTimes(2);
-    expect(textSpy.mock.calls[0]![1]).toMatch(/\.feed\.json$/);
-    expect(textSpy.mock.calls[1]![1]).toMatch(/\.csv$/);
+    expect(binSpy).toHaveBeenCalledTimes(2);
+    expect(binSpy.mock.calls[0]![1]).toMatch(/-lengkap\.pdf$/);
+    expect(binSpy.mock.calls[1]![1]).toMatch(/-batch\.pdf$/);
 
-    expect(binSpy).toHaveBeenCalledTimes(3);
-    expect(binSpy.mock.calls[0]![1]).toMatch(/\.xlsx$/);
-    expect(binSpy.mock.calls[1]![1]).toMatch(/-lengkap\.pdf$/);
-    expect(binSpy.mock.calls[2]![1]).toMatch(/-batch\.pdf$/);
-
-    // Rerender dengan Near-Feasible -> Batch Only WAJIB terkunci, PDF Lengkap/CSV/XLSX tampilkan peringatan
+    // Near-Feasible -> Lembar Timbang Gudang terkunci, PDF Lengkap tetap aktif dengan peringatan
     rerender(
       <ExportDialog
         open
@@ -118,10 +108,10 @@ describe("Task 5 — Fase 3 UI Wiring: Export Gates, CSV/Feed Import, TSV Paste 
     expect(
       screen.getByText(/Mode Relaksasi Elastik — dokumen bertanda kompromi nutrisi/i),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /PDF Print Batch Only/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /PDF Lembar Timbang Gudang/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /PDF Lembar Formula Lengkap/i })).toBeEnabled();
 
-    // Rerender dengan Infeasible -> CSV/XLSX/PDF nonaktif, .feed.json tetap aktif untuk troubleshooting
+    // Infeasible -> seluruh tombol PDF dinonaktifkan
     rerender(
       <ExportDialog
         open
@@ -138,46 +128,36 @@ describe("Task 5 — Fase 3 UI Wiring: Export Gates, CSV/Feed Import, TSV Paste 
         }}
       />,
     );
-    expect(screen.getByRole("button", { name: /Resep Portabel.*\.feed\.json/i })).toBeEnabled();
-    expect(screen.getByRole("button", { name: /Unduh CSV/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /PDF Lembar Formula Lengkap/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /PDF Print Batch Only/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /PDF Lembar Timbang Gudang/i })).toBeDisabled();
   });
 
-  it("SavedRecipesPage: mendukung unduh .feed.json per kartu, impor .feed.json valid & tolak file rusak, serta hapus resep", async () => {
-    const textSpy = vi.spyOn(downloadUtils, "downloadTextFile").mockImplementation(() => {});
-    const onImportFeedJson = vi.fn().mockReturnValue({
-      ok: false,
-      errors: ["Versi skema .feed.json tidak didukung (99)."],
-    });
+  it("SavedRecipesPage: sederhana dengan ekspor PDF per resep, buka resep, dan hapus resep", async () => {
+    const binSpy = vi.spyOn(downloadUtils, "downloadBinaryFile").mockImplementation(() => {});
     const onDeleteRecipe = vi.fn();
+    const onLoadRecipe = vi.fn();
     const user = userEvent.setup();
 
     render(
       <SavedRecipesPage
         recipes={MOCK_SAVED_RECIPES}
         language="id"
-        onLoadRecipe={vi.fn()}
+        onLoadRecipe={onLoadRecipe}
         onOpenSaveCurrent={vi.fn()}
         onOpenExport={vi.fn()}
-        onImportFeedJson={onImportFeedJson}
         onDeleteRecipe={onDeleteRecipe}
       />,
     );
 
-    const downloadButtons = screen.getAllByRole("button", { name: /Unduh \.feed\.json/i });
-    expect(downloadButtons.length).toBe(MOCK_SAVED_RECIPES.length);
-    await user.click(downloadButtons[0]!);
-    expect(textSpy).toHaveBeenCalledTimes(1);
-    expect(textSpy.mock.calls[0]![1]).toMatch(/\.feed\.json$/);
+    const pdfButtons = screen.getAllByRole("button", { name: /^Ekspor PDF$/i });
+    expect(pdfButtons.length).toBe(MOCK_SAVED_RECIPES.length);
+    await user.click(pdfButtons[0]!);
+    expect(binSpy).toHaveBeenCalledTimes(1);
+    expect(binSpy.mock.calls[0]![1]).toMatch(/\.pdf$/);
 
-    const fileInput = screen.getByLabelText(/Unggah berkas \.feed\.json/i);
-    const badFile = new File(['{"schemaVersion":99}'], "rusak.feed.json", {
-      type: "application/json",
-    });
-    await user.upload(fileInput, badFile);
-    expect(onImportFeedJson).toHaveBeenCalledWith('{"schemaVersion":99}');
-    expect(await screen.findByText(/Versi skema \.feed\.json tidak didukung/i)).toBeInTheDocument();
+    const openButtons = screen.getAllByRole("button", { name: /^Buka$/i });
+    await user.click(openButtons[0]!);
+    expect(onLoadRecipe).toHaveBeenCalledWith(MOCK_SAVED_RECIPES[0]!.id);
 
     const firstDeleteBtn = screen.getByRole("button", {
       name: `Hapus resep ${MOCK_SAVED_RECIPES[0]!.name}`,
@@ -186,38 +166,30 @@ describe("Task 5 — Fase 3 UI Wiring: Export Gates, CSV/Feed Import, TSV Paste 
     expect(onDeleteRecipe).toHaveBeenCalledWith(MOCK_SAVED_RECIPES[0]!.id);
   });
 
-  it("IngredientLibraryPage: mengaktifkan Impor CSV/JSON dengan Sumber Default opsional & melakukan partial merge", async () => {
-    const onImportIngredients = vi.fn();
+  it("IngredientLibraryPage: mengelompokkan bahan ke 8 kelas standar dan menyediakan ekspor PDF saja", async () => {
+    const binSpy = vi.spyOn(downloadUtils, "downloadBinaryFile").mockImplementation(() => {});
     const user = userEvent.setup();
 
     render(
       <IngredientLibraryPage
-        ingredients={MOCK_INGREDIENTS}
+        ingredients={MOCK_INGREDIENTS.slice(0, 20)}
         language="id"
         onToggleActive={vi.fn()}
         onOpenAdd={vi.fn()}
-        onImportIngredients={onImportIngredients}
       />,
     );
 
-    const importBtn = screen.getByRole("button", { name: /Impor CSV \/ JSON/i });
-    expect(importBtn).toBeEnabled();
-    await user.click(importBtn);
+    expect(screen.queryByRole("button", { name: /Ekspor CSV/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Impor CSV/i })).not.toBeInTheDocument();
 
-    const csvFile = new File(
-      ["Nama Bahan;Harga/kg;BK %;PK (%)\nJagung Giling Kuning;5.950;88,5;9,1"],
-      "harga-update.csv",
-      { type: "text/csv" },
-    );
-    const fileInput = screen.getByLabelText(/Pilih file CSV atau JSON bahan pakan/i);
-    await user.upload(fileInput, csvFile);
+    expect(screen.getByRole("tab", { name: /1\. Hijauan Kering/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /4\. Sumber Energi/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /5\. Sumber Protein/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /8\. Aditif/i })).toBeInTheDocument();
 
-    expect(onImportIngredients).toHaveBeenCalledTimes(1);
-    const mergedArg = onImportIngredients.mock.calls[0]![0] as typeof MOCK_INGREDIENTS;
-    const updatedCorn = mergedArg.find((i) => i.id === "corn-ground")!;
-    expect(updatedCorn.pricePerKg).toBe(5950);
-    expect(updatedCorn.nutrients.lys).toBe(0.26); // asam amino lama tidak terhapus!
-    expect(await screen.findByText(/1 bahan diperbarui/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Ekspor PDF/i }));
+    expect(binSpy).toHaveBeenCalledTimes(1);
+    expect(binSpy.mock.calls[0]![1]).toMatch(/\.pdf$/);
   });
 
   it("IngredientDesktopTable: mendukung Paste TSV blok dari Excel/Sheets & abaikan tempelan skalar 1 sel", () => {
@@ -229,7 +201,6 @@ describe("Task 5 — Fase 3 UI Wiring: Export Gates, CSV/Feed Import, TSV Paste 
         ingredients={starterSubset}
         allIngredients={MOCK_INGREDIENTS}
         showAdvanceColumns={false}
-        globalAntiNol={false}
         language="id"
         onUpdateIngredient={vi.fn()}
         onResetPriceOverride={vi.fn()}
@@ -258,34 +229,31 @@ describe("Task 5 — Fase 3 UI Wiring: Export Gates, CSV/Feed Import, TSV Paste 
     expect(screen.getByText(/4 sel ditempel dari spreadsheet/i)).toBeInTheDocument();
   });
 
-  it("SettingsPage (2A/3A): menampilkan statistik IndexedDB + PWA serta 2 aksi pemulihan aman", async () => {
+  it("SettingsPage: mengelola Mode Simpel/Lanjutan, NDF, Anti-Nol Otomatis, Presisi LP, dan penyimpanan lokal", async () => {
     const onResetSampleData = vi.fn().mockResolvedValue(undefined);
     const onClearAllUserData = vi.fn().mockResolvedValue(undefined);
     const onExportAllBackup = vi.fn();
+    const onToggleAdvance = vi.fn();
+    const onToggleShowNdf = vi.fn();
+    const onSetGlobalZeroInclusion = vi.fn();
+    const onOpenPrecisionDialog = vi.fn();
     const user = userEvent.setup();
 
     render(
       <SettingsPage
         preferences={DEFAULT_PREFERENCES}
         onUpdate={vi.fn()}
+        config={DEFAULT_CONFIG}
+        onToggleAdvance={onToggleAdvance}
+        onToggleShowNdf={onToggleShowNdf}
+        onSetGlobalZeroInclusion={onSetGlobalZeroInclusion}
+        onOpenPrecisionDialog={onOpenPrecisionDialog}
         storageStats={{
           storageMode: "indexeddb",
           ingredientCount: 23,
-          requirementCount: 9,
+          requirementCount: 25,
           recipeCount: 3,
           estimatedBytes: 42500,
-        }}
-        pwaStatus={{
-          isOnline: true,
-          offlineReady: true,
-          needRefresh: false,
-          swSupported: true,
-          canInstall: false,
-          isInstalled: false,
-          isNativeApp: false,
-          platformHint: "desktop",
-          applyUpdate: vi.fn(),
-          installApp: vi.fn(() => Promise.resolve("unavailable" as const)),
         }}
         onExportAllBackup={onExportAllBackup}
         onResetSampleData={onResetSampleData}
@@ -293,17 +261,27 @@ describe("Task 5 — Fase 3 UI Wiring: Export Gates, CSV/Feed Import, TSV Paste 
       />,
     );
 
-    expect(screen.getByText(/IndexedDB Aktif/i)).toBeInTheDocument();
+    expect(screen.getByText(/Penyimpanan Lokal Aktif/i)).toBeInTheDocument();
     expect(screen.getByText(/23 bahan/i)).toBeInTheDocument();
-    expect(screen.getByText(/Siap Offline/i)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Unduh Backup Semua/i }));
+    await user.click(screen.getByRole("button", { name: "Mode Lanjutan" }));
+    expect(onToggleAdvance).toHaveBeenCalledWith(true);
+
+    await user.click(screen.getByRole("switch", { name: /Tampilkan Parameter NDF dan ADF/i }));
+    expect(onToggleShowNdf).toHaveBeenCalledWith(true);
+
+    await user.click(screen.getByRole("switch", { name: /Aktifkan Aturan Anti-Nol Otomatis/i }));
+    expect(onSetGlobalZeroInclusion).toHaveBeenCalledWith(false, 1);
+
+    await user.click(screen.getByRole("button", { name: /Atur Presisi LP/i }));
+    expect(onOpenPrecisionDialog).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: /Unduh Cadangan Data/i }));
     expect(onExportAllBackup).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole("button", { name: /Reset Data Bawaan/i }));
     expect(onResetSampleData).toHaveBeenCalledTimes(1);
 
-    // Hapus permanen butuh konfirmasi 2 tahap
     await user.click(screen.getByRole("button", { name: /Hapus Semua Data Lokal/i }));
     expect(onClearAllUserData).not.toHaveBeenCalled();
 

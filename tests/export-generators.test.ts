@@ -12,7 +12,12 @@ import {
   generateFormulationCsv,
   generateFormulationXlsx,
 } from "../src/storage/exportCsvXlsx";
-import { generateFormulationPdf } from "../src/storage/exportPdf";
+import {
+  generateFormulationPdf,
+  generateIngredientDatabasePdf,
+  generateRecipePdf,
+} from "../src/storage/exportPdf";
+import { MOCK_SAVED_RECIPES } from "../src/data/mock-state";
 import type { FormulationResult } from "../src/types";
 
 describe("Task 2 — Pure TS CSV, OOXML .xlsx & PDF 1.4 Generators + Safety Gates", () => {
@@ -172,5 +177,27 @@ describe("Task 2 — Pure TS CSV, OOXML .xlsx & PDF 1.4 Generators + Safety Gate
     });
     const diagAscii = new TextDecoder("latin1").decode(diagPdf);
     expect(diagAscii).toContain("NEAR-FEASIBLE");
+  });
+
+  it("menghasilkan PDF Database 8 klasifikasi bahan pakan dan PDF Project Resep yang valid", () => {
+    const dbPdf = generateIngredientDatabasePdf({
+      ingredients: MOCK_INGREDIENTS.slice(0, 30),
+    });
+    const dbAscii = new TextDecoder("latin1").decode(dbPdf);
+    expect(dbAscii.startsWith("%PDF-1.4")).toBe(true);
+    expect(dbAscii).toContain("OPEN FORMULASI");
+    expect(dbAscii).toContain("KELAS 4 - SUMBER ENERGI");
+    expect(dbAscii).toContain("KELAS 5 - SUMBER PROTEIN");
+    expect(dbAscii.trimEnd().endsWith("%%EOF")).toBe(true);
+
+    const recipePdf = generateRecipePdf({
+      recipe: MOCK_SAVED_RECIPES[0]!,
+      nutrientsCatalog: MOCK_NUTRIENTS,
+    });
+    const recAscii = new TextDecoder("latin1").decode(recipePdf);
+    expect(recAscii.startsWith("%PDF-1.4")).toBe(true);
+    expect(recAscii).toContain("RINGKASAN PROJECT RESEP");
+    expect(recAscii).toContain("DAFTAR BAHAN PAKAN AKTIF");
+    expect(recAscii.trimEnd().endsWith("%%EOF")).toBe(true);
   });
 });

@@ -3,20 +3,63 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0F3D3E" />
+    <meta name="theme-color" content="#F5F4EF" />
     <meta
       name="description"
       content="OpenFormul: aplikasi formulasi pakan ternak presisi offline-first berbasis optimasi Linear Programming."
     />
-    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230F3D3E'/%3E%3Cpath d='M16 6c-3 4-5 7.5-5 11a5 5 0 0 0 10 0c0-3.5-2-7-5-11z' fill='%2310B981'/%3E%3C/svg%3E"
-    />
-    <title>OpenFormul — Formulasi Pakan Ternak Presisi</title>
+    <link rel="apple-touch-icon" href="./logo.jpg" />
+    <link rel="icon" type="image/jpeg" href="./logo.jpg" />
+    <title>Open Formulasi</title>
+    <script>
+      (function () {
+        try {
+          var validPalettes = [
+            "original-default",
+            "prd-custom",
+            "template-01",
+            "template-02",
+            "template-03",
+            "template-04",
+            "template-05",
+          ];
+          var palette =
+            localStorage.getItem("openformul-theme-id") ||
+            localStorage.getItem("app-theme-id") ||
+            "original-default";
+          if (validPalettes.indexOf(palette) === -1) {
+            palette = "original-default";
+          }
+          var modeSetting =
+            localStorage.getItem("openformul-theme-mode") ||
+            localStorage.getItem("app-theme-mode") ||
+            "light";
+          var prefersDark =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var resolvedMode =
+            modeSetting === "dark" || (modeSetting === "system" && prefersDark) ? "dark" : "light";
+          var amoled =
+            (localStorage.getItem("openformul-theme-amoled") ||
+              localStorage.getItem("app-theme-amoled")) === "true";
+
+          var root = document.documentElement;
+          root.setAttribute("data-theme", palette);
+          root.setAttribute("data-mode", resolvedMode);
+          if (resolvedMode === "dark") {
+            root.classList.add("dark");
+            if (amoled) {
+              root.setAttribute("data-amoled", "true");
+            }
+          } else {
+            root.classList.remove("dark");
+            root.removeAttribute("data-amoled");
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
-  <body class="bg-[#F8FAFC] text-[#0F172A] antialiased dark:bg-[#0B1519] dark:text-[#F8FAFC]">
+  <body class="antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

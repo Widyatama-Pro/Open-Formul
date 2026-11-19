@@ -72,16 +72,15 @@ export function IngredientDetailSheet({
             return (
               <div key={nut.id} className="glass-card rounded-2xl p-3">
                 <div className="mb-1.5 flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-[#122B36] dark:text-slate-100">
-                    {nutName}{" "}
-                    <span className="text-[#6C8693] dark:text-slate-400">({nut.unit})</span>
+                  <span className="text-xs font-semibold text-[var(--text-primary)]">
+                    {nutName} <span className="text-[var(--text-muted)]">({nut.unit})</span>
                   </span>
                   <Badge tone="sky">{pickLang(language, "Turunan", "Derived")}</Badge>
                 </div>
-                <p className="text-sm font-bold tabular-nums text-[#0F172A] dark:text-white">
+                <p className="text-sm font-bold tabular-nums text-[var(--text-primary)]">
                   {derivedVal !== null ? `${formatNumberLocale(derivedVal, 1)} ${nut.unit}` : "N/A"}
                 </p>
-                <p className="mt-1 text-[10px] text-[#54707E] dark:text-slate-400">
+                <p className="mt-1 text-[10px] text-[var(--text-secondary)]">
                   {pickLang(
                     language,
                     "Dihitung otomatis dari Na, K, Cl, S (mg/kg).",
@@ -98,9 +97,9 @@ export function IngredientDetailSheet({
           return (
             <div key={nut.id} className="glass-card rounded-2xl p-3">
               <div className="mb-1.5 flex items-center justify-between gap-2">
-                <label className="text-xs font-semibold text-[#122B36] dark:text-slate-100">
+                <label className="text-xs font-semibold text-[var(--text-primary)]">
                   {nutName}{" "}
-                  <span className="text-[#6C8693] dark:text-slate-400">
+                  <span className="text-[var(--text-muted)]">
                     ({nut.unit}
                     {nut.isCustom
                       ? ` · ${pickLang(language, "Kustom", "Custom")} ${nut.defaultBasis === "dry_matter" ? pickLang(language, "BK", "DM") : "AF"}`
@@ -118,7 +117,7 @@ export function IngredientDetailSheet({
                         nutrients: { ...ingredient.nutrients, [nut.id]: null },
                       })
                     }
-                    className="cursor-pointer text-[11px] font-semibold text-[#0E7490] underline hover:text-[#0891B2] dark:text-cyan-300"
+                    className="cursor-pointer text-[11px] font-semibold text-[var(--status-info)] underline hover:opacity-80"
                   >
                     Set N/A
                   </button>
@@ -137,8 +136,8 @@ export function IngredientDetailSheet({
                 }
               />
               {stochasticEnabled && (
-                <div className="mt-2 flex items-center justify-between gap-2 border-t border-[#E2E8F0] pt-1.5 dark:border-[#1E333D]">
-                  <span className="text-[10px] font-medium text-[#54707E] dark:text-slate-400">
+                <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-1.5">
+                  <span className="text-[10px] font-medium text-[var(--text-secondary)]">
                     σ ({pickLang(language, "Simpangan Baku", "Std Dev")})
                   </span>
                   <div className="w-24">
@@ -203,14 +202,14 @@ export function IngredientDetailSheet({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="glass-card rounded-2xl p-3.5">
                 <div className="mb-1 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-[#122B36] dark:text-slate-100">
+                  <span className="text-xs font-semibold text-[var(--text-primary)]">
                     {pickLang(language, "Harga Custom (Rp/kg)", "Custom Price (IDR/kg)")}
                   </span>
                   {ingredient.priceOverride !== undefined && (
                     <button
                       type="button"
                       onClick={() => onResetPrice(ingredient.id)}
-                      className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
+                      className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-semibold text-[var(--status-success)] hover:underline"
                     >
                       <RotateCcw className="h-3 w-3" />
                       {pickLang(language, "Reset pasar", "Reset market")}
@@ -231,14 +230,14 @@ export function IngredientDetailSheet({
                     }
                   }}
                 />
-                <p className="mt-1.5 text-[11px] text-[#54707E] dark:text-slate-400">
+                <p className="mt-1.5 text-[11px] text-[var(--text-secondary)]">
                   {pickLang(language, "Acuan pasar", "Market reference")}:{" "}
                   {formatCurrencyIdr(ingredient.pricePerKg)}
                 </p>
               </div>
 
               <div className="glass-card rounded-2xl p-3.5">
-                <span className="mb-1 block text-xs font-semibold text-[#122B36] dark:text-slate-100">
+                <span className="mb-1 block text-xs font-semibold text-[var(--text-primary)]">
                   {pickLang(language, "Bahan Kering / Dry Matter (%)", "Dry Matter (%)")}
                 </span>
                 <NumericCellInput
@@ -257,7 +256,7 @@ export function IngredientDetailSheet({
                     }
                   }}
                 />
-                <p className="mt-1.5 text-[11px] text-[#54707E] dark:text-slate-400">
+                <p className="mt-1.5 text-[11px] text-[var(--text-secondary)]">
                   {pickLang(language, "Kadar air estimasi", "Estimated moisture")}:{" "}
                   {(100 - ingredient.dryMatter).toFixed(1)}%
                 </p>
@@ -272,7 +271,7 @@ export function IngredientDetailSheet({
               }
             >
               <div>
-                <span className="mb-1 block text-xs font-semibold text-[#122B36] dark:text-slate-100">
+                <span className="mb-1 block text-xs font-semibold text-[var(--text-primary)]">
                   {pickLang(language, "Batas Min (%)", "Min Limit (%)")}
                 </span>
                 <NumericCellInput
@@ -292,7 +291,7 @@ export function IngredientDetailSheet({
                 />
               </div>
               <div>
-                <span className="mb-1 block text-xs font-semibold text-[#122B36] dark:text-slate-100">
+                <span className="mb-1 block text-xs font-semibold text-[var(--text-primary)]">
                   {pickLang(language, "Batas Max (%)", "Max Limit (%)")}
                 </span>
                 <NumericCellInput
@@ -311,10 +310,10 @@ export function IngredientDetailSheet({
 
             <div className="glass-card flex items-center justify-between gap-3 rounded-2xl p-3.5">
               <div>
-                <p className="text-xs font-semibold text-[#122B36] dark:text-slate-100">
+                <p className="text-xs font-semibold text-[var(--text-primary)]">
                   {pickLang(language, "Fosfor Fitat / Phytate-P (%)", "Phytate-P Substrate (%)")}
                 </p>
-                <p className="text-[11px] text-[#54707E] dark:text-slate-400">
+                <p className="text-[11px] text-[var(--text-secondary)]">
                   {pickLang(
                     language,
                     "Plafon pelepasan fosfor oleh enzim fitase (PR-05).",
@@ -344,14 +343,14 @@ export function IngredientDetailSheet({
 
             <div className="glass-card flex items-center justify-between gap-3 rounded-2xl p-3.5">
               <div>
-                <p className="text-xs font-semibold text-[#122B36] dark:text-slate-100">
+                <p className="text-xs font-semibold text-[var(--text-primary)]">
                   {pickLang(
                     language,
                     "Aturan Anti-Nol Khusus Bahan Ini",
                     "Per-Ingredient Anti-Zero Rule",
                   )}
                 </p>
-                <p className="text-[11px] text-[#54707E] dark:text-slate-400">
+                <p className="text-[11px] text-[var(--text-secondary)]">
                   {pickLang(
                     language,
                     "Kunci pemakaian minimal bila bahan tetap diaktifkan",

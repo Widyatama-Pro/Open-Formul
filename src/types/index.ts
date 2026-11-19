@@ -24,6 +24,9 @@ export interface Nutrient {
 export type IngredientCategory =
   "energy" | "protein" | "mineral" | "premix" | "forage" | "additive" | "enzyme";
 
+/** 8 klasifikasi bahan pakan standar internasional (IFN / NRC / Hartadi 1980 Tabel 7). */
+export type FeedClassCode = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+
 /** Batas dalam persen (0–100) atau satuan nutrien terkait. */
 export interface Bounds {
   readonly min?: number;
@@ -40,6 +43,8 @@ export interface Ingredient {
   readonly name: string;
   readonly nameEn?: string;
   readonly category: IngredientCategory;
+  /** Kode kelas bahan pakan standar 1–8 (IFN / NRC). */
+  readonly feedClass?: FeedClassCode;
   /** Harga pasaran acuan per kg As-Fed (IDR). */
   readonly pricePerKg: number;
   /** Harga custom sesi pengguna yang menimpa harga acuan (IDR). */
@@ -142,6 +147,8 @@ export interface FormulationConfig {
   readonly activeBasis: Basis;
   readonly batchSizeKg: number;
   readonly enableAdvanceNutrients: boolean;
+  /** Tampilkan dan aktifkan parameter NDF/ADF meskipun di luar Mode Lanjutan penuh. */
+  readonly showNdf?: boolean;
   readonly enableDigestibleBasis: boolean;
   readonly enableElasticFallback: boolean;
   readonly globalZeroInclusion: ZeroInclusionRule;
@@ -291,10 +298,27 @@ export interface Recipe {
 export type AppLanguage = "id" | "en";
 export type ThemeMode = "light" | "dark";
 
+export type ThemePaletteId =
+  | "original-default"
+  | "prd-custom"
+  | "template-01"
+  | "template-02"
+  | "template-03"
+  | "template-04"
+  | "template-05";
+
+export type ThemeModeSetting = "light" | "dark" | "system";
+export type ResolvedThemeMode = "light" | "dark";
+
 export interface UserPreferences {
   readonly language: AppLanguage;
   readonly theme: ThemeMode;
+  readonly themePalette?: ThemePaletteId;
+  readonly themeModeSetting?: ThemeModeSetting;
+  readonly amoledPureBlack?: boolean;
   readonly defaultBasis: Basis;
   readonly defaultBatchKg: number;
   readonly zeroInclusionDefaultPct: number;
+  /** Mode Simpel menyingkat istilah nutrisi (PK, EM, TDN, LK, SK) dan menyederhanakan tampilan. */
+  readonly simpleMode?: boolean;
 }

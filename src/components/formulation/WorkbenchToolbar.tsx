@@ -1,13 +1,5 @@
-import { memo } from "react";
-import {
-  BookmarkPlus,
-  Cpu,
-  Download,
-  PanelRightClose,
-  PanelRightOpen,
-  RotateCcw,
-  SlidersHorizontal,
-} from "lucide-react";
+import { memo, useMemo } from "react";
+import { BookmarkPlus, ChevronsLeft, ChevronsRight, Download, RotateCcw } from "lucide-react";
 import { getFormulationStatusLabel, pickLang } from "../../i18n";
 import type {
   AppLanguage,
@@ -31,25 +23,60 @@ export interface WorkbenchToolbarProps {
   readonly config: FormulationConfig;
   readonly result: FormulationResult;
   readonly language: AppLanguage;
-  readonly demoScenario: "auto" | "optimal" | "near_feasible" | "infeasible";
+  readonly simpleMode: boolean;
   readonly inspectorOpen: boolean;
   readonly onToggleInspector: () => void;
   readonly onSelectPreset: (id: string) => void;
   readonly onSetBasis: (basis: Basis) => void;
   readonly onSetMode: (mode: OptimizationMode) => void;
   readonly onToggleAdvance: (enabled: boolean) => void;
-  readonly onToggleZeroInclusion: (enabled: boolean, minPct?: number) => void;
   readonly onToggleElastic: (enabled: boolean) => void;
-  readonly onOpenPrecisionDialog?: () => void;
-  readonly onSetDemoScenario: (s: "auto" | "optimal" | "near_feasible" | "infeasible") => void;
   readonly onOpenSaveDialog: () => void;
   readonly onOpenExportDialog: () => void;
   readonly onResetMock: () => void;
 }
 
+interface RequirementGroups {
+  readonly quick: readonly Requirement[];
+  readonly sniPoultry: readonly Requirement[];
+  readonly sniRuminant: readonly Requirement[];
+  readonly kearl: readonly Requirement[];
+  readonly nrcDairy: readonly Requirement[];
+  readonly custom: readonly Requirement[];
+}
+
+function groupRequirements(requirements: readonly Requirement[]): RequirementGroups {
+  const quick: Requirement[] = [];
+  const sniPoultry: Requirement[] = [];
+  const sniRuminant: Requirement[] = [];
+  const kearl: Requirement[] = [];
+  const nrcDairy: Requirement[] = [];
+  const custom: Requirement[] = [];
+
+  for (const req of requirements) {
+    if (req.id === "broiler-starter" || req.id === "layer-peak" || req.id === "beef-fattening") {
+      quick.push(req);
+    } else if (req.id.startsWith("sni-")) {
+      if (req.basis === "dry_matter") {
+        sniRuminant.push(req);
+      } else {
+        sniPoultry.push(req);
+      }
+    } else if (req.id.startsWith("kearl")) {
+      kearl.push(req);
+    } else if (req.id.startsWith("nrc88-")) {
+      nrcDairy.push(req);
+    } else {
+      custom.push(req);
+    }
+  }
+
+  return { quick, sniPoultry, sniRuminant, kearl, nrcDairy, custom };
+}
+
 /**
- * Toolbar & KPI strip ringkas (height: 76px di desktop) agar ruang vertikal above-the-fold
- * langsung memprioritaskan tabel formulasi ransum utama.
+ * Toolbar & KPI strip ringkas untuk Workbench Formulasi Desktop.
+ * Opsi lanjutan (Anti-Nol otomatis & Presisi LP) dipindah ke menu Pengaturan agar area utama bersih.
  */
 export const WorkbenchToolbar = memo(function WorkbenchToolbar({
   requirements,
@@ -57,21 +84,20 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
   config,
   result,
   language,
-  demoScenario,
+  simpleMode,
   inspectorOpen,
   onToggleInspector,
   onSelectPreset,
   onSetBasis,
   onSetMode,
   onToggleAdvance,
-  onToggleZeroInclusion,
   onToggleElastic,
-  onOpenPrecisionDialog,
-  onSetDemoScenario,
   onOpenSaveDialog,
   onOpenExportDialog,
   onResetMock,
 }: WorkbenchToolbarProps) {
+  const groupedReqs = useMemo(() => groupRequirements(requirements), [requirements]);
+
   const statusBadge =
     result.status === "optimal" ? (
       <Badge tone="emerald">{getFormulationStatusLabel(language, "optimal")}</Badge>
@@ -81,48 +107,50 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
       <Badge tone="rose">{getFormulationStatusLabel(language, result.status)}</Badge>
     );
 
-  const activePrecisionCount =
-    (config.fractionalObjective ? 1 : 0) +
-    (config.enableStochasticSlp ? 1 : 0) +
-    ((config.enzymes?.length ?? 0) > 0 ? 1 : 0);
-
   return (
     <section
       aria-label={pickLang(language, "Kontrol utama formulasi", "Main formulation controls")}
-      className="flex min-h-[76px] shrink-0 flex-col justify-center gap-2 border-b border-[#E2E8F0] bg-white px-3.5 py-2 lg:gap-1.5 lg:px-5 dark:border-[#1E333D] dark:bg-[#111F26]"
+      className="flex min-h-[76px] shrink-0 flex-col justify-center gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3.5 py-2 lg:gap-1.5 lg:px-5"
     >
-      {/* Baris 1: Judul ringkas + KPI biaya ransum tipis + Aksi utama */}
+      {/* Baris 1: Judul ringkas + KPI biaya + Status & Elastik + Aksi utama */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-          <h1 className="shrink-0 text-sm font-bold tracking-tight text-[#0F172A] dark:text-white">
+          <h1 className="shrink-0 text-sm font-bold tracking-tight text-[var(--text-primary)]">
             {pickLang(language, "Formulasi Ransum", "Ration Formulation")}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:border-l sm:border-[#E2E8F0] sm:pl-3 dark:sm:border-[#1E333D]">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:border-l sm:border-[var(--border-subtle)] sm:pl-3">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-[11px] font-medium text-[#475569] dark:text-slate-400">
+              <span className="text-[11px] font-medium text-[var(--text-muted)]">
                 {pickLang(language, "Biaya / kg", "Cost / kg")} (
                 {result.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK", "DM")})
               </span>
-              <span className="text-sm font-bold tabular-nums text-[#D97706] dark:text-amber-400">
+              <span className="text-sm font-bold tabular-nums text-[var(--status-warning)]">
                 {result.costPerKg !== null ? formatCurrencyIdr(result.costPerKg) : "—"}
               </span>
             </div>
 
-            <div className="flex items-baseline gap-1.5 sm:border-l sm:border-[#E2E8F0] sm:pl-3 dark:sm:border-[#1E333D]">
-              <span className="text-[11px] font-medium text-[#475569] dark:text-slate-400">
+            <div className="flex items-baseline gap-1.5 sm:border-l sm:border-[var(--border-subtle)] sm:pl-3">
+              <span className="text-[11px] font-medium text-[var(--text-muted)]">
                 {pickLang(language, "Biaya", "Cost")} / {config.batchSizeKg} kg
               </span>
-              <span className="text-sm font-bold tabular-nums text-[#059669] dark:text-emerald-400">
+              <span className="text-sm font-bold tabular-nums text-[var(--status-success)]">
                 {result.batchTotalCost !== null && result.batchTotalCost !== undefined
                   ? formatCurrencyIdr(result.batchTotalCost)
                   : "—"}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 border-l border-[#E2E8F0] pl-3 dark:border-[#1E333D]">
+            <div className="flex items-center gap-2 border-l border-[var(--border-subtle)] pl-3">
               {statusBadge}
-              <label className="hidden cursor-pointer items-center gap-1.5 text-[11px] font-medium text-[#475569] sm:inline-flex dark:text-slate-300">
+              <label
+                title={pickLang(
+                  language,
+                  "Jika target nutrisi terlalu ketat, mode Elastik melonggarkan sedikit batas agar tetap menghasilkan racikan terdekat.",
+                  "When targets are too tight, Elastic mode slightly relaxes bounds to still produce the closest feasible diet.",
+                )}
+                className="hidden cursor-pointer items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)] sm:inline-flex"
+              >
                 <Switch
                   checked={config.enableElasticFallback}
                   onCheckedChange={onToggleElastic}
@@ -139,28 +167,6 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
         </div>
 
         <div className="flex max-w-full min-w-0 flex-wrap items-center gap-1.5 lg:shrink-0">
-          <Select
-            aria-label={pickLang(
-              language,
-              "Simulasi kondisi hasil prototipe",
-              "Prototype simulation scenario",
-            )}
-            value={demoScenario}
-            onChange={(e) =>
-              onSetDemoScenario(
-                e.target.value as "auto" | "optimal" | "near_feasible" | "infeasible",
-              )
-            }
-            className="h-7 min-h-7 w-auto py-0 text-[11px]"
-          >
-            <option value="auto">
-              {pickLang(language, "Solver HiGHS (Live)", "HiGHS Solver (Live)")}
-            </option>
-            <option value="optimal">Demo: Optimal 100%</option>
-            <option value="near_feasible">Demo: Near-Feasible (Elastik)</option>
-            <option value="infeasible">Demo: Infeasible (Konflik)</option>
-          </Select>
-
           <Button
             variant="secondary"
             size="sm"
@@ -168,7 +174,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
             className="min-h-7 px-2.5 text-[11px] md:min-h-7"
           >
             <Download className="h-3.5 w-3.5 shrink-0" />
-            <span>{pickLang(language, "Ekspor", "Export")}</span>
+            <span>{pickLang(language, "Ekspor PDF", "Export PDF")}</span>
           </Button>
           <Button
             variant="primary"
@@ -184,7 +190,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
             size="sm"
             onClick={onResetMock}
             aria-label={pickLang(language, "Reset data prototipe", "Reset sample data")}
-            title={pickLang(language, "Reset data prototipe", "Reset sample data")}
+            title={pickLang(language, "Reset ke data awal", "Reset to initial data")}
             className="neu-pill-btn min-h-7 rounded-lg px-2 md:min-h-7"
           >
             <RotateCcw className="h-3.5 w-3.5 shrink-0" />
@@ -220,28 +226,29 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
                     "Show nutrient targets panel",
                   )
             }
-            className="hidden min-h-7 px-2 text-[11px] lg:inline-flex"
+            className="hidden min-h-7 px-2.5 text-[11px] lg:inline-flex"
           >
             {inspectorOpen ? (
-              <PanelRightClose className="h-3.5 w-3.5 shrink-0 text-[#0F3D3E] dark:text-emerald-400" />
+              <>
+                <span>{pickLang(language, "Tutup Target", "Hide Targets")}</span>
+                <ChevronsRight className="h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]" />
+              </>
             ) : (
-              <PanelRightOpen className="h-3.5 w-3.5 shrink-0 text-[#059669] dark:text-emerald-400" />
+              <>
+                <ChevronsLeft className="h-3.5 w-3.5 shrink-0 text-[var(--status-success)]" />
+                <span>{pickLang(language, "Target Nutrien", "Nutrient Targets")}</span>
+              </>
             )}
-            <span>
-              {inspectorOpen
-                ? pickLang(language, "Tutup Target", "Hide Targets")
-                : pickLang(language, "Target Nutrien", "Nutrient Targets")}
-            </span>
           </Button>
         </div>
       </div>
 
-      {/* Baris 2: Parameter formulasi dalam strip fleksibel agar tidak terpotong di desktop/mobile */}
+      {/* Baris 2: Standar Ternak (SNI + Kearl + NRC), Basis, Mode Optimasi, dan Mode Simpel/Lanjutan */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <div className="flex shrink-0 items-center gap-1.5">
           <label
             htmlFor="preset-select"
-            className="text-[11px] font-semibold whitespace-nowrap text-[#475569] dark:text-slate-300"
+            className="text-[11px] font-semibold whitespace-nowrap text-[var(--text-secondary)]"
           >
             {pickLang(language, "Standar Ternak", "Livestock Preset")}
           </label>
@@ -249,13 +256,80 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
             id="preset-select"
             value={activeRequirement.id}
             onChange={(e) => onSelectPreset(e.target.value)}
-            className="h-7 min-h-7 w-auto max-w-52 py-0 text-[11px]"
+            className="h-7 min-h-7 w-auto max-w-68 py-0 text-[11px]"
           >
-            {requirements.map((req) => (
-              <option key={req.id} value={req.id}>
-                {language === "id" ? req.name : (req.nameEn ?? req.name)}
-              </option>
-            ))}
+            {groupedReqs.custom.length > 0 && (
+              <optgroup label={pickLang(language, "Profil Kustom Anda", "Your Custom Profiles")}>
+                {groupedReqs.custom.map((req) => (
+                  <option key={req.id} value={req.id}>
+                    {language === "id" ? req.name : (req.nameEn ?? req.name)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {groupedReqs.quick.length > 0 && (
+              <optgroup label={pickLang(language, "Standar Cepat", "Quick Presets")}>
+                {groupedReqs.quick.map((req) => (
+                  <option key={req.id} value={req.id}>
+                    {language === "id" ? req.name : (req.nameEn ?? req.name)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {groupedReqs.sniPoultry.length > 0 && (
+              <optgroup
+                label={pickLang(
+                  language,
+                  "Standar SNI Unggas (2013–2017)",
+                  "SNI Poultry Standards (2013–2017)",
+                )}
+              >
+                {groupedReqs.sniPoultry.map((req) => (
+                  <option key={req.id} value={req.id}>
+                    {language === "id" ? req.name : (req.nameEn ?? req.name)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {groupedReqs.sniRuminant.length > 0 && (
+              <optgroup
+                label={pickLang(
+                  language,
+                  "Standar SNI Ruminansia (2017–2019)",
+                  "SNI Ruminant Standards (2017–2019)",
+                )}
+              >
+                {groupedReqs.sniRuminant.map((req) => (
+                  <option key={req.id} value={req.id}>
+                    {language === "id" ? req.name : (req.nameEn ?? req.name)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {groupedReqs.kearl.length > 0 && (
+              <optgroup
+                label={pickLang(
+                  language,
+                  "Kearl (1982) — Ruminansia Tropis",
+                  "Kearl (1982) — Tropical Ruminants",
+                )}
+              >
+                {groupedReqs.kearl.map((req) => (
+                  <option key={req.id} value={req.id}>
+                    {language === "id" ? req.name : (req.nameEn ?? req.name)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {groupedReqs.nrcDairy.length > 0 && (
+              <optgroup label="NRC (1988) — Dairy Cattle">
+                {groupedReqs.nrcDairy.map((req) => (
+                  <option key={req.id} value={req.id}>
+                    {language === "id" ? req.name : (req.nameEn ?? req.name)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </Select>
         </div>
 
@@ -266,7 +340,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
             "Pilih basis As-Fed atau Bahan Kering",
             "Select As-Fed or Dry Matter basis",
           )}
-          className="inline-flex h-7 shrink-0 items-center rounded-lg border border-[#E2E8F0] bg-[#F1F5F9] p-0.5 dark:border-[#1E333D] dark:bg-[#0B1519]"
+          className="neu-pressed inline-flex h-7 shrink-0 items-center rounded-lg p-0.5"
         >
           {(["as_fed", "dry_matter"] as const).map((basis) => {
             const active = config.activeBasis === basis;
@@ -279,8 +353,8 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
                 className={cn(
                   "cursor-pointer rounded-md px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
                   active
-                    ? "bg-white text-[#0F172A] shadow-2xs dark:bg-[#111F26] dark:text-white"
-                    : "text-[#475569] hover:text-[#0F172A] dark:text-slate-300 dark:hover:text-white",
+                    ? "bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[var(--shadow-neu-flat)]"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
                 )}
               >
                 {basis === "as_fed" ? "As-Fed" : pickLang(language, "BK (DM)", "DM")}
@@ -290,7 +364,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          <span className="text-[11px] font-semibold whitespace-nowrap text-[#475569] dark:text-slate-300">
+          <span className="text-[11px] font-semibold whitespace-nowrap text-[var(--text-secondary)]">
             Mode
           </span>
           <OptimizationModeSelector
@@ -300,52 +374,53 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
           />
         </div>
 
-        <label className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-[11px] font-semibold whitespace-nowrap text-[#0F172A] dark:text-slate-200">
-          <Switch
-            checked={config.enableAdvanceNutrients}
-            onCheckedChange={onToggleAdvance}
-            label={pickLang(
+        {/* Toggle Mode Simpel vs Mode Lanjutan (sinkron dengan menu Pengaturan) */}
+        <div
+          role="group"
+          aria-label={pickLang(
+            language,
+            "Pilih Mode Simpel atau Mode Lanjutan",
+            "Select Simple or Advanced Mode",
+          )}
+          className="neu-pressed inline-flex h-7 shrink-0 items-center rounded-lg p-0.5"
+        >
+          <button
+            type="button"
+            aria-pressed={simpleMode}
+            onClick={() => onToggleAdvance(false)}
+            title={pickLang(
               language,
-              "Aktifkan Mode Presisi Tinggi Advance",
-              "Enable Advance High-Precision Mode",
+              "Mode Simpel: singkatan nutrisi (PK, EM, TDN, LK, SK) dan kolom ringkas",
+              "Simple Mode: abbreviated nutrient labels and compact columns",
             )}
-          />
-          <span className="inline-flex items-center gap-1">
-            <SlidersHorizontal className="h-3 w-3 text-[#059669] dark:text-emerald-400" />
-            Advance (AA/NDF/ANF)
-          </span>
-        </label>
-
-        <label className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-[11px] font-semibold whitespace-nowrap text-[#0F172A] dark:text-slate-200">
-          <Switch
-            checked={config.globalZeroInclusion.enforceNonZero}
-            onCheckedChange={(checked) =>
-              onToggleZeroInclusion(checked, config.globalZeroInclusion.minIfSelected ?? 1)
-            }
-            label={pickLang(
-              language,
-              "Aktifkan Aturan Anti-Nol Global",
-              "Enable Global Anti-Zero Rule",
+            className={cn(
+              "cursor-pointer rounded-md px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
+              simpleMode
+                ? "bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[var(--shadow-neu-flat)]"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
             )}
-          />
-          <span>
-            {pickLang(language, "Anti-Nol", "Anti-Zero")} (
-            {config.globalZeroInclusion.minIfSelected ?? 1}%)
-          </span>
-        </label>
-
-        {onOpenPrecisionDialog && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onOpenPrecisionDialog}
-            className="min-h-7 shrink-0 px-2.5 text-[11px] md:min-h-7"
           >
-            <Cpu className="h-3.5 w-3.5 text-[#0E7490] dark:text-cyan-300" />
-            <span>{pickLang(language, "Presisi LP", "Precision LP")}</span>
-            {activePrecisionCount > 0 && <Badge tone="emerald">{activePrecisionCount}</Badge>}
-          </Button>
-        )}
+            {pickLang(language, "Mode Simpel", "Simple Mode")}
+          </button>
+          <button
+            type="button"
+            aria-pressed={!simpleMode}
+            onClick={() => onToggleAdvance(true)}
+            title={pickLang(
+              language,
+              "Mode Lanjutan: nama nutrisi lengkap termasuk Asam Amino, NDF/ADF, dan ANF",
+              "Advanced Mode: full nutrient names including Amino Acids, NDF/ADF, and ANF",
+            )}
+            className={cn(
+              "cursor-pointer rounded-md px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
+              !simpleMode
+                ? "bg-[var(--color-primary)] text-[var(--text-on-primary)] shadow-[var(--shadow-neu-flat)]"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+            )}
+          >
+            {pickLang(language, "Mode Lanjutan", "Advanced Mode")}
+          </button>
+        </div>
       </div>
     </section>
   );

@@ -5,6 +5,7 @@ import {
   MOCK_INGREDIENTS,
   MOCK_REQUIREMENTS,
   MOCK_SAVED_RECIPES,
+  SNI_REQUIREMENTS,
 } from "../data/mock-state";
 import type { FormulationConfig, Ingredient, Recipe, Requirement, UserPreferences } from "../types";
 import {
@@ -280,7 +281,15 @@ export async function hydrateOrSeedDatabase(
     }
 
     const finalIngredients = validIngredients.length > 0 ? validIngredients : MOCK_INGREDIENTS;
-    const finalRequirements = validRequirements.length > 0 ? validRequirements : MOCK_REQUIREMENTS;
+    let finalRequirements: readonly Requirement[] =
+      validRequirements.length > 0 ? validRequirements : MOCK_REQUIREMENTS;
+    if (validRequirements.length > 0) {
+      const existingReqIds = new Set(validRequirements.map((r) => r.id));
+      const missingSni = SNI_REQUIREMENTS.filter((r) => !existingReqIds.has(r.id));
+      if (missingSni.length > 0) {
+        finalRequirements = [...validRequirements, ...missingSni];
+      }
+    }
     if (validIngredients.length === 0 && rawIngs.length > 0) {
       warnings.push("Seluruh data bahan korup; katalog awal dipulihkan.");
     }

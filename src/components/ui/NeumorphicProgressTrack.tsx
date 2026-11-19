@@ -18,17 +18,17 @@ export interface NeumorphicProgressTrackProps {
 }
 
 const FILL_CLASSES: Record<NonNullable<NeumorphicProgressTrackProps["tone"]>, string> = {
-  emerald: "bg-[#059669]",
-  amber: "bg-[#D97706]",
-  coral: "bg-rose-500",
-  petrol: "bg-[#0F3D3E]",
+  emerald: "bg-[var(--status-success)]",
+  amber: "bg-[var(--status-warning)]",
+  coral: "bg-[var(--status-danger)]",
+  petrol: "bg-[var(--color-primary)]",
 };
 
 const NODE_RING_CLASSES: Record<NonNullable<ProgressNode["tone"]>, string> = {
-  emerald: "border-[#059669] text-[#047857] dark:text-emerald-300",
-  amber: "border-[#D97706] text-[#B45309] dark:text-amber-300",
-  coral: "border-rose-500 text-rose-700 dark:text-rose-300",
-  neutral: "border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-300",
+  emerald: "border-[var(--status-success)] text-[var(--status-success)]",
+  amber: "border-[var(--status-warning)] text-[var(--status-warning)]",
+  coral: "border-[var(--status-danger)] text-[var(--status-danger)]",
+  neutral: "border-[var(--border-subtle)] text-[var(--text-secondary)]",
 };
 
 /**
@@ -50,8 +50,9 @@ export function NeumorphicProgressTrack({
       <div className="neu-well relative h-2.5 w-full overflow-hidden rounded-full">
         {rangeStartPct !== undefined && rangeWidthPct !== undefined ? (
           <div
-            className="absolute top-0 bottom-0 rounded-full bg-emerald-500/25 dark:bg-emerald-400/25"
+            className="absolute top-0 bottom-0 rounded-full"
             style={{
+              backgroundColor: "color-mix(in srgb, var(--status-success) 25%, transparent)",
               left: `${Math.max(0, Math.min(100, rangeStartPct))}%`,
               width: `${Math.max(4, Math.min(100, rangeWidthPct))}%`,
             }}
@@ -71,14 +72,8 @@ export function NeumorphicProgressTrack({
         <span
           aria-hidden="true"
           className={cn(
-            "absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm dark:border-slate-900",
-            tone === "emerald"
-              ? "bg-[#059669]"
-              : tone === "amber"
-                ? "bg-[#D97706]"
-                : tone === "coral"
-                  ? "bg-rose-500"
-                  : "bg-[#0F3D3E]",
+            "absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--bg-surface-elevated)] shadow-sm",
+            FILL_CLASSES[tone],
           )}
           style={{ left: `${clamped}%` }}
         />
@@ -90,7 +85,7 @@ export function NeumorphicProgressTrack({
             <span
               key={`${node.label}-${idx}`}
               className={cn(
-                "inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 bg-white px-1 text-[10px] font-bold tabular-nums shadow-xs dark:bg-[#111F26]",
+                "inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 bg-[var(--bg-surface-elevated)] px-1 text-[10px] font-bold tabular-nums shadow-xs",
                 NODE_RING_CLASSES[node.tone ?? "neutral"],
               )}
             >

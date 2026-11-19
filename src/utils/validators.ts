@@ -1,6 +1,7 @@
 import type {
   Basis,
   Bounds,
+  FeedClassCode,
   FormulationConfig,
   Ingredient,
   IngredientCategory,
@@ -13,6 +14,8 @@ import type {
   RatioConstraint,
   Recipe,
   Requirement,
+  ThemeModeSetting,
+  ThemePaletteId,
   UserPreferences,
   ZeroInclusionRule,
 } from "../types";
@@ -277,6 +280,14 @@ export function validateIngredient(
     }
   }
 
+  let feedClass: FeedClassCode | undefined;
+  if (raw.feedClass !== undefined) {
+    const parsedFc = parseFiniteNumber(raw.feedClass);
+    if (parsedFc !== null && Number.isInteger(parsedFc) && parsedFc >= 1 && parsedFc <= 8) {
+      feedClass = parsedFc as FeedClassCode;
+    }
+  }
+
   const source = sanitizeText(raw.source, { maxLength: 400 }) || "Impor JSON";
 
   if (errors.length > 0 || !category || pricePerKg === null || dryMatter === null || !basis) {
@@ -292,6 +303,7 @@ export function validateIngredient(
     basis,
     nutrients,
     source,
+    ...(feedClass !== undefined ? { feedClass } : {}),
     ...(nameEn ? { nameEn } : {}),
     ...(priceOverride !== undefined ? { priceOverride } : {}),
     ...(isActive !== undefined ? { isActive } : {}),
@@ -655,6 +667,7 @@ export function validateFormulationConfig(raw: unknown): ValidationResult<Formul
       activeBasis,
       batchSizeKg,
       enableAdvanceNutrients: Boolean(raw.enableAdvanceNutrients),
+      ...(raw.showNdf !== undefined ? { showNdf: Boolean(raw.showNdf) } : {}),
       enableDigestibleBasis: Boolean(raw.enableDigestibleBasis),
       enableElasticFallback: raw.enableElasticFallback !== false,
       globalZeroInclusion: zeroRule,
@@ -664,12 +677,35 @@ export function validateFormulationConfig(raw: unknown): ValidationResult<Formul
   };
 }
 
+const VALID_THEME_PALETTES = new Set<ThemePaletteId>([
+  "original-default",
+  "prd-custom",
+  "template-01",
+  "template-02",
+  "template-03",
+  "template-04",
+  "template-05",
+]);
+const VALID_THEME_MODE_SETTINGS = new Set<ThemeModeSetting>(["light", "dark", "system"]);
+
 export function validateUserPreferences(raw: unknown): ValidationResult<UserPreferences> {
   if (!isPlainObject(raw)) {
     return { ok: false, errors: ["Preferensi harus berupa objek."] };
   }
   const language = raw.language === "en" ? "en" : "id";
   const theme = raw.theme === "dark" ? "dark" : "light";
+  const themePalette =
+    typeof raw.themePalette === "string" &&
+    VALID_THEME_PALETTES.has(raw.themePalette as ThemePaletteId)
+      ? (raw.themePalette as ThemePaletteId)
+      : undefined;
+  const themeModeSetting =
+    typeof raw.themeModeSetting === "string" &&
+    VALID_THEME_MODE_SETTINGS.has(raw.themeModeSetting as ThemeModeSetting)
+      ? (raw.themeModeSetting as ThemeModeSetting)
+      : undefined;
+  const amoledPureBlack =
+    typeof raw.amoledPureBlack === "boolean" ? raw.amoledPureBlack : undefined;
   const defaultBasis = validateBasis(raw.defaultBasis) ?? "as_fed";
   const batch = parseFiniteNumber(raw.defaultBatchKg);
   const zeroPct = parseFiniteNumber(raw.zeroInclusionDefaultPct);
@@ -678,9 +714,13 @@ export function validateUserPreferences(raw: unknown): ValidationResult<UserPref
     data: {
       language,
       theme,
+      ...(themePalette !== undefined ? { themePalette } : {}),
+      ...(themeModeSetting !== undefined ? { themeModeSetting } : {}),
+      ...(amoledPureBlack !== undefined ? { amoledPureBlack } : {}),
       defaultBasis,
       defaultBatchKg: batch !== null && batch > 0 ? batch : 100,
       zeroInclusionDefaultPct: zeroPct !== null && zeroPct >= 0 && zeroPct <= 50 ? zeroPct : 1,
+      ...(raw.simpleMode !== undefined ? { simpleMode: Boolean(raw.simpleMode) } : {}),
     },
   };
 }

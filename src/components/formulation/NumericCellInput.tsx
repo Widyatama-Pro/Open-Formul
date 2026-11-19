@@ -90,6 +90,7 @@ export function NumericCellInput({
   return (
     <input
       type="text"
+      size={1}
       inputMode="decimal"
       aria-label={ariaLabel}
       aria-invalid={isError ? true : undefined}
@@ -130,9 +131,9 @@ export function NumericCellInput({
       }}
       onKeyDown={handleKeyDown}
       className={cn(
-        "min-h-10 w-full rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-2 py-1 text-right text-sm font-medium tabular-nums text-[#0F172A] placeholder:text-[#94A3B8] transition-[border-color,background-color] duration-150 focus-visible:border-[#059669] focus-visible:bg-white focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[#059669]/30 disabled:opacity-55 md:min-h-7 md:py-0.5 md:text-xs dark:border-[#1E333D] dark:bg-[#0B1519] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus-visible:bg-[#111F26]",
+        "min-h-10 w-full min-w-0 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-sunken)] px-2 py-1 text-right text-sm font-medium tabular-nums text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-[border-color,background-color] duration-150 focus-visible:border-[var(--color-primary)] focus-visible:bg-[var(--bg-surface-elevated)] focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[var(--focus-ring)] disabled:opacity-55 md:min-h-7 md:py-0.5 md:text-xs",
         isError &&
-          "border-rose-500 bg-rose-50 text-rose-900 focus-visible:outline-rose-600 dark:border-rose-500 dark:bg-rose-950/35 dark:text-rose-100",
+          "border-[var(--status-danger)] bg-[var(--status-danger-soft)] text-[var(--text-primary)] focus-visible:outline-[var(--status-danger)]",
         className,
       )}
     />

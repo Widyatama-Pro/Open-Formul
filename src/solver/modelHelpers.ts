@@ -20,6 +20,7 @@ export const BASIC_NUTRIENT_IDS: ReadonlySet<string> = new Set([
 ]);
 
 export const DIGESTIBLE_NUTRIENT_IDS: ReadonlySet<string> = new Set(["sid_lys", "avp"]);
+export const NDF_NUTRIENT_IDS: ReadonlySet<string> = new Set(["ndf", "adf"]);
 
 export interface EffectiveInclusionBounds {
   readonly minPct: number;
@@ -27,6 +28,8 @@ export interface EffectiveInclusionBounds {
   readonly isLocked: boolean;
   readonly antiNolApplied: boolean;
 }
+
+const MACRO_ANTI_NOL_CATEGORIES = new Set(["energy", "protein", "forage"]);
 
 export function resolveEffectiveInclusion(
   ingredient: Ingredient,
@@ -51,7 +54,14 @@ export function resolveEffectiveInclusion(
   const enforceNonZero = localRule?.enforceNonZero ?? globalRule.enforceNonZero;
   const autoMin = localRule?.minIfSelected ?? globalRule.minIfSelected ?? 0;
 
-  if (enforceNonZero && autoMin > 0 && maxPct > 0 && minPct <= maxPct) {
+  // Aturan Anti-Nol global otomatis diterapkan ke bahan makro (energi/protein/hijauan)
+  // agar bahan mikro (mineral, premix, aditif, enzim) tidak terpaksa masuk melebihi kebutuhan toksisitas/mineral.
+  // Pengaturan Anti-Nol per-bahan (`localRule`) tetap selalu dihormati untuk semua kategori.
+  const eligibleForRule =
+    localRule !== undefined ||
+    (MACRO_ANTI_NOL_CATEGORIES.has(ingredient.category) && maxPct >= autoMin);
+
+  if (enforceNonZero && eligibleForRule && autoMin > 0 && maxPct > 0 && minPct <= maxPct) {
     const clampedAutoMin = Math.min(autoMin, maxPct);
     if (clampedAutoMin > minPct) {
       minPct = clampedAutoMin;
@@ -92,7 +102,8 @@ export function resolveActiveConstraints(
     const isCustom =
       customIds.has(c.nutrientId) || (!isBasic && !isDerived && c.isAdvance === false);
     const isAdvance = !isBasic && !isDerived && !isCustom;
-    if (isAdvance && !config.enableAdvanceNutrients) {
+    const isNdfAllowed = config.showNdf === true && NDF_NUTRIENT_IDS.has(c.nutrientId);
+    if (isAdvance && !config.enableAdvanceNutrients && !isNdfAllowed) {
       return false;
     }
     if (DIGESTIBLE_NUTRIENT_IDS.has(c.nutrientId) && !config.enableDigestibleBasis) {

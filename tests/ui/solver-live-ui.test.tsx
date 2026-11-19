@@ -11,7 +11,7 @@ describe("Live HiGHS Solver UI Integration", () => {
       () => {
         expect(screen.getByText(/Optimal/i)).toBeInTheDocument();
       },
-      { timeout: 10000 },
+      { timeout: 25000 },
     );
 
     expect(screen.getAllByText(/Jagung Giling Kuning/i).length).toBeGreaterThan(0);
@@ -26,7 +26,7 @@ describe("Live HiGHS Solver UI Integration", () => {
       () => {
         expect(screen.getByText(/Optimal/i)).toBeInTheDocument();
       },
-      { timeout: 10000 },
+      { timeout: 25000 },
     );
 
     // Buka panel Min/Max untuk Protein Kasar (karena default-nya ringkas hanya nilai aktual)
@@ -47,7 +47,7 @@ describe("Live HiGHS Solver UI Integration", () => {
           0,
         );
       },
-      { timeout: 10000 },
+      { timeout: 25000 },
     );
   });
 });

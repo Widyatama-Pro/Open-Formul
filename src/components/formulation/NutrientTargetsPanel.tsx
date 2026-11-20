@@ -7,9 +7,11 @@ import {
   ChevronsRight,
   Plus,
   Sparkles,
+  Target,
   Trash2,
   X,
 } from "lucide-react";
+import { motion } from "motion/react";
 import { resolveFeedClass } from "../../data/feed-classes";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
 import type { ConstraintPatch } from "../../hooks/use-prototype-store";
@@ -19,6 +21,7 @@ import {
   recommendIngredientsForGaps,
   resolveSingleTargetValue,
 } from "../../solver";
+import { useOptionalThemeContext } from "../../theme";
 import type {
   AppLanguage,
   Basis,
@@ -50,6 +53,7 @@ import { ThemedSelect } from "../ui/ThemedSelect";
 import { NutrientStatusBadge } from "./NutrientStatusBadge";
 import { NumericCellInput } from "./NumericCellInput";
 import { RatioConstraintsSection } from "./RatioConstraintsSection";
+import { computeNutrientProximityMeter } from "./nutrient-proximity";
 
 export interface NutrientTargetsPanelProps {
   readonly requirement: Requirement;
@@ -120,8 +124,7 @@ function formatCompactBoundSummary(
  * Panel Target Nutrien dengan 2 mode target:
  * - Mode Rentang ("range"): Min–Max standar, default ringkas & expand saat diklik
  * - Mode Pendekatan 1 Angka ("single"): 1 angka target presisi (SK batas maksimal tidak boleh lebih)
- * - Dilengkapi Saran Bahan Pakan prioritas mudah didapat di Indonesia (pilihan Ya / Tidak)
- * - Pada layar mobile (< lg), menyatu ke scroll view utama halaman tanpa nested scroll sempit
+ * - Dilengkapi visual range track bercahaya + kapsul Aktual 3-layer Acrylic Glass
  */
 export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
   requirement,
@@ -150,6 +153,8 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
   onUpdateCustomNutrientBasis,
   onCollapse,
 }: NutrientTargetsPanelProps) {
+  const themeCtx = useOptionalThemeContext();
+  const useGpuFlip = (themeCtx?.motionEngine ?? "gpu_flip") === "gpu_flip";
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customName, setCustomName] = useState("");
   const [customUnit, setCustomUnit] = useState<NutrientUnit>("%");
@@ -249,12 +254,23 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
   const advanceNullWarning = conflicts.find((c) => c.code === "ADVANCE_NULL_DATA");
 
   return (
-    <Card interactive={false} className="flex flex-col lg:h-full lg:overflow-hidden">
-      <div className="space-y-1.5 border-b border-[var(--border-subtle)] px-3 py-2.5">
+    <Card
+      interactive={false}
+      className="acrylic-panel selectable-panel flex flex-col lg:h-full lg:overflow-hidden"
+    >
+      <div className="space-y-2 border-b border-[var(--glass-border-tint,var(--border-subtle))] px-3.5 py-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-xs font-bold tracking-tight text-[var(--text-primary)]">
-            {pickLang(language, "Target Nutrien", "Nutrient Targets")}
-          </h2>
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-soft)] text-[var(--status-success)] shadow-[0_0_12px_var(--glow-success-pill,transparent)]"
+            >
+              <Target className="h-4 w-4" />
+            </span>
+            <h2 className="text-xs font-bold tracking-tight text-[var(--text-primary)]">
+              {pickLang(language, "Target Nutrien", "Nutrient Targets")}
+            </h2>
+          </div>
           <div className="flex shrink-0 items-center gap-1">
             {onAddCustomNutrient && (
               <Button
@@ -266,7 +282,7 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
                   setCustomError(null);
                 }}
                 aria-label={pickLang(language, "Tambah Nutrien Kustom", "Add Custom Nutrient")}
-                className="min-h-7 px-2 text-[10px] md:min-h-7"
+                className="acrylic-control-capsule !min-h-7 rounded-xl px-2 text-[10px] md:!min-h-7"
               >
                 {showCustomForm ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
                 <span>
@@ -301,7 +317,7 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
           </div>
         </div>
 
-        {/* Baris 2: Toggle Mode Rentang vs Pendekatan 1 Angka + Badge Basis */}
+        {/* Baris 2: Toggle Mode Rentang vs Pendekatan 1 Angka (120 FPS Pill) + Badge Basis */}
         <div className="flex items-center justify-between gap-2">
           {onChangeTargetInputMode ? (
             <div
@@ -311,7 +327,7 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
                 "Pilih mode target Rentang atau Pendekatan 1 Angka",
                 "Switch between Range or Single Target approach",
               )}
-              className="neu-pressed inline-flex h-7 items-center rounded-lg p-0.5"
+              className="inline-flex h-7 items-center rounded-xl border border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--bg-sunken)]/70 p-0.5"
             >
               <button
                 type="button"
@@ -323,13 +339,27 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
                   "Range mode: set Min and Max nutrient bounds",
                 )}
                 className={cn(
-                  "cursor-pointer rounded-md px-2.5 py-0.5 text-[10px] font-bold transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
+                  "elastic-size-box relative cursor-pointer rounded-lg px-2.5 py-0.5 text-[10px] font-bold transition-[transform,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
                   !singleMode
-                    ? "bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[var(--shadow-neu-flat)]"
+                    ? "text-[var(--status-success)]"
                     : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
                 )}
               >
-                {pickLang(language, "Rentang", "Range")}
+                {!singleMode &&
+                  (useGpuFlip ? (
+                    <motion.span
+                      layoutId="target-mode-pill"
+                      transition={{ type: "spring", stiffness: 460, damping: 34, mass: 0.75 }}
+                      aria-hidden="true"
+                      className="glow-pill-emerald pointer-events-none absolute inset-0 rounded-lg border border-[var(--status-success-border)]"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 rounded-lg bg-[var(--bg-surface-elevated)] shadow-[var(--shadow-neu-flat)]"
+                    />
+                  ))}
+                <span className="relative z-10">{pickLang(language, "Rentang", "Range")}</span>
               </button>
               <button
                 type="button"
@@ -341,13 +371,27 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
                   "Single-Number Approach: get as close as possible to each single standard (CF stays at or below max)",
                 )}
                 className={cn(
-                  "cursor-pointer rounded-md px-2.5 py-0.5 text-[10px] font-bold transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
+                  "elastic-size-box relative cursor-pointer rounded-lg px-2.5 py-0.5 text-[10px] font-bold transition-[transform,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
                   singleMode
-                    ? "bg-[var(--color-primary)] text-[var(--text-on-primary)] shadow-[var(--shadow-neu-flat)]"
+                    ? "text-[var(--text-on-primary)]"
                     : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
                 )}
               >
-                {pickLang(language, "1 Angka", "1 Target")}
+                {singleMode &&
+                  (useGpuFlip ? (
+                    <motion.span
+                      layoutId="target-mode-pill"
+                      transition={{ type: "spring", stiffness: 460, damping: 34, mass: 0.75 }}
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 rounded-lg bg-[var(--color-primary)] shadow-[0_2px_10px_-2px_var(--glow-primary-soft,rgba(0,0,0,0.18))]"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 rounded-lg bg-[var(--color-primary)] shadow-[var(--shadow-neu-flat)]"
+                    />
+                  ))}
+                <span className="relative z-10">{pickLang(language, "1 Angka", "1 Target")}</span>
               </button>
             </div>
           ) : (
@@ -527,19 +571,70 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
               onUpdateConstraint(nut.id, { tier: nextTier });
             };
 
+            const meter = computeNutrientProximityMeter({
+              actual: res?.value,
+              min: c?.min,
+              max: c?.max,
+              singleMode,
+              singleTarget,
+              isUpperOnly,
+              status: res?.status,
+            });
+            const trackPct = meter.pct;
+            const trackColorClass =
+              meter.tone === "alert"
+                ? "bg-[var(--status-danger)] text-[var(--status-danger)]"
+                : meter.tone === "over"
+                  ? "bg-[var(--status-warning)] text-[var(--status-warning)]"
+                  : meter.tone === "exact"
+                    ? "bg-[var(--status-success)] text-[var(--status-success)]"
+                    : "bg-[var(--text-muted)]/45 text-[var(--text-muted)]";
+            const thumbColorClass =
+              meter.tone === "alert"
+                ? "bg-[var(--status-danger)]"
+                : meter.tone === "over"
+                  ? "bg-[var(--status-warning)]"
+                  : meter.tone === "exact"
+                    ? "bg-[var(--status-success)]"
+                    : "bg-[var(--text-muted)]";
+            const meterHint =
+              meter.tone === "exact"
+                ? pickLang(
+                    language,
+                    `${Math.round(trackPct)}% — Tepat target`,
+                    `${Math.round(trackPct)}% — Exact target`,
+                  )
+                : meter.tone === "over"
+                  ? pickLang(
+                      language,
+                      `${Math.round(trackPct)}% — Melebihi target`,
+                      `${Math.round(trackPct)}% — Over target`,
+                    )
+                  : meter.tone === "alert"
+                    ? pickLang(
+                        language,
+                        meter.isOver
+                          ? `${Math.round(trackPct)}% — Melebihi batas maksimal`
+                          : `${Math.round(trackPct)}% — Di bawah target`,
+                        meter.isOver
+                          ? `${Math.round(trackPct)}% — Above max limit`
+                          : `${Math.round(trackPct)}% — Below target`,
+                      )
+                    : pickLang(language, "Tanpa batas target", "No target bound");
+
             return (
               <div
                 key={nut.id}
                 className={cn(
-                  "rounded-lg border transition-colors duration-150",
+                  "rounded-xl border transition-[border-color,box-shadow,background-color] duration-150",
                   isAlert || invalidRange
                     ? "border-[var(--status-danger-border)] bg-[var(--status-danger-soft)]"
-                    : "border-[var(--border-subtle)] bg-[var(--bg-sunken)]",
+                    : "acrylic-subcard",
                   !enabled && "opacity-55",
                 )}
               >
-                {/* Baris Ringkas Default */}
-                <div className="flex items-center justify-between gap-1.5 px-2 py-1.5">
+                {/* Baris Ringkas Default dengan Visual Progress Track & Kapsul Aktual */}
+                <div className="flex items-center justify-between gap-1.5 px-2.5 py-2">
                   <div className="flex min-w-0 flex-1 items-center gap-1.5">
                     {(isAdvanceRow || isCustomRow) && (
                       <input
@@ -567,10 +662,10 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
                               `Edit Min and Max bounds for ${fullName}`,
                             )
                       }
-                      title={`${fullName} (${nut.unit})`}
-                      className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-1.5 text-left"
+                      title={`${fullName} (${nut.unit}) · ${meterHint}`}
+                      className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 text-left"
                     >
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-baseline gap-1 truncate">
                           <span className="text-xs font-bold text-[var(--text-primary)]">
                             {displayName}
@@ -600,11 +695,35 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
                             </span>
                           )}
                         </div>
+                        {/* Mini Visual Proximity Progress Bar (100% saat tepat target; menurun saat kurang/over) */}
+                        <div
+                          aria-hidden="true"
+                          data-nutrient-track={nut.id}
+                          data-track-pct={String(Math.round(trackPct))}
+                          data-track-tone={meter.tone}
+                          title={meterHint}
+                          className="relative mt-1.5 h-1.5 w-full max-w-[110px] rounded-full bg-[var(--bg-sunken)]/85"
+                        >
+                          <div
+                            className={cn(
+                              "nutrient-bar-glow h-full origin-left rounded-full transition-[transform,background-color] duration-220 motion-reduce:transition-none",
+                              trackColorClass,
+                            )}
+                            style={{ transform: `scaleX(${trackPct / 100})` }}
+                          />
+                          <span
+                            className={cn(
+                              "absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/80 shadow-xs transition-[left,background-color] duration-220",
+                              thumbColorClass,
+                            )}
+                            style={{ left: `clamp(5px, ${trackPct}%, calc(100% - 5px))` }}
+                          />
+                        </div>
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        <div className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 py-0.5 text-right">
-                          <span className="block text-[8px] font-medium uppercase text-[var(--text-muted)]">
+                      <div className="flex shrink-0 items-center gap-1">
+                        <div className="acrylic-value-pill rounded-xl px-2 py-0.5 text-right">
+                          <span className="block text-[8px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                             {pickLang(language, "Aktual", "Actual")}
                           </span>
                           <span className="text-xs font-bold tabular-nums text-[var(--text-primary)]">

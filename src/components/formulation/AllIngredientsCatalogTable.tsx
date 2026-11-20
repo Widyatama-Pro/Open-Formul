@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { resolveFeedClass } from "../../data/feed-classes";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
-import { getNutrientFullName, getNutrientShortName, pickLang } from "../../i18n";
+import { getNutrientDisplayName, getNutrientFullName, pickLang } from "../../i18n";
 import type { AppLanguage, Ingredient, Nutrient, TableViewTier } from "../../types";
 import { cn } from "../../utils/cn";
 import { isDerivedNutrient, resolveNutrientValue } from "../../utils/equations";
@@ -23,6 +23,7 @@ export interface AllIngredientsCatalogTableProps {
   readonly showNdf?: boolean;
   readonly showBetn?: boolean;
   readonly decimalPlaces?: 0 | 1 | 2;
+  readonly simpleMode?: boolean;
   readonly searchQuery: string;
   readonly onToggleActive: (id: string, active: boolean) => void;
   readonly onOpenDetail: (ingredient: Ingredient) => void;
@@ -52,6 +53,7 @@ export const AllIngredientsCatalogTable = memo(function AllIngredientsCatalogTab
   showNdf = false,
   showBetn = false,
   decimalPlaces = 0,
+  simpleMode = true,
   searchQuery,
   onToggleActive,
   onOpenDetail,
@@ -121,15 +123,15 @@ export const AllIngredientsCatalogTable = memo(function AllIngredientsCatalogTab
     <div
       ref={scrollRef}
       onScroll={useVirtual ? handleScroll : undefined}
-      className="custom-scrollbar max-h-[240px] overflow-auto overscroll-contain rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+      className="custom-scrollbar max-h-[240px] overflow-auto rounded-xl border border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-table-bg,var(--bg-surface))]"
     >
       <table className="w-max min-w-full border-collapse text-left text-xs">
-        <thead className="sticky top-0 z-10 bg-[var(--bg-sunken)] text-[11px] font-bold text-[var(--text-secondary)]">
+        <thead className="sticky top-0 z-10 bg-[var(--glass-sticky-bg,var(--bg-sunken))] text-[11px] font-bold text-[var(--text-secondary)] backdrop-blur-md">
           <tr>
-            <th className="sticky left-0 z-20 w-14 border-r border-b border-[var(--border-subtle)] bg-[var(--bg-sunken)] px-2 py-2 text-center">
+            <th className="sticky left-0 z-20 w-12 border-r border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-sunken))] px-1.5 py-2 text-center backdrop-blur-md sm:w-14 sm:px-2">
               {pickLang(language, "Pakai", "Use")}
             </th>
-            <th className="sticky left-14 z-20 w-56 min-w-56 border-r border-b border-[var(--border-subtle)] bg-[var(--bg-sunken)] px-2.5 py-2 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.10)]">
+            <th className="sticky left-12 z-20 w-36 min-w-36 max-w-40 border-r border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-sunken))] px-2 py-2 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.08)] backdrop-blur-md sm:left-14 sm:w-56 sm:min-w-56 sm:max-w-56 sm:px-2.5">
               {pickLang(language, "Nama Bahan", "Ingredient Name")}
             </th>
             {showStandardCols && (
@@ -146,7 +148,7 @@ export const AllIngredientsCatalogTable = memo(function AllIngredientsCatalogTab
               </th>
             )}
             {visibleNutrients.map((nut) => {
-              const shortLabel = getNutrientShortName(nut, language);
+              const shortLabel = getNutrientDisplayName(nut, language, simpleMode);
               const fullName = getNutrientFullName(nut, language);
               const isEnergySlot = nut.id === "me_poultry" || nut.id === "tdn";
               return (
@@ -155,9 +157,11 @@ export const AllIngredientsCatalogTable = memo(function AllIngredientsCatalogTab
                   title={`${fullName} (${nut.unit})`}
                   className={cn(
                     "border-b border-[var(--border-subtle)] px-2 py-2 text-right whitespace-nowrap",
-                    isEnergySlot
-                      ? "w-[86px] min-w-[86px] max-w-[86px]"
-                      : "w-[74px] min-w-[74px] max-w-[74px]",
+                    !simpleMode
+                      ? "min-w-[88px]"
+                      : isEnergySlot
+                        ? "w-[86px] min-w-[86px] max-w-[86px]"
+                        : "w-[74px] min-w-[74px] max-w-[74px]",
                   )}
                 >
                   <div className="text-[var(--text-primary)]">{shortLabel}</div>
@@ -189,11 +193,11 @@ export const AllIngredientsCatalogTable = memo(function AllIngredientsCatalogTab
                 key={ing.id}
                 style={{ height: `${ROW_HEIGHT}px` }}
                 className={cn(
-                  "group transition-colors duration-100 hover:bg-[var(--bg-surface-elevated)]",
-                  isActive && "bg-[var(--status-success-soft)]",
+                  "group bg-[var(--glass-row-bg,transparent)] transition-colors duration-120 hover:bg-[var(--glass-row-hover,var(--bg-surface-elevated))]",
+                  isActive && "bg-[var(--glass-row-active,var(--status-success-soft))]",
                 )}
               >
-                <td className="sticky left-0 z-10 w-14 border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-center transition-colors group-hover:bg-[var(--bg-surface-elevated)]">
+                <td className="sticky left-0 z-10 w-12 border-r border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-surface))] px-1.5 py-1 text-center backdrop-blur-md transition-colors group-hover:bg-[var(--glass-row-hover,var(--bg-surface-elevated))] sm:w-14 sm:px-2">
                   <input
                     type="checkbox"
                     checked={isActive}
@@ -204,7 +208,7 @@ export const AllIngredientsCatalogTable = memo(function AllIngredientsCatalogTab
                 </td>
                 <td
                   title={displayName}
-                  className="sticky left-14 z-10 w-56 min-w-56 max-w-56 border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 py-1 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.08)] transition-colors group-hover:bg-[var(--bg-surface-elevated)]"
+                  className="sticky left-12 z-10 w-36 min-w-36 max-w-40 border-r border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-surface))] px-2 py-1 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.08)] backdrop-blur-md transition-colors group-hover:bg-[var(--glass-row-hover,var(--bg-surface-elevated))] sm:left-14 sm:w-56 sm:min-w-56 sm:max-w-56 sm:px-2.5"
                 >
                   <div className="flex items-center gap-1.5">
                     <FeedClassIcon code={feedClass} language={language} />
@@ -237,9 +241,11 @@ export const AllIngredientsCatalogTable = memo(function AllIngredientsCatalogTab
                 )}
                 {visibleNutrients.map((nut) => {
                   const isEnergySlot = nut.id === "me_poultry" || nut.id === "tdn";
-                  const cellWidthClass = isEnergySlot
-                    ? "w-[86px] min-w-[86px] max-w-[86px]"
-                    : "w-[74px] min-w-[74px] max-w-[74px]";
+                  const cellWidthClass = !simpleMode
+                    ? "min-w-[88px]"
+                    : isEnergySlot
+                      ? "w-[86px] min-w-[86px] max-w-[86px]"
+                      : "w-[74px] min-w-[74px] max-w-[74px]";
                   const rawVal = isDerivedNutrient(nut.id)
                     ? resolveNutrientValue(ing, nut.id)
                     : ing.nutrients[nut.id];

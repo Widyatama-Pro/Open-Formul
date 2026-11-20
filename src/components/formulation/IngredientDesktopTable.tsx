@@ -10,9 +10,11 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ChevronDown, Columns3, GripVertical, RotateCcw, Sliders } from "lucide-react";
+import { motion } from "motion/react";
 import { resolveFeedClass } from "../../data/feed-classes";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
-import { getNutrientFullName, getNutrientShortName, pickLang } from "../../i18n";
+import { getNutrientDisplayName, getNutrientFullName, pickLang } from "../../i18n";
+import { useOptionalThemeContext } from "../../theme";
 import type {
   AppLanguage,
   CompositionItem,
@@ -46,6 +48,7 @@ export interface IngredientDesktopTableProps {
   readonly tableViewTier?: TableViewTier;
   readonly onChangeTableViewTier?: (tier: TableViewTier) => void;
   readonly decimalPlaces?: 0 | 1 | 2;
+  readonly simpleMode?: boolean;
   readonly scrollMaxHeightClass?: string;
   readonly globalAntiNol?: boolean;
   readonly language: AppLanguage;
@@ -61,7 +64,7 @@ const BETN_NUTRIENT_IDS = new Set(["betn"]);
 
 const MIN_NAME_COL_WIDTH = 96;
 const MAX_NAME_COL_WIDTH = 340;
-const DEFAULT_NAME_COL_WIDTH = 196;
+const DEFAULT_NAME_COL_WIDTH = 168;
 
 interface CoreColumnVisibility {
   readonly price: boolean;
@@ -78,6 +81,7 @@ interface IngredientTableRowProps {
   readonly coreCols: CoreColumnVisibility;
   readonly visibleNutrients: readonly Nutrient[];
   readonly decimalPlaces: 0 | 1 | 2;
+  readonly simpleMode: boolean;
   readonly language: AppLanguage;
   readonly onUpdateIngredient: (id: string, patch: Partial<Ingredient>) => void;
   readonly onResetPriceOverride: (id: string) => void;
@@ -97,6 +101,7 @@ const IngredientTableRow = memo(function IngredientTableRow({
   coreCols,
   visibleNutrients,
   decimalPlaces,
+  simpleMode,
   language,
   onUpdateIngredient,
   onResetPriceOverride,
@@ -120,11 +125,11 @@ const IngredientTableRow = memo(function IngredientTableRow({
   return (
     <tr
       className={cn(
-        "group transition-colors duration-100 hover:bg-[var(--bg-surface)]",
+        "group bg-[var(--glass-row-bg,transparent)] transition-colors duration-120 hover:bg-[var(--glass-row-hover,var(--bg-surface))]",
         !isActive && "opacity-55",
       )}
     >
-      <td className="sticky left-0 z-10 w-10 border-r border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1.5 py-1.5 text-center transition-colors group-hover:bg-[var(--bg-surface)]">
+      <td className="sticky left-0 z-10 w-10 border-r border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-surface-elevated))] px-1.5 py-1.5 text-center backdrop-blur-md transition-colors group-hover:bg-[var(--glass-row-hover,var(--bg-surface))]">
         <input
           type="checkbox"
           checked={isActive}
@@ -141,7 +146,7 @@ const IngredientTableRow = memo(function IngredientTableRow({
           maxWidth: `${nameColWidth}px`,
         }}
         title={displayName}
-        className="sticky left-10 z-10 border-r border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 py-1.5 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.10)] transition-colors group-hover:bg-[var(--bg-surface)]"
+        className="sticky left-10 z-10 border-r border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-surface-elevated))] px-2 py-1.5 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.08)] backdrop-blur-md transition-colors group-hover:bg-[var(--glass-row-hover,var(--bg-surface))]"
       >
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex min-w-0 items-center gap-1.5">
@@ -157,7 +162,7 @@ const IngredientTableRow = memo(function IngredientTableRow({
       </td>
 
       {coreCols.price && (
-        <td className="w-24 min-w-24 px-2 py-1">
+        <td className="w-[84px] min-w-[84px] px-1.5 py-1">
           <div className="flex items-center gap-1">
             <NumericCellInput
               value={ing.priceOverride ?? ing.pricePerKg}
@@ -258,9 +263,9 @@ const IngredientTableRow = memo(function IngredientTableRow({
       {coreCols.inclusion && (
         <td
           className={cn(
-            "w-20 min-w-20 px-2 py-1 text-right tabular-nums",
+            "w-[72px] min-w-[72px] px-1.5 py-1 text-right tabular-nums",
             hasInclusion
-              ? "bg-[var(--status-success-soft)] font-bold text-[var(--status-success)]"
+              ? "bg-[var(--inclusion-col-glass,var(--status-success-soft))] font-bold text-[var(--status-success)]"
               : "text-[var(--text-muted)]",
           )}
         >
@@ -270,9 +275,11 @@ const IngredientTableRow = memo(function IngredientTableRow({
 
       {visibleNutrients.map((nut) => {
         const isEnergySlot = nut.id === "me_poultry" || nut.id === "tdn";
-        const cellWidthClass = isEnergySlot
-          ? "w-[86px] min-w-[86px] max-w-[86px]"
-          : "w-[74px] min-w-[74px] max-w-[74px]";
+        const cellWidthClass = !simpleMode
+          ? "min-w-[88px]"
+          : isEnergySlot
+            ? "w-[74px] min-w-[74px] max-w-[74px]"
+            : "w-[58px] min-w-[58px] max-w-[58px]";
 
         if (isDerivedNutrient(nut.id)) {
           const derivedVal = resolveNutrientValue(ing, nut.id);
@@ -292,7 +299,7 @@ const IngredientTableRow = memo(function IngredientTableRow({
         const isNull = val === null || val === undefined;
         const digits = resolveDisplayDigits(nut.unit, nut.id, decimalPlaces, val);
         return (
-          <td key={nut.id} className={cn(cellWidthClass, "px-2 py-1")}>
+          <td key={nut.id} className={cn(cellWidthClass, "px-1 py-1")}>
             <NumericCellInput
               value={val ?? null}
               allowNull
@@ -354,6 +361,7 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
   tableViewTier,
   onChangeTableViewTier,
   decimalPlaces = 0,
+  simpleMode = true,
   scrollMaxHeightClass,
   language,
   onUpdateIngredient,
@@ -361,6 +369,8 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
   onOpenDetail,
   onBatchIngredientsUpdate,
 }: IngredientDesktopTableProps) {
+  const themeCtx = useOptionalThemeContext();
+  const useGpuFlip = (themeCtx?.motionEngine ?? "gpu_flip") === "gpu_flip";
   const [pasteNotice, setPasteNotice] = useState<{
     readonly text: string;
     readonly warnings: readonly string[];
@@ -593,7 +603,7 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
       )}
     >
       {/* Kontrol 1 Baris Ringkas: Segmented Tier (Dasar / Standar / Lanjutan) + Popover Kolom */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--bg-sunken)] px-2.5 py-1.5 text-[11px] border border-[var(--border-subtle)]">
+      <div className="acrylic-subcard flex flex-wrap items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-[11px]">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-semibold text-[var(--text-secondary)]">
             {pickLang(language, "Tampilan Kolom:", "Column View:")}
@@ -601,7 +611,7 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
           <div
             role="group"
             aria-label={pickLang(language, "Tingkat tampilan kolom tabel", "Table column tier")}
-            className="neu-pressed inline-flex rounded-lg p-0.5"
+            className="inline-flex rounded-xl border border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--bg-sunken)]/70 p-0.5"
           >
             {(
               [
@@ -643,15 +653,39 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
                   title={t.hint}
                   onClick={() => handleSelectTier(t.id)}
                   className={cn(
-                    "cursor-pointer rounded-md px-2.5 py-0.5 text-[11px] font-semibold transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
+                    "elastic-size-box relative cursor-pointer rounded-lg px-2.5 py-0.5 text-[11px] font-semibold transition-[transform,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
                     active
                       ? t.id === "advanced"
-                        ? "bg-[var(--color-primary)] text-[var(--text-on-primary)] shadow-[var(--shadow-neu-flat)]"
-                        : "bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[var(--shadow-neu-flat)]"
+                        ? "text-[var(--text-on-primary)]"
+                        : "text-[var(--status-success)]"
                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
                   )}
                 >
-                  {t.label}
+                  {active &&
+                    (useGpuFlip ? (
+                      <motion.span
+                        layoutId="table-tier-pill"
+                        transition={{ type: "spring", stiffness: 460, damping: 34, mass: 0.75 }}
+                        aria-hidden="true"
+                        className={cn(
+                          "pointer-events-none absolute inset-0 rounded-lg",
+                          t.id === "advanced"
+                            ? "bg-[var(--color-primary)] shadow-[0_2px_10px_-2px_var(--glow-primary-soft,rgba(0,0,0,0.18))]"
+                            : "glow-pill-emerald border border-[var(--status-success-border)]",
+                        )}
+                      />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "pointer-events-none absolute inset-0 rounded-lg",
+                          t.id === "advanced"
+                            ? "bg-[var(--color-primary)] shadow-[var(--shadow-neu-flat)]"
+                            : "bg-[var(--bg-surface-elevated)] shadow-[var(--shadow-neu-flat)]",
+                        )}
+                      />
+                    ))}
+                  <span className="relative z-10">{t.label}</span>
                 </button>
               );
             })}
@@ -744,7 +778,7 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
                       <div className="grid grid-cols-2 gap-1.5">
                         {nuts.map((nut) => {
                           const checked = isColVisible(nut.id);
-                          const shortLabel = getNutrientShortName(nut, language);
+                          const shortLabel = getNutrientDisplayName(nut, language, simpleMode);
                           const fullName = getNutrientFullName(nut, language);
                           return (
                             <label
@@ -793,14 +827,14 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
 
       <div
         className={cn(
-          "custom-scrollbar relative min-h-0 overflow-auto overscroll-contain rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]",
+          "custom-scrollbar relative min-h-0 overflow-auto rounded-xl border border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-table-bg,var(--bg-surface-elevated))]",
           scrollMaxHeightClass ?? "flex-1",
         )}
       >
         <table className="w-max min-w-full border-collapse text-left text-xs">
-          <thead className="sticky top-0 z-20 bg-[var(--bg-sunken)] text-[11px] font-bold tracking-wide text-[var(--text-secondary)]">
+          <thead className="sticky top-0 z-20 bg-[var(--glass-sticky-bg,var(--bg-sunken))] text-[11px] font-bold tracking-wide text-[var(--text-secondary)] backdrop-blur-md">
             <tr>
-              <th className="sticky left-0 z-30 w-10 border-r border-b border-[var(--border-subtle)] bg-[var(--bg-sunken)] px-1.5 py-2 text-center">
+              <th className="sticky left-0 z-30 w-10 border-r border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-sunken))] px-1.5 py-2 text-center backdrop-blur-md">
                 {pickLang(language, "Aktif", "Active")}
               </th>
               <th
@@ -809,7 +843,7 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
                   minWidth: `${nameColWidth}px`,
                   maxWidth: `${nameColWidth}px`,
                 }}
-                className="sticky left-10 z-30 border-r border-b border-[var(--border-subtle)] bg-[var(--bg-sunken)] py-2 pr-4 pl-2.5 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.12)]"
+                className="sticky left-10 z-30 border-r border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-sunken))] py-2 pr-4 pl-2.5 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.1)] backdrop-blur-md"
               >
                 <div className="flex items-center justify-between gap-1">
                   <span className="truncate">{pickLang(language, "Nama Bahan", "Ingredient")}</span>
@@ -852,32 +886,32 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
                 </div>
               </th>
               {coreCols.price && (
-                <th className="w-24 min-w-24 border-b border-[var(--border-subtle)] px-2 py-2 text-right">
+                <th className="w-[84px] min-w-[84px] border-b border-[var(--border-subtle)] px-1.5 py-2 text-right">
                   {pickLang(language, "Harga/kg", "Price/kg")}
                 </th>
               )}
               {coreCols.dm && (
-                <th className="w-[68px] min-w-[68px] border-b border-[var(--border-subtle)] px-1.5 py-2 text-right">
+                <th className="w-[62px] min-w-[62px] border-b border-[var(--border-subtle)] px-1 py-2 text-right">
                   {pickLang(language, "BK %", "DM %")}
                 </th>
               )}
               {coreCols.bounds && (
                 <>
-                  <th className="w-[68px] min-w-[68px] border-b border-[var(--border-subtle)] px-1.5 py-2 text-right">
+                  <th className="w-[62px] min-w-[62px] border-b border-[var(--border-subtle)] px-1 py-2 text-right">
                     Min %
                   </th>
-                  <th className="w-[68px] min-w-[68px] border-b border-[var(--border-subtle)] px-1.5 py-2 text-right">
+                  <th className="w-[62px] min-w-[62px] border-b border-[var(--border-subtle)] px-1 py-2 text-right">
                     Max %
                   </th>
                 </>
               )}
               {coreCols.inclusion && (
-                <th className="w-20 min-w-20 border-b border-[var(--border-subtle)] bg-[var(--status-success-soft)] px-2 py-2 text-right text-[var(--status-success)]">
+                <th className="w-[72px] min-w-[72px] border-b border-[var(--border-subtle)] bg-[var(--status-success-soft)] px-1.5 py-2 text-right text-[var(--status-success)]">
                   {pickLang(language, "Inklusi %", "Inclusion %")}
                 </th>
               )}
               {visibleNutrients.map((nut) => {
-                const headerLabel = getNutrientShortName(nut, language);
+                const headerLabel = getNutrientDisplayName(nut, language, simpleMode);
                 const fullLabel = getNutrientFullName(nut, language);
                 const isEnergySlot = nut.id === "me_poultry" || nut.id === "tdn";
                 return (
@@ -885,10 +919,12 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
                     key={nut.id}
                     title={`${fullLabel} (${nut.unit})`}
                     className={cn(
-                      "border-b border-[var(--border-subtle)] px-2 py-2 text-right whitespace-nowrap",
-                      isEnergySlot
-                        ? "w-[86px] min-w-[86px] max-w-[86px]"
-                        : "w-[74px] min-w-[74px] max-w-[74px]",
+                      "border-b border-[var(--border-subtle)] px-1.5 py-2 text-right whitespace-nowrap",
+                      !simpleMode
+                        ? "min-w-[88px]"
+                        : isEnergySlot
+                          ? "w-[74px] min-w-[74px] max-w-[74px]"
+                          : "w-[58px] min-w-[58px] max-w-[58px]",
                     )}
                   >
                     <div className="text-[var(--text-primary)]">{headerLabel}</div>
@@ -915,6 +951,7 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
                 coreCols={coreCols}
                 visibleNutrients={visibleNutrients}
                 decimalPlaces={decimalPlaces}
+                simpleMode={simpleMode}
                 language={language}
                 onUpdateIngredient={onUpdateIngredient}
                 onResetPriceOverride={onResetPriceOverride}

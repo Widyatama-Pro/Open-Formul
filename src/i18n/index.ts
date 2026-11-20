@@ -112,7 +112,7 @@ export function getFormulationStatusLabel(
     case "near_feasible":
       return language === "id" ? "Mendekati Target" : "Closest Fit";
     case "infeasible":
-      return "Infeasible";
+      return language === "id" ? "Formula Tidak Ditemukan" : "Infeasible";
     case "error":
       return language === "id" ? "Kesalahan Solver" : "Solver Error";
   }

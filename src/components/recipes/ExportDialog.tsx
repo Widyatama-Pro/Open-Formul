@@ -156,7 +156,7 @@ export function ExportDialog({
         </div>
       }
     >
-      <div className="space-y-4 text-xs">
+      <div className="selectable-panel space-y-4 text-xs">
         {isNearFeasible && (
           <div
             role="status"
@@ -192,14 +192,14 @@ export function ExportDialog({
               <p className="font-bold">
                 {pickLang(
                   language,
-                  "Ekspor PDF diblokir (Formula belum valid / Infeasible)",
+                  "Ekspor PDF diblokir (Formula Tidak Ditemukan / Target Terlalu Ketat)",
                   "PDF export blocked (Infeasible / Empty status)",
                 )}
               </p>
               <p className="mt-0.5 text-[11px] opacity-90">
                 {pickLang(
                   language,
-                  "Sesuaikan bahan atau target nutrien hingga formula mencapai status Optimal atau Near-Feasible.",
+                  "Sesuaikan bahan atau target nutrien hingga formula mencapai status Optimal atau Mendekati Target.",
                   "Adjust ingredients or nutrient bounds until a valid solution is reached.",
                 )}
               </p>

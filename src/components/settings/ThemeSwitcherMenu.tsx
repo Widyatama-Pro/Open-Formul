@@ -1,5 +1,5 @@
 import { memo, useCallback } from "react";
-import { Check, Monitor, Moon, Palette, Smartphone, Sun } from "lucide-react";
+import { Check, Monitor, Moon, Palette, Smartphone, Sparkles, Sun } from "lucide-react";
 import { pickLang } from "../../i18n";
 import {
   OPENFORMUL_PALETTE_CATALOG,
@@ -13,6 +13,15 @@ import {
 } from "../../theme";
 import type { AppLanguage, ResolvedThemeMode, ThemeModeSetting, ThemePaletteId } from "../../types";
 import { cn } from "../../utils/cn";
+import { Switch } from "../ui/Switch";
+
+export interface ThemeChangePayload {
+  readonly paletteId: ThemePaletteId;
+  readonly modeSetting: ThemeModeSetting;
+  readonly resolvedMode: ResolvedThemeMode;
+  readonly amoledPureBlack: boolean;
+  readonly uiEnhancer?: boolean;
+}
 
 export interface ThemeChangePayload {
   readonly paletteId: ThemePaletteId;
@@ -49,9 +58,11 @@ function ThemeSwitcherMenuView({
     modeSetting,
     resolvedMode,
     amoledPureBlack,
+    uiEnhancer,
     setPaletteId,
     setModeSetting,
     setAmoledPureBlack,
+    setUiEnhancer,
   } = theme;
 
   const resolveModeForSetting = useCallback(
@@ -97,6 +108,17 @@ function ThemeSwitcherMenuView({
       modeSetting,
       resolvedMode,
       amoledPureBlack: nextAmoled,
+    });
+  };
+
+  const handleToggleEnhancer = (nextEnhancer: boolean) => {
+    setUiEnhancer(nextEnhancer);
+    onThemeChange?.({
+      paletteId,
+      modeSetting,
+      resolvedMode,
+      amoledPureBlack,
+      uiEnhancer: nextEnhancer,
     });
   };
 
@@ -225,13 +247,77 @@ function ThemeSwitcherMenuView({
           })}
         </div>
 
-        <div className="neu-well flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-[11px]">
+        <div className="acrylic-subcard flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-[11px]">
           <span className="font-semibold text-[var(--text-primary)]">
             {getPaletteLabel(activePaletteMeta, language)}
           </span>
           <span className="text-[var(--text-muted)]">
             {getPaletteSubtitle(activePaletteMeta, language)}
           </span>
+        </div>
+
+        {/* Mode UI Enhancer (Glassmorphism & Volumetric Glow Mode) untuk semua 7 Color Palette */}
+        <div
+          className={cn(
+            "flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-3 transition-[border-color,box-shadow,background-color] duration-200",
+            uiEnhancer
+              ? "border-[var(--status-success-border)] bg-[var(--status-success-soft)] shadow-[0_6px_22px_-6px_var(--glow-primary-soft,rgba(16,185,129,0.22))]"
+              : "border-[var(--border-subtle)] bg-[var(--bg-sunken)]",
+          )}
+        >
+          <div className="flex min-w-0 flex-1 items-start gap-2.5">
+            <span
+              aria-hidden="true"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/40 shadow-sm"
+              style={{
+                backgroundColor: activePaletteMeta.enhancerAccentHex,
+                color: "#ffffff",
+                boxShadow: uiEnhancer
+                  ? `0 0 16px ${activePaletteMeta.enhancerAccentHex}80`
+                  : undefined,
+              }}
+            >
+              <Sparkles className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-bold text-[var(--text-primary)]">
+                  {pickLang(
+                    language,
+                    "UI Enhancer (Glassmorphism & Volumetric Glow)",
+                    "UI Enhancer (Glassmorphism & Volumetric Glow)",
+                  )}
+                </span>
+                <span className="rounded-full border border-[var(--status-success-border)] bg-[var(--bg-surface-elevated)] px-2 py-0.5 text-[10px] font-bold text-[var(--status-success)]">
+                  {uiEnhancer
+                    ? pickLang(language, "Aktif · 7 Palet", "Active · 7 Palettes")
+                    : pickLang(language, "Standard", "Standard")}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
+                {uiEnhancer
+                  ? language === "id"
+                    ? `${activePaletteMeta.enhancerGlowLabelId} · Ambient Mesh, Kaca Akrilik 3-Lapis & Specular Rim Light aktif.`
+                    : `${activePaletteMeta.enhancerGlowLabelEn} · Ambient Mesh, 3-Layer Acrylic Glass & Specular Rim Light active.`
+                  : pickLang(
+                      language,
+                      "Mode standar solid tanpa bias warna kaca & pendaran cahaya volumetrik.",
+                      "Standard solid surface mode without tinted acrylic blur or volumetric glow.",
+                    )}
+              </p>
+            </div>
+          </div>
+
+          <Switch
+            checked={uiEnhancer}
+            onCheckedChange={handleToggleEnhancer}
+            data-theme-control="ui-enhancer"
+            label={pickLang(
+              language,
+              "Aktifkan Mode UI Enhancer Glassmorphism & Volumetric Glow",
+              "Enable UI Enhancer Glassmorphism & Volumetric Glow Mode",
+            )}
+          />
         </div>
       </div>
 

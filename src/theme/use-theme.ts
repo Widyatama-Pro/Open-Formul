@@ -1,5 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import type { ResolvedThemeMode, ThemeModeSetting, ThemePaletteId } from "../types";
+import type {
+  MotionEngineMode,
+  RenderingEngineMode,
+  ResolvedThemeMode,
+  ThemeModeSetting,
+  ThemePaletteId,
+} from "../types";
 import { syncAndroidSystemBars } from "./android-theme-bridge";
 import { isThemePaletteId } from "./palettes";
 import { syncPwaThemeMeta } from "./pwa-theme-sync";
@@ -8,6 +14,11 @@ export const THEME_STORAGE_KEYS = {
   id: "openformul-theme-id",
   mode: "openformul-theme-mode",
   amoled: "openformul-theme-amoled",
+  uiEnhancer: "openformul-theme-enhancer",
+  renderingEngine: "openformul-engine-mode",
+  motionEngine: "openformul-motion-engine",
+  glassBlurPx: "openformul-glass-blur-px",
+  glowIntensityPct: "openformul-glow-intensity-pct",
 } as const;
 
 const LEGACY_STORAGE_KEYS = {
@@ -23,6 +34,11 @@ export interface UsePortableThemeOptions {
   readonly defaultPalette?: ThemePaletteId;
   readonly defaultMode?: ThemeModeSetting;
   readonly defaultAmoled?: boolean;
+  readonly defaultUiEnhancer?: boolean;
+  readonly defaultRenderingEngine?: RenderingEngineMode;
+  readonly defaultMotionEngine?: MotionEngineMode;
+  readonly defaultGlassBlurPx?: number;
+  readonly defaultGlowIntensityPct?: number;
   readonly syncPwa?: boolean;
   readonly syncAndroid?: boolean;
 }
@@ -32,9 +48,19 @@ export interface PortableThemeState {
   readonly modeSetting: ThemeModeSetting;
   readonly resolvedMode: ResolvedThemeMode;
   readonly amoledPureBlack: boolean;
+  readonly uiEnhancer: boolean;
+  readonly renderingEngine: RenderingEngineMode;
+  readonly motionEngine: MotionEngineMode;
+  readonly glassBlurPx: number;
+  readonly glowIntensityPct: number;
   readonly setPaletteId: (id: ThemePaletteId) => void;
   readonly setModeSetting: (mode: ThemeModeSetting) => void;
   readonly setAmoledPureBlack: (enabled: boolean) => void;
+  readonly setUiEnhancer: (enabled: boolean) => void;
+  readonly setRenderingEngine: (mode: RenderingEngineMode) => void;
+  readonly setMotionEngine: (mode: MotionEngineMode) => void;
+  readonly setGlassBlurPx: (px: number) => void;
+  readonly setGlowIntensityPct: (pct: number) => void;
   readonly toggleLightDark: () => void;
 }
 
@@ -74,17 +100,42 @@ function applyThemeToDocument(
   paletteId: ThemePaletteId,
   resolvedMode: ResolvedThemeMode,
   amoledPureBlack: boolean,
+  uiEnhancer: boolean,
+  renderingEngine: RenderingEngineMode,
+  motionEngine: MotionEngineMode,
+  glassBlurPx: number,
+  glowIntensityPct: number,
 ): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   root.setAttribute("data-theme", paletteId);
   root.setAttribute("data-mode", resolvedMode);
+  root.setAttribute("data-ui-enhancer", uiEnhancer ? "true" : "false");
+  root.setAttribute("data-engine-mode", renderingEngine);
+  root.setAttribute("data-motion-engine", motionEngine);
   root.classList.toggle("dark", resolvedMode === "dark");
   if (resolvedMode === "dark" && amoledPureBlack) {
     root.setAttribute("data-amoled", "true");
   } else {
     root.removeAttribute("data-amoled");
   }
+
+  const effectiveBlur =
+    !uiEnhancer || renderingEngine === "crisp"
+      ? 0
+      : renderingEngine === "balanced"
+        ? Math.min(glassBlurPx, 12)
+        : glassBlurPx;
+  const effectiveGlowScale = !uiEnhancer
+    ? 0
+    : renderingEngine === "crisp"
+      ? Math.min(glowIntensityPct, 35) / 100
+      : renderingEngine === "balanced"
+        ? (glowIntensityPct * 0.72) / 100
+        : glowIntensityPct / 100;
+
+  root.style.setProperty("--ui-blur-px", `${effectiveBlur}px`);
+  root.style.setProperty("--ui-glow-scale", effectiveGlowScale.toFixed(2));
 }
 
 export function usePortableTheme(options: UsePortableThemeOptions = {}): PortableThemeState {
@@ -95,6 +146,11 @@ export function usePortableTheme(options: UsePortableThemeOptions = {}): Portabl
     defaultPalette = "original-default",
     defaultMode = "light",
     defaultAmoled = false,
+    defaultUiEnhancer = true,
+    defaultRenderingEngine = "ultra",
+    defaultMotionEngine = "gpu_flip",
+    defaultGlassBlurPx = 20,
+    defaultGlowIntensityPct = 100,
     syncPwa = true,
     syncAndroid = true,
   } = options;
@@ -115,6 +171,41 @@ export function usePortableTheme(options: UsePortableThemeOptions = {}): Portabl
     if (saved === "true") return true;
     if (saved === "false") return false;
     return defaultAmoled;
+  });
+
+  const [uiEnhancer, setUiEnhancerState] = useState<boolean>(() => {
+    const saved = readStoredValue(THEME_STORAGE_KEYS.uiEnhancer);
+    if (saved === "true") return true;
+    if (saved === "false") return false;
+    return defaultUiEnhancer;
+  });
+
+  const [renderingEngine, setRenderingEngineState] = useState<RenderingEngineMode>(() => {
+    const saved = readStoredValue(THEME_STORAGE_KEYS.renderingEngine);
+    if (saved === "ultra" || saved === "balanced" || saved === "crisp") return saved;
+    return defaultRenderingEngine;
+  });
+
+  const [motionEngine, setMotionEngineState] = useState<MotionEngineMode>(() => {
+    const saved = readStoredValue(THEME_STORAGE_KEYS.motionEngine);
+    if (saved === "gpu_flip" || saved === "css_native") return saved;
+    return defaultMotionEngine;
+  });
+
+  const [glassBlurPx, setGlassBlurPxState] = useState<number>(() => {
+    const saved = readStoredValue(THEME_STORAGE_KEYS.glassBlurPx);
+    const parsed = saved !== null ? Number(saved) : Number.NaN;
+    return Number.isFinite(parsed) && parsed >= 0 && parsed <= 32
+      ? Math.round(parsed)
+      : defaultGlassBlurPx;
+  });
+
+  const [glowIntensityPct, setGlowIntensityPctState] = useState<number>(() => {
+    const saved = readStoredValue(THEME_STORAGE_KEYS.glowIntensityPct);
+    const parsed = saved !== null ? Number(saved) : Number.NaN;
+    return Number.isFinite(parsed) && parsed >= 0 && parsed <= 150
+      ? Math.round(parsed)
+      : defaultGlowIntensityPct;
   });
 
   const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(getSystemDarkPreference);
@@ -138,7 +229,16 @@ export function usePortableTheme(options: UsePortableThemeOptions = {}): Portabl
   }, [modeSetting, systemPrefersDark]);
 
   useEffect(() => {
-    applyThemeToDocument(paletteId, resolvedMode, amoledPureBlack);
+    applyThemeToDocument(
+      paletteId,
+      resolvedMode,
+      amoledPureBlack,
+      uiEnhancer,
+      renderingEngine,
+      motionEngine,
+      glassBlurPx,
+      glowIntensityPct,
+    );
 
     const raf =
       typeof window !== "undefined" && typeof window.requestAnimationFrame === "function"
@@ -168,7 +268,18 @@ export function usePortableTheme(options: UsePortableThemeOptions = {}): Portabl
         window.cancelAnimationFrame(raf);
       }
     };
-  }, [paletteId, resolvedMode, amoledPureBlack, syncPwa, syncAndroid]);
+  }, [
+    paletteId,
+    resolvedMode,
+    amoledPureBlack,
+    uiEnhancer,
+    renderingEngine,
+    motionEngine,
+    glassBlurPx,
+    glowIntensityPct,
+    syncPwa,
+    syncAndroid,
+  ]);
 
   const setPaletteId = useCallback(
     (id: ThemePaletteId) => {
@@ -194,6 +305,40 @@ export function usePortableTheme(options: UsePortableThemeOptions = {}): Portabl
     [storageKeyAmoled],
   );
 
+  const setUiEnhancer = useCallback((enabled: boolean) => {
+    setUiEnhancerState(enabled);
+    writeStoredValue(THEME_STORAGE_KEYS.uiEnhancer, String(enabled));
+  }, []);
+
+  const setRenderingEngine = useCallback((mode: RenderingEngineMode) => {
+    setRenderingEngineState(mode);
+    writeStoredValue(THEME_STORAGE_KEYS.renderingEngine, mode);
+    if (mode === "ultra") {
+      setGlassBlurPxState(20);
+      writeStoredValue(THEME_STORAGE_KEYS.glassBlurPx, "20");
+    } else if (mode === "balanced") {
+      setGlassBlurPxState(12);
+      writeStoredValue(THEME_STORAGE_KEYS.glassBlurPx, "12");
+    }
+  }, []);
+
+  const setMotionEngine = useCallback((mode: MotionEngineMode) => {
+    setMotionEngineState(mode);
+    writeStoredValue(THEME_STORAGE_KEYS.motionEngine, mode);
+  }, []);
+
+  const setGlassBlurPx = useCallback((px: number) => {
+    const clamped = Math.max(0, Math.min(32, Math.round(px)));
+    setGlassBlurPxState(clamped);
+    writeStoredValue(THEME_STORAGE_KEYS.glassBlurPx, String(clamped));
+  }, []);
+
+  const setGlowIntensityPct = useCallback((pct: number) => {
+    const clamped = Math.max(0, Math.min(150, Math.round(pct)));
+    setGlowIntensityPctState(clamped);
+    writeStoredValue(THEME_STORAGE_KEYS.glowIntensityPct, String(clamped));
+  }, []);
+
   const toggleLightDark = useCallback(() => {
     const next: ResolvedThemeMode = resolvedMode === "light" ? "dark" : "light";
     setModeSetting(next);
@@ -204,9 +349,19 @@ export function usePortableTheme(options: UsePortableThemeOptions = {}): Portabl
     modeSetting,
     resolvedMode,
     amoledPureBlack,
+    uiEnhancer,
+    renderingEngine,
+    motionEngine,
+    glassBlurPx,
+    glowIntensityPct,
     setPaletteId,
     setModeSetting,
     setAmoledPureBlack,
+    setUiEnhancer,
+    setRenderingEngine,
+    setMotionEngine,
+    setGlassBlurPx,
+    setGlowIntensityPct,
     toggleLightDark,
   };
 }
@@ -218,9 +373,19 @@ const FALLBACK_THEME_STATE: PortableThemeState = {
   modeSetting: "light",
   resolvedMode: "light",
   amoledPureBlack: false,
+  uiEnhancer: true,
+  renderingEngine: "ultra",
+  motionEngine: "gpu_flip",
+  glassBlurPx: 20,
+  glowIntensityPct: 100,
   setPaletteId: () => {},
   setModeSetting: () => {},
   setAmoledPureBlack: () => {},
+  setUiEnhancer: () => {},
+  setRenderingEngine: () => {},
+  setMotionEngine: () => {},
+  setGlassBlurPx: () => {},
+  setGlowIntensityPct: () => {},
   toggleLightDark: () => {},
 };
 

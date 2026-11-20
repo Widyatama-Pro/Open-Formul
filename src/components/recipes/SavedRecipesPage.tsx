@@ -106,7 +106,7 @@ export const SavedRecipesPage = memo(function SavedRecipesPage({
           )}
         </Card>
       ) : (
-        <Card interactive={false} className="overflow-hidden">
+        <Card interactive={false} className="selectable-panel overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-xs">
               <thead className="bg-[var(--bg-sunken)] text-[11px] font-bold text-[var(--text-secondary)]">

@@ -94,6 +94,11 @@ function AppContent() {
       themePalette: themeCtx.paletteId,
       themeModeSetting: nextResolved,
       amoledPureBlack: themeCtx.amoledPureBlack,
+      uiEnhancer: themeCtx.uiEnhancer,
+      renderingEngine: themeCtx.renderingEngine,
+      motionEngine: themeCtx.motionEngine,
+      glassBlurPx: themeCtx.glassBlurPx,
+      glowIntensityPct: themeCtx.glowIntensityPct,
     });
   };
 
@@ -133,9 +138,18 @@ function AppContent() {
       {store.route === "ingredients" && (
         <IngredientLibraryPage
           ingredients={store.ingredients}
+          allNutrients={store.allNutrients}
           customNutrients={store.config.customNutrients ?? []}
           language={store.preferences.language}
           decimalPlaces={decimalPlaces}
+          simpleMode={store.preferences.simpleMode ?? !store.config.enableAdvanceNutrients}
+          tableViewTier={
+            store.preferences.tableViewTier ??
+            (store.config.enableAdvanceNutrients ? "advanced" : "basic")
+          }
+          onChangeTableViewTier={store.setTableViewTier}
+          showNdf={store.config.showNdf === true}
+          showBetn={store.config.showBetn === true}
           onToggleActive={(id, active) => store.updateIngredient(id, { isActive: active })}
           onOpenAdd={() => setAddIngredientOpen(true)}
           onImportIngredients={store.importIngredients}
@@ -148,6 +162,7 @@ function AppContent() {
           activeRequirementId={store.activeRequirement.id}
           language={store.preferences.language}
           decimalPlaces={decimalPlaces}
+          simpleMode={store.preferences.simpleMode ?? !store.config.enableAdvanceNutrients}
           onSelectAndUse={(id) => {
             store.selectPreset(id);
             store.setRoute("formulation");

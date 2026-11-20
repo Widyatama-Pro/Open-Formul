@@ -178,7 +178,7 @@ export function IngredientDetailSheet({
         </div>
       }
     >
-      <div className="space-y-4">
+      <div className="selectable-panel space-y-4">
         <SegmentedTabs
           ariaLabel={pickLang(
             language,
@@ -203,7 +203,7 @@ export function IngredientDetailSheet({
         {tab === "fiber_anf" && renderNutrientInputs(["fiber_carb", "anf_physical"])}
 
         {tab === "rules" && (
-          <div className="space-y-4">
+          <div className="selectable-panel space-y-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="glass-card rounded-2xl p-3.5">
                 <div className="mb-1 flex items-center justify-between">

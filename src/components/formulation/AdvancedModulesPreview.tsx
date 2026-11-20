@@ -263,7 +263,7 @@ export const AdvancedModulesPreview = memo(function AdvancedModulesPreview({
           </Badge>
         </div>
 
-        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
+        <div className="selectable-panel grid grid-cols-1 gap-3.5 md:grid-cols-3">
           {UPCOMING_TOOLS.map((item) => (
             <Card key={item.id} interactive={false} className="flex flex-col p-4 opacity-75">
               <div className="flex items-start gap-3">

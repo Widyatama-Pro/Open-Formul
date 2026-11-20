@@ -1,3 +1,4 @@
+import { Lock } from "lucide-react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
 import { pickLang } from "../../i18n";
 import type { AppLanguage, Nutrient, RatioConstraint } from "../../types";
@@ -21,12 +22,15 @@ export function RatioConstraintsSection({
   if (ratios.length === 0) return null;
 
   return (
-    <div className="mt-4 space-y-2 border-t border-[var(--border-subtle)] pt-3.5">
+    <div className="mt-4 space-y-2 border-t border-[var(--glass-border-tint,var(--border-subtle))] pt-3.5">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold tracking-tight text-[var(--text-secondary)]">
+        <h3 className="text-xs font-bold tracking-tight text-[var(--text-primary)]">
           {pickLang(language, "Pengunci Rasio Nutrien", "Nutrient Ratio Locks")}
         </h3>
-        <span className="text-[11px] font-medium text-[var(--text-muted)]">Linearized LP</span>
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-muted)]">
+          <span>Linearized LP</span>
+          <Lock className="h-3 w-3" aria-hidden="true" />
+        </span>
       </div>
 
       <div className="space-y-2">
@@ -54,7 +58,7 @@ export function RatioConstraintsSection({
           return (
             <div
               key={ratio.id ?? `${ratio.numerator}-${ratio.denominator}-${idx}`}
-              className="neu-well flex flex-wrap items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-xs"
+              className="acrylic-subcard flex flex-wrap items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-xs"
             >
               <div>
                 <p className="font-semibold text-[var(--text-primary)]">

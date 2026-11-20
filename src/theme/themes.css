@@ -59,6 +59,43 @@
   --status-warning: #b87314;
   --status-danger: #c23b33;
   --status-info: #226888;
+  /* UI Enhancer: Acrylic Glass & Volumetric Glow (original-default light) */
+  --mesh-spot-1: rgba(52, 211, 153, 0.24);
+  --mesh-spot-2: rgba(213, 164, 92, 0.2);
+  --mesh-spot-3: rgba(16, 185, 129, 0.16);
+  --sidebar-deep-start: #0c2b24;
+  --sidebar-deep-end: #071915;
+  --sidebar-orb-glow: rgba(34, 197, 94, 0.28);
+  --glass-panel-bg: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(239, 248, 244, 0.62) 100%
+  );
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(243, 250, 246, 0.72) 100%
+  );
+  --glass-table-bg: rgba(246, 251, 248, 0.62);
+  --glass-sticky-bg: rgba(247, 251, 249, 0.86);
+  --glass-row-bg: rgba(255, 255, 255, 0.24);
+  --glass-row-hover: rgba(16, 185, 129, 0.11);
+  --glass-row-active: rgba(16, 185, 129, 0.14);
+  --inclusion-col-glass: rgba(16, 185, 129, 0.12);
+  --glass-rim-top: rgba(255, 255, 255, 0.92);
+  --glass-rim-left: rgba(255, 255, 255, 0.66);
+  --glass-border-tint: rgba(20, 83, 65, 0.14);
+  --glow-ambient-shadow:
+    0 14px 36px -10px rgba(16, 68, 52, 0.16), 0 4px 14px -4px rgba(16, 185, 129, 0.1);
+  --glow-primary-soft: rgba(16, 185, 129, 0.36);
+  --glow-success-pill: rgba(29, 155, 98, 0.32);
+  --glow-active-nav: linear-gradient(
+    90deg,
+    rgba(25, 135, 84, 0.82) 0%,
+    rgba(16, 108, 76, 0.62) 100%
+  );
+  --hero-tint-primary: #14533e;
+  --hero-tint-secondary: #10b981;
 }
 
 /* 1B. original-default (Dark Mode) */
@@ -85,6 +122,39 @@
   --status-warning: #f5b041;
   --status-danger: #f2645a;
   --status-info: #4db8e8;
+  /* UI Enhancer (original-default dark) */
+  --mesh-spot-1: rgba(61, 214, 140, 0.18);
+  --mesh-spot-2: rgba(213, 164, 92, 0.16);
+  --mesh-spot-3: rgba(36, 98, 78, 0.24);
+  --sidebar-deep-start: #0b1815;
+  --sidebar-deep-end: #050c0a;
+  --sidebar-orb-glow: rgba(61, 214, 140, 0.22);
+  --glass-panel-bg: linear-gradient(145deg, rgba(28, 48, 43, 0.74) 0%, rgba(16, 30, 27, 0.62) 100%);
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(36, 61, 55, 0.84) 0%,
+    rgba(22, 39, 35, 0.72) 100%
+  );
+  --glass-table-bg: rgba(17, 31, 28, 0.64);
+  --glass-sticky-bg: rgba(22, 38, 34, 0.88);
+  --glass-row-bg: rgba(255, 255, 255, 0.025);
+  --glass-row-hover: rgba(61, 214, 140, 0.12);
+  --glass-row-active: rgba(61, 214, 140, 0.16);
+  --inclusion-col-glass: rgba(61, 214, 140, 0.12);
+  --glass-rim-top: rgba(213, 245, 231, 0.24);
+  --glass-rim-left: rgba(213, 245, 231, 0.14);
+  --glass-border-tint: rgba(61, 214, 140, 0.18);
+  --glow-ambient-shadow:
+    0 18px 42px -12px rgba(2, 8, 6, 0.78), 0 4px 18px -4px rgba(61, 214, 140, 0.14);
+  --glow-primary-soft: rgba(61, 214, 140, 0.34);
+  --glow-success-pill: rgba(61, 214, 140, 0.28);
+  --glow-active-nav: linear-gradient(
+    90deg,
+    rgba(58, 130, 104, 0.72) 0%,
+    rgba(29, 78, 62, 0.54) 100%
+  );
+  --hero-tint-primary: #3dd68c;
+  --hero-tint-secondary: #d5a45c;
 }
 
 /* 2A. prd-custom — Ergonomic Precision Palette (Zero Purple, Light Mode) */
@@ -111,6 +181,43 @@
   --status-warning: #b4690e;
   --status-danger: #bf312a;
   --status-info: #1d6a8a;
+  /* UI Enhancer (prd-custom light) */
+  --mesh-spot-1: rgba(44, 122, 104, 0.22);
+  --mesh-spot-2: rgba(200, 125, 50, 0.18);
+  --mesh-spot-3: rgba(29, 106, 138, 0.14);
+  --sidebar-deep-start: #122d26;
+  --sidebar-deep-end: #0a1b16;
+  --sidebar-orb-glow: rgba(59, 154, 128, 0.28);
+  --glass-panel-bg: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(235, 244, 240, 0.62) 100%
+  );
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(241, 248, 245, 0.72) 100%
+  );
+  --glass-table-bg: rgba(242, 248, 245, 0.64);
+  --glass-sticky-bg: rgba(244, 249, 246, 0.86);
+  --glass-row-bg: rgba(255, 255, 255, 0.24);
+  --glass-row-hover: rgba(44, 122, 104, 0.11);
+  --glass-row-active: rgba(22, 121, 79, 0.14);
+  --inclusion-col-glass: rgba(22, 121, 79, 0.12);
+  --glass-rim-top: rgba(255, 255, 255, 0.92);
+  --glass-rim-left: rgba(255, 255, 255, 0.68);
+  --glass-border-tint: rgba(27, 58, 50, 0.15);
+  --glow-ambient-shadow:
+    0 14px 36px -10px rgba(27, 58, 50, 0.17), 0 4px 14px -4px rgba(44, 122, 104, 0.12);
+  --glow-primary-soft: rgba(44, 122, 104, 0.34);
+  --glow-success-pill: rgba(22, 121, 79, 0.3);
+  --glow-active-nav: linear-gradient(
+    90deg,
+    rgba(36, 114, 92, 0.84) 0%,
+    rgba(24, 78, 63, 0.62) 100%
+  );
+  --hero-tint-primary: #1b3a32;
+  --hero-tint-secondary: #c87d32;
 }
 
 /* 2B. prd-custom (Dark Mode) */
@@ -137,6 +244,39 @@
   --status-warning: #f4ad3a;
   --status-danger: #f25f55;
   --status-info: #45b5d9;
+  /* UI Enhancer (prd-custom dark) */
+  --mesh-spot-1: rgba(57, 212, 138, 0.16);
+  --mesh-spot-2: rgba(224, 148, 72, 0.16);
+  --mesh-spot-3: rgba(69, 181, 217, 0.14);
+  --sidebar-deep-start: #0c1816;
+  --sidebar-deep-end: #050a09;
+  --sidebar-orb-glow: rgba(59, 122, 104, 0.24);
+  --glass-panel-bg: linear-gradient(145deg, rgba(29, 43, 40, 0.74) 0%, rgba(16, 25, 23, 0.62) 100%);
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(37, 54, 50, 0.84) 0%,
+    rgba(22, 34, 31, 0.72) 100%
+  );
+  --glass-table-bg: rgba(16, 26, 24, 0.64);
+  --glass-sticky-bg: rgba(22, 33, 30, 0.88);
+  --glass-row-bg: rgba(255, 255, 255, 0.025);
+  --glass-row-hover: rgba(57, 212, 138, 0.12);
+  --glass-row-active: rgba(57, 212, 138, 0.16);
+  --inclusion-col-glass: rgba(57, 212, 138, 0.12);
+  --glass-rim-top: rgba(220, 242, 235, 0.22);
+  --glass-rim-left: rgba(220, 242, 235, 0.12);
+  --glass-border-tint: rgba(59, 122, 104, 0.2);
+  --glow-ambient-shadow:
+    0 18px 42px -12px rgba(2, 6, 5, 0.8), 0 4px 18px -4px rgba(224, 148, 72, 0.12);
+  --glow-primary-soft: rgba(57, 212, 138, 0.3);
+  --glow-success-pill: rgba(57, 212, 138, 0.28);
+  --glow-active-nav: linear-gradient(
+    90deg,
+    rgba(59, 122, 104, 0.74) 0%,
+    rgba(35, 76, 65, 0.56) 100%
+  );
+  --hero-tint-primary: #3b7a68;
+  --hero-tint-secondary: #e09448;
 }
 
 /* 3A. template-01 — Carbon, Citrus Yellow, Lavender & Coral (Light Mode) */
@@ -163,6 +303,43 @@
   --status-warning: #b56e0c;
   --status-danger: #c93b2b;
   --status-info: #53469c;
+  /* UI Enhancer (template-01 light) */
+  --mesh-spot-1: rgba(236, 112, 75, 0.2);
+  --mesh-spot-2: rgba(245, 243, 120, 0.28);
+  --mesh-spot-3: rgba(220, 193, 255, 0.22);
+  --sidebar-deep-start: #18171a;
+  --sidebar-deep-end: #0c0c0d;
+  --sidebar-orb-glow: rgba(236, 112, 75, 0.3);
+  --glass-panel-bg: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(249, 246, 242, 0.62) 100%
+  );
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(252, 249, 245, 0.74) 100%
+  );
+  --glass-table-bg: rgba(252, 250, 247, 0.62);
+  --glass-sticky-bg: rgba(253, 251, 248, 0.86);
+  --glass-row-bg: rgba(255, 255, 255, 0.24);
+  --glass-row-hover: rgba(236, 112, 75, 0.11);
+  --glass-row-active: rgba(27, 127, 78, 0.14);
+  --inclusion-col-glass: rgba(27, 127, 78, 0.11);
+  --glass-rim-top: rgba(255, 255, 255, 0.94);
+  --glass-rim-left: rgba(255, 255, 255, 0.7);
+  --glass-border-tint: rgba(236, 112, 75, 0.18);
+  --glow-ambient-shadow:
+    0 14px 36px -10px rgba(17, 17, 17, 0.14), 0 4px 16px -4px rgba(236, 112, 75, 0.14);
+  --glow-primary-soft: rgba(236, 112, 75, 0.34);
+  --glow-success-pill: rgba(27, 127, 78, 0.28);
+  --glow-active-nav: linear-gradient(
+    90deg,
+    rgba(236, 112, 75, 0.84) 0%,
+    rgba(196, 78, 46, 0.62) 100%
+  );
+  --hero-tint-primary: #2f2f2f;
+  --hero-tint-secondary: #ec704b;
 }
 
 /* 3B. template-01 (Dark Mode) */
@@ -189,6 +366,39 @@
   --status-warning: #f5f378;
   --status-danger: #ec704b;
   --status-info: #dcc1ff;
+  /* UI Enhancer (template-01 dark) */
+  --mesh-spot-1: rgba(236, 112, 75, 0.2);
+  --mesh-spot-2: rgba(245, 243, 120, 0.16);
+  --mesh-spot-3: rgba(220, 193, 255, 0.16);
+  --sidebar-deep-start: #18171a;
+  --sidebar-deep-end: #09090b;
+  --sidebar-orb-glow: rgba(236, 112, 75, 0.26);
+  --glass-panel-bg: linear-gradient(145deg, rgba(36, 36, 38, 0.74) 0%, rgba(20, 20, 22, 0.64) 100%);
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(48, 48, 52, 0.84) 0%,
+    rgba(28, 28, 30, 0.72) 100%
+  );
+  --glass-table-bg: rgba(24, 24, 26, 0.64);
+  --glass-sticky-bg: rgba(30, 30, 32, 0.88);
+  --glass-row-bg: rgba(255, 255, 255, 0.03);
+  --glass-row-hover: rgba(245, 243, 120, 0.1);
+  --glass-row-active: rgba(70, 220, 143, 0.14);
+  --inclusion-col-glass: rgba(70, 220, 143, 0.12);
+  --glass-rim-top: rgba(255, 250, 220, 0.22);
+  --glass-rim-left: rgba(255, 250, 220, 0.12);
+  --glass-border-tint: rgba(236, 112, 75, 0.22);
+  --glow-ambient-shadow:
+    0 18px 42px -12px rgba(0, 0, 0, 0.82), 0 4px 18px -4px rgba(236, 112, 75, 0.16);
+  --glow-primary-soft: rgba(245, 243, 120, 0.32);
+  --glow-success-pill: rgba(70, 220, 143, 0.28);
+  --glow-active-nav: linear-gradient(
+    90deg,
+    rgba(236, 112, 75, 0.76) 0%,
+    rgba(182, 72, 42, 0.56) 100%
+  );
+  --hero-tint-primary: #f5f378;
+  --hero-tint-secondary: #ec704b;
 }
 
 /* 4A. template-02 — Graphite Slate & Volt Chartreuse (Light Mode) */
@@ -215,6 +425,43 @@
   --status-warning: #ad6d0b;
   --status-danger: #c43636;
   --status-info: #375a9e;
+  /* UI Enhancer (template-02 light) */
+  --mesh-spot-1: rgba(55, 90, 158, 0.18);
+  --mesh-spot-2: rgba(234, 251, 93, 0.28);
+  --mesh-spot-3: rgba(72, 76, 94, 0.14);
+  --sidebar-deep-start: #1c1f2b;
+  --sidebar-deep-end: #101219;
+  --sidebar-orb-glow: rgba(120, 157, 245, 0.28);
+  --glass-panel-bg: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(238, 241, 249, 0.62) 100%
+  );
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(243, 245, 252, 0.74) 100%
+  );
+  --glass-table-bg: rgba(244, 246, 251, 0.64);
+  --glass-sticky-bg: rgba(247, 249, 253, 0.86);
+  --glass-row-bg: rgba(255, 255, 255, 0.24);
+  --glass-row-hover: rgba(55, 90, 158, 0.1);
+  --glass-row-active: rgba(29, 124, 80, 0.14);
+  --inclusion-col-glass: rgba(29, 124, 80, 0.11);
+  --glass-rim-top: rgba(255, 255, 255, 0.95);
+  --glass-rim-left: rgba(255, 255, 255, 0.72);
+  --glass-border-tint: rgba(72, 76, 94, 0.16);
+  --glow-ambient-shadow:
+    0 14px 36px -10px rgba(36, 40, 56, 0.15), 0 4px 16px -4px rgba(55, 90, 158, 0.12);
+  --glow-primary-soft: rgba(55, 90, 158, 0.3);
+  --glow-success-pill: rgba(29, 124, 80, 0.28);
+  --glow-active-nav: linear-gradient(
+    90deg,
+    rgba(55, 90, 158, 0.84) 0%,
+    rgba(39, 64, 114, 0.62) 100%
+  );
+  --hero-tint-primary: #375a9e;
+  --hero-tint-secondary: #484c5e;
 }
 
 /* 4B. template-02 (Dark Mode) */
@@ -241,6 +488,39 @@
   --status-warning: #eafb5d;
   --status-danger: #f46363;
   --status-info: #789df5;
+  /* UI Enhancer (template-02 dark) */
+  --mesh-spot-1: rgba(120, 157, 245, 0.2);
+  --mesh-spot-2: rgba(234, 251, 93, 0.14);
+  --mesh-spot-3: rgba(72, 76, 94, 0.24);
+  --sidebar-deep-start: #1a1c24;
+  --sidebar-deep-end: #0c0d11;
+  --sidebar-orb-glow: rgba(120, 157, 245, 0.24);
+  --glass-panel-bg: linear-gradient(145deg, rgba(40, 43, 54, 0.74) 0%, rgba(22, 24, 30, 0.64) 100%);
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(52, 55, 68, 0.84) 0%,
+    rgba(30, 32, 40, 0.74) 100%
+  );
+  --glass-table-bg: rgba(24, 26, 33, 0.64);
+  --glass-sticky-bg: rgba(31, 33, 42, 0.88);
+  --glass-row-bg: rgba(255, 255, 255, 0.03);
+  --glass-row-hover: rgba(120, 157, 245, 0.12);
+  --glass-row-active: rgba(66, 223, 144, 0.14);
+  --inclusion-col-glass: rgba(66, 223, 144, 0.12);
+  --glass-rim-top: rgba(235, 240, 255, 0.22);
+  --glass-rim-left: rgba(235, 240, 255, 0.12);
+  --glass-border-tint: rgba(120, 157, 245, 0.2);
+  --glow-ambient-shadow:
+    0 18px 42px -12px rgba(4, 5, 8, 0.82), 0 4px 18px -4px rgba(120, 157, 245, 0.14);
+  --glow-primary-soft: rgba(234, 251, 93, 0.28);
+  --glow-success-pill: rgba(66, 223, 144, 0.28);
+  --glow-active-nav: linear-gradient(
+    90deg,
+    rgba(88, 122, 204, 0.78) 0%,
+    rgba(52, 74, 134, 0.56) 100%
+  );
+  --hero-tint-primary: #789df5;
+  --hero-tint-secondary: #eafb5d;
 }
 
 /* 5A. template-03 — Tangerine, Dusty Rose, Sage & Pitch Obsidian (Light Mode) */
@@ -267,6 +547,43 @@
   --status-warning: #c25e14;
   --status-danger: #b33941;
   --status-info: #2c6785;
+  /* UI Enhancer (template-03 light) */
+  --mesh-spot-1: rgba(254, 129, 60, 0.2);
+  --mesh-spot-2: rgba(114, 126, 110, 0.22);
+  --mesh-spot-3: rgba(188, 101, 106, 0.16);
+  --sidebar-deep-start: #1f241c;
+  --sidebar-deep-end: #0c0e0a;
+  --sidebar-orb-glow: rgba(254, 129, 60, 0.28);
+  --glass-panel-bg: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(247, 244, 237, 0.62) 100%
+  );
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(250, 247, 242, 0.74) 100%
+  );
+  --glass-table-bg: rgba(248, 245, 240, 0.62);
+  --glass-sticky-bg: rgba(250, 248, 243, 0.86);
+  --glass-row-bg: rgba(255, 255, 255, 0.24);
+  --glass-row-hover: rgba(254, 129, 60, 0.11);
+  --glass-row-active: rgba(40, 117, 75, 0.14);
+  --inclusion-col-glass: rgba(40, 117, 75, 0.11);
+  --glass-rim-top: rgba(255, 255, 255, 0.92);
+  --glass-rim-left: rgba(255, 255, 255, 0.68);
+  --glass-border-tint: rgba(254, 129, 60, 0.18);
+  --glow-ambient-shadow:
+    0 14px 36px -10px rgba(34, 38, 28, 0.16), 0 4px 16px -4px rgba(254, 129, 60, 0.14);
+  --glow-primary-soft: rgba(254, 129, 60, 0.34);
+  --glow-success-pill: rgba(40, 117, 75, 0.28);
+  --glow-active-nav: linear-gradient(
+    90deg,
+    rgba(235, 112, 45, 0.86) 0%,
+    rgba(168, 76, 28, 0.62) 100%
+  );
+  --hero-tint-primary: #727e6e;
+  --hero-tint-secondary: #fe813c;
 }
 
 /* 5B. template-03 (Dark Mode) */
@@ -293,6 +610,39 @@
   --status-warning: #fe813c;
   --status-danger: #e66870;
   --status-info: #5cb3db;
+  /* UI Enhancer (template-03 dark) */
+  --mesh-spot-1: rgba(254, 129, 60, 0.18);
+  --mesh-spot-2: rgba(188, 101, 106, 0.16);
+  --mesh-spot-3: rgba(114, 126, 110, 0.22);
+  --sidebar-deep-start: #181b13;
+  --sidebar-deep-end: #080906;
+  --sidebar-orb-glow: rgba(254, 129, 60, 0.24);
+  --glass-panel-bg: linear-gradient(145deg, rgba(35, 39, 30, 0.74) 0%, rgba(19, 22, 16, 0.64) 100%);
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(46, 52, 39, 0.84) 0%,
+    rgba(25, 28, 21, 0.74) 100%
+  );
+  --glass-table-bg: rgba(20, 22, 17, 0.64);
+  --glass-sticky-bg: rgba(26, 29, 22, 0.88);
+  --glass-row-bg: rgba(255, 255, 255, 0.03);
+  --glass-row-hover: rgba(254, 129, 60, 0.12);
+  --glass-row-active: rgba(77, 214, 138, 0.14);
+  --inclusion-col-glass: rgba(77, 214, 138, 0.12);
+  --glass-rim-top: rgba(255, 240, 225, 0.22);
+  --glass-rim-left: rgba(255, 240, 225, 0.12);
+  --glass-border-tint: rgba(254, 129, 60, 0.22);
+  --glow-ambient-shadow:
+    0 18px 42px -12px rgba(2, 3, 2, 0.84), 0 4px 18px -4px rgba(254, 129, 60, 0.14);
+  --glow-primary-soft: rgba(254, 129, 60, 0.34);
+  --glow-success-pill: rgba(77, 214, 138, 0.28);
+  --glow-active-nav: linear-gradient(
+    90deg,
+    rgba(254, 129, 60, 0.78) 0%,
+    rgba(182, 82, 32, 0.56) 100%
+  );
+  --hero-tint-primary: #fe813c;
+  --hero-tint-secondary: #bc656a;
 }
 
 /* 6A. template-04 — Glacial Ice, Deep Navy, Electric Indigo & Acid Lime (Light Mode) */
@@ -319,6 +669,43 @@
   --status-warning: #b56e0e;
   --status-danger: #c73838;
   --status-info: #534be2;
+  /* UI Enhancer (template-04 light) */
+  --mesh-spot-1: rgba(110, 103, 251, 0.22);
+  --mesh-spot-2: rgba(56, 189, 248, 0.24);
+  --mesh-spot-3: rgba(200, 255, 60, 0.16);
+  --sidebar-deep-start: #16233a;
+  --sidebar-deep-end: #0b1220;
+  --sidebar-orb-glow: rgba(110, 103, 251, 0.34);
+  --glass-panel-bg: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(232, 248, 255, 0.62) 100%
+  );
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(239, 250, 255, 0.74) 100%
+  );
+  --glass-table-bg: rgba(238, 250, 254, 0.64);
+  --glass-sticky-bg: rgba(242, 252, 255, 0.86);
+  --glass-row-bg: rgba(255, 255, 255, 0.24);
+  --glass-row-hover: rgba(110, 103, 251, 0.11);
+  --glass-row-active: rgba(22, 124, 82, 0.14);
+  --inclusion-col-glass: rgba(22, 124, 82, 0.12);
+  --glass-rim-top: rgba(255, 255, 255, 0.95);
+  --glass-rim-left: rgba(255, 255, 255, 0.72);
+  --glass-border-tint: rgba(110, 103, 251, 0.18);
+  --glow-ambient-shadow:
+    0 14px 36px -10px rgba(32, 45, 65, 0.16), 0 4px 16px -4px rgba(110, 103, 251, 0.14);
+  --glow-primary-soft: rgba(110, 103, 251, 0.34);
+  --glow-success-pill: rgba(22, 124, 82, 0.28);
+  --glow-active-nav: linear-gradient(
+    90deg,
+    rgba(110, 103, 251, 0.86) 0%,
+    rgba(66, 61, 178, 0.64) 100%
+  );
+  --hero-tint-primary: #202d41;
+  --hero-tint-secondary: #6e67fb;
 }
 
 /* 6B. template-04 (Dark Mode) */
@@ -345,6 +732,39 @@
   --status-warning: #f5b742;
   --status-danger: #f56565;
   --status-info: #8e88ff;
+  /* UI Enhancer (template-04 dark) */
+  --mesh-spot-1: rgba(110, 103, 251, 0.24);
+  --mesh-spot-2: rgba(200, 255, 60, 0.12);
+  --mesh-spot-3: rgba(56, 189, 248, 0.16);
+  --sidebar-deep-start: #172133;
+  --sidebar-deep-end: #0a0f18;
+  --sidebar-orb-glow: rgba(110, 103, 251, 0.3);
+  --glass-panel-bg: linear-gradient(145deg, rgba(35, 49, 71, 0.74) 0%, rgba(18, 26, 39, 0.64) 100%);
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(45, 63, 91, 0.84) 0%,
+    rgba(24, 34, 51, 0.74) 100%
+  );
+  --glass-table-bg: rgba(20, 29, 43, 0.64);
+  --glass-sticky-bg: rgba(26, 38, 56, 0.88);
+  --glass-row-bg: rgba(255, 255, 255, 0.03);
+  --glass-row-hover: rgba(110, 103, 251, 0.14);
+  --glass-row-active: rgba(69, 229, 150, 0.14);
+  --inclusion-col-glass: rgba(69, 229, 150, 0.12);
+  --glass-rim-top: rgba(220, 240, 255, 0.24);
+  --glass-rim-left: rgba(220, 240, 255, 0.13);
+  --glass-border-tint: rgba(110, 103, 251, 0.24);
+  --glow-ambient-shadow:
+    0 18px 42px -12px rgba(4, 7, 12, 0.84), 0 4px 18px -4px rgba(110, 103, 251, 0.18);
+  --glow-primary-soft: rgba(200, 255, 60, 0.28);
+  --glow-success-pill: rgba(69, 229, 150, 0.28);
+  --glow-active-nav: linear-gradient(
+    90deg,
+    rgba(110, 103, 251, 0.82) 0%,
+    rgba(64, 59, 168, 0.58) 100%
+  );
+  --hero-tint-primary: #8e88ff;
+  --hero-tint-secondary: #c8ff3c;
 }
 
 /* 7A. template-05 — Forest Emerald, Chartreuse Lime & Pistachio Cream (Light Mode) */
@@ -371,6 +791,43 @@
   --status-warning: #b57010;
   --status-danger: #c23832;
   --status-info: #1f6b82;
+  /* UI Enhancer (template-05 light) */
+  --mesh-spot-1: rgba(34, 197, 94, 0.22);
+  --mesh-spot-2: rgba(211, 250, 83, 0.26);
+  --mesh-spot-3: rgba(16, 185, 129, 0.16);
+  --sidebar-deep-start: #0f361e;
+  --sidebar-deep-end: #071e10;
+  --sidebar-orb-glow: rgba(74, 222, 128, 0.28);
+  --glass-panel-bg: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(238, 248, 238, 0.62) 100%
+  );
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(243, 250, 240, 0.74) 100%
+  );
+  --glass-table-bg: rgba(242, 249, 240, 0.64);
+  --glass-sticky-bg: rgba(245, 251, 243, 0.86);
+  --glass-row-bg: rgba(255, 255, 255, 0.24);
+  --glass-row-hover: rgba(20, 122, 66, 0.11);
+  --glass-row-active: rgba(20, 122, 66, 0.15);
+  --inclusion-col-glass: rgba(20, 122, 66, 0.13);
+  --glass-rim-top: rgba(255, 255, 255, 0.94);
+  --glass-rim-left: rgba(255, 255, 255, 0.7);
+  --glass-border-tint: rgba(20, 122, 66, 0.16);
+  --glow-ambient-shadow:
+    0 14px 36px -10px rgba(20, 68, 37, 0.16), 0 4px 16px -4px rgba(34, 197, 94, 0.14);
+  --glow-primary-soft: rgba(20, 122, 66, 0.36);
+  --glow-success-pill: rgba(20, 122, 66, 0.32);
+  --glow-active-nav: linear-gradient(
+    90deg,
+    rgba(26, 140, 74, 0.86) 0%,
+    rgba(18, 92, 50, 0.64) 100%
+  );
+  --hero-tint-primary: #144425;
+  --hero-tint-secondary: #22c55e;
 }
 
 /* 7B. template-05 (Dark Mode) */
@@ -397,6 +854,35 @@
   --status-warning: #f5b945;
   --status-danger: #f56b63;
   --status-info: #5ac4e5;
+  /* UI Enhancer (template-05 dark) */
+  --mesh-spot-1: rgba(82, 232, 144, 0.2);
+  --mesh-spot-2: rgba(211, 250, 83, 0.14);
+  --mesh-spot-3: rgba(20, 68, 37, 0.34);
+  --sidebar-deep-start: #0d2b18;
+  --sidebar-deep-end: #05120a;
+  --sidebar-orb-glow: rgba(82, 232, 144, 0.26);
+  --glass-panel-bg: linear-gradient(145deg, rgba(23, 66, 39, 0.74) 0%, rgba(11, 35, 20, 0.64) 100%);
+  --glass-panel-elevated: linear-gradient(
+    145deg,
+    rgba(31, 87, 52, 0.84) 0%,
+    rgba(16, 48, 28, 0.74) 100%
+  );
+  --glass-table-bg: rgba(12, 36, 21, 0.64);
+  --glass-sticky-bg: rgba(16, 48, 28, 0.88);
+  --glass-row-bg: rgba(255, 255, 255, 0.03);
+  --glass-row-hover: rgba(82, 232, 144, 0.13);
+  --glass-row-active: rgba(82, 232, 144, 0.17);
+  --inclusion-col-glass: rgba(82, 232, 144, 0.13);
+  --glass-rim-top: rgba(224, 255, 232, 0.24);
+  --glass-rim-left: rgba(224, 255, 232, 0.14);
+  --glass-border-tint: rgba(82, 232, 144, 0.22);
+  --glow-ambient-shadow:
+    0 18px 42px -12px rgba(2, 8, 4, 0.86), 0 4px 18px -4px rgba(82, 232, 144, 0.16);
+  --glow-primary-soft: rgba(211, 250, 83, 0.3);
+  --glow-success-pill: rgba(82, 232, 144, 0.28);
+  --glow-active-nav: linear-gradient(90deg, rgba(42, 152, 84, 0.8) 0%, rgba(22, 88, 47, 0.58) 100%);
+  --hero-tint-primary: #52e890;
+  --hero-tint-secondary: #d3fa53;
 }
 
 /* AMOLED Pure-Black Dark Mode Override (Applies cleanly across all 7 dark palettes) */

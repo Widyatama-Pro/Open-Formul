@@ -634,6 +634,11 @@ export const DEFAULT_CONFIG: FormulationConfig = {
 export const DEFAULT_PREFERENCES: UserPreferences = {
   language: "id",
   theme: "light",
+  uiEnhancer: true,
+  renderingEngine: "ultra",
+  motionEngine: "gpu_flip",
+  glassBlurPx: 20,
+  glowIntensityPct: 100,
   defaultBasis: "as_fed",
   defaultBatchKg: 100,
   zeroInclusionDefaultPct: 1,

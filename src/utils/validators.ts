@@ -8,6 +8,7 @@ import type {
   Ingredient,
   IngredientCategory,
   IngredientGroupConstraint,
+  MotionEngineMode,
   Nutrient,
   NutrientConstraint,
   NutrientTier,
@@ -15,6 +16,7 @@ import type {
   OptimizationMode,
   RatioConstraint,
   Recipe,
+  RenderingEngineMode,
   Requirement,
   TableViewTier,
   ThemeModeSetting,
@@ -788,6 +790,23 @@ export function validateUserPreferences(raw: unknown): ValidationResult<UserPref
       : undefined;
   const amoledPureBlack =
     typeof raw.amoledPureBlack === "boolean" ? raw.amoledPureBlack : undefined;
+  const uiEnhancer = typeof raw.uiEnhancer === "boolean" ? raw.uiEnhancer : undefined;
+  const renderingEngine: RenderingEngineMode | undefined =
+    raw.renderingEngine === "ultra" ||
+    raw.renderingEngine === "balanced" ||
+    raw.renderingEngine === "crisp"
+      ? raw.renderingEngine
+      : undefined;
+  const motionEngine: MotionEngineMode | undefined =
+    raw.motionEngine === "gpu_flip" || raw.motionEngine === "css_native"
+      ? raw.motionEngine
+      : undefined;
+  const blurRaw = parseFiniteNumber(raw.glassBlurPx);
+  const glassBlurPx =
+    blurRaw !== null && blurRaw >= 0 && blurRaw <= 32 ? Math.round(blurRaw) : undefined;
+  const glowRaw = parseFiniteNumber(raw.glowIntensityPct);
+  const glowIntensityPct =
+    glowRaw !== null && glowRaw >= 0 && glowRaw <= 150 ? Math.round(glowRaw) : undefined;
   const defaultBasis = validateBasis(raw.defaultBasis) ?? "as_fed";
   const batch = parseFiniteNumber(raw.defaultBatchKg);
   const zeroPct = parseFiniteNumber(raw.zeroInclusionDefaultPct);
@@ -808,6 +827,11 @@ export function validateUserPreferences(raw: unknown): ValidationResult<UserPref
       ...(themePalette !== undefined ? { themePalette } : {}),
       ...(themeModeSetting !== undefined ? { themeModeSetting } : {}),
       ...(amoledPureBlack !== undefined ? { amoledPureBlack } : {}),
+      ...(uiEnhancer !== undefined ? { uiEnhancer } : {}),
+      ...(renderingEngine !== undefined ? { renderingEngine } : {}),
+      ...(motionEngine !== undefined ? { motionEngine } : {}),
+      ...(glassBlurPx !== undefined ? { glassBlurPx } : {}),
+      ...(glowIntensityPct !== undefined ? { glowIntensityPct } : {}),
       defaultBasis,
       defaultBatchKg: batch !== null && batch > 0 ? batch : 100,
       zeroInclusionDefaultPct: zeroPct !== null && zeroPct >= 0 && zeroPct <= 50 ? zeroPct : 1,

@@ -1,7 +1,6 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   BookmarkPlus,
-  Calculator,
   ChevronDown,
   ChevronUp,
   ChevronsLeft,
@@ -9,7 +8,9 @@ import {
   Download,
   RotateCcw,
 } from "lucide-react";
+import { motion } from "motion/react";
 import { getFormulationStatusLabel, pickLang } from "../../i18n";
+import { useOptionalThemeContext } from "../../theme";
 import type {
   AppLanguage,
   Basis,
@@ -27,6 +28,7 @@ import {
 import { cn } from "../../utils/cn";
 import { formatCurrencyIdr, formatNumberLocale } from "../../utils/locale-number";
 import type { CommodityGroup } from "../../utils/species";
+import { AnimatedTextSwap } from "../ui/AnimatedText";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
@@ -100,10 +102,105 @@ function groupOtherRequirements(requirements: readonly Requirement[]): OtherRequ
 }
 
 /**
+ * Pendaran gelombang kaca (Ambient Glassmorphism Refraction) di pojok kanan atas header
+ * tanpa gambar ayam — memudar halus ke latar belakang dengan masking gradien
+ * dan mewarisi tint warna palet aktif.
+ */
+function HeroAmbientGlassBackdrop() {
+  return (
+    <div
+      aria-hidden="true"
+      data-hero-glass="true"
+      className="pointer-events-none absolute inset-y-0 right-0 z-0 hidden w-[440px] overflow-hidden select-none lg:block"
+      style={{
+        maskImage:
+          "linear-gradient(to left, rgba(0,0,0,0.92) 10%, rgba(0,0,0,0.48) 56%, transparent 96%)",
+        WebkitMaskImage:
+          "linear-gradient(to left, rgba(0,0,0,0.92) 10%, rgba(0,0,0,0.48) 56%, transparent 96%)",
+      }}
+    >
+      <svg
+        viewBox="0 0 440 140"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-full w-full object-cover"
+      >
+        <defs>
+          <radialGradient id="heroAura" cx="76%" cy="24%" r="72%">
+            <stop offset="0%" stopColor="var(--hero-tint-secondary, #10b981)" stopOpacity="0.34" />
+            <stop offset="60%" stopColor="var(--hero-tint-primary, #14533e)" stopOpacity="0.14" />
+            <stop offset="100%" stopColor="var(--hero-tint-primary, #14533e)" stopOpacity="0" />
+          </radialGradient>
+          <linearGradient
+            id="heroWave1"
+            x1="0"
+            y1="52"
+            x2="440"
+            y2="140"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0%" stopColor="var(--hero-tint-secondary, #10b981)" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="var(--hero-tint-primary, #14533e)" stopOpacity="0.06" />
+          </linearGradient>
+          <linearGradient
+            id="heroGlassSpecular"
+            x1="120"
+            y1="14"
+            x2="420"
+            y2="118"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.28" />
+            <stop offset="55%" stopColor="var(--hero-tint-secondary, #10b981)" stopOpacity="0.16" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        <rect width="440" height="140" fill="url(#heroAura)" />
+        {/* Lapisan gelombang kaca organik 1 */}
+        <path
+          d="M0 96C82 68 164 114 252 82C326 56 382 36 440 52V140H0V96Z"
+          fill="url(#heroWave1)"
+        />
+        {/* Lapisan gelombang kaca organik 2 */}
+        <path
+          d="M36 116C128 84 222 126 322 88C376 68 412 72 440 82V140H36V116Z"
+          fill="var(--hero-tint-primary, #14533e)"
+          fillOpacity="0.1"
+        />
+        {/* Kapsul & prisma bias kaca akrilik murni (tanpa siluet hewan) */}
+        <circle
+          cx="346"
+          cy="34"
+          r="54"
+          fill="url(#heroGlassSpecular)"
+          stroke="white"
+          strokeOpacity="0.18"
+          strokeWidth="1"
+        />
+        <circle
+          cx="268"
+          cy="76"
+          r="38"
+          fill="url(#heroGlassSpecular)"
+          stroke="white"
+          strokeOpacity="0.14"
+          strokeWidth="1"
+        />
+        <path
+          d="M140 84C212 52 288 94 374 48C402 33 424 34 440 40"
+          stroke="url(#heroGlassSpecular)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
+/**
  * Toolbar & KPI strip ringkas untuk Workbench Formulasi (Desktop & Mobile Collapsible):
- * - Standar Ternak menggunakan ThemedSelect modern (seragam tema UI, pencarian standar, & section divider non-interaktif)
- * - Mode Toleransi Target (nama ramah peternak menggantikan istilah "Elastik")
- * - Pada layar HP (< lg), ringkas dan dapat dilipat (collapsible) agar daftar bahan/target memiliki 75–80%+ ruang layar
+ * - Header bertingkat dengan garis aksen vertikal bercahaya & efek kaca ambient kanan atas
+ * - Kapsul kontrol acrylic glass untuk Standar Ternak, As-Fed/BK, Mode, dan KPI Biaya
  */
 export const WorkbenchToolbar = memo(function WorkbenchToolbar({
   requirements,
@@ -124,9 +221,17 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
   onOpenExportDialog,
   onResetMock,
 }: WorkbenchToolbarProps) {
+  const themeCtx = useOptionalThemeContext();
+  const uiEnhancer = themeCtx?.uiEnhancer ?? true;
+  const useGpuFlip = (themeCtx?.motionEngine ?? "gpu_flip") === "gpu_flip";
+  const [prevActiveReq, setPrevActiveReq] = useState<Requirement>(activeRequirement);
   const [commodity, setCommodity] = useState<CommodityGroup>(() =>
     resolveInitialCommodity(activeRequirement),
   );
+  if (activeRequirement !== prevActiveReq) {
+    setPrevActiveReq(activeRequirement);
+    setCommodity(resolveInitialCommodity(activeRequirement));
+  }
 
   // Sapi Potong dynamic state
   const [beefState, setBeefState] = useState<BeefPhysiologicalState>("growth");
@@ -139,10 +244,6 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
   const [dairyFat, setDairyFat] = useState<number>(3.8);
   const [dairyStandard, setDairyStandard] = useState<DairyStandard>("kearl_1982");
   const [dairyDry, setDairyDry] = useState<boolean>(false);
-
-  useEffect(() => {
-    setCommodity(resolveInitialCommodity(activeRequirement));
-  }, [activeRequirement]);
 
   const broilerReqs = useMemo(
     () => requirements.filter((r) => r.species === "broiler"),
@@ -344,50 +445,61 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
   return (
     <section
       aria-label={pickLang(language, "Kontrol utama formulasi", "Main formulation controls")}
-      className="flex shrink-0 flex-col justify-center gap-1.5 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 lg:min-h-[80px] lg:gap-2 lg:px-5 lg:py-2.5"
+      className={cn(
+        "relative flex shrink-0 flex-col justify-center gap-2 overflow-hidden px-3 py-2.5 lg:gap-2.5 lg:px-5 lg:py-3",
+        uiEnhancer
+          ? "border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-table-bg,var(--bg-surface))] backdrop-blur-md"
+          : "border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]",
+      )}
     >
-      {/* Baris 1: Judul + Aksi + KPI Ringkas (2 sub-baris rapi di HP agar KPI tak terpecah, 1 baris di desktop) */}
-      <div className="flex flex-col gap-1.5 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between lg:gap-x-3 lg:gap-y-1.5">
-        <div className="flex min-w-0 items-center justify-between gap-1.5 lg:contents">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 lg:order-1 lg:flex-none lg:shrink-0 lg:gap-2">
+      {uiEnhancer && <HeroAmbientGlassBackdrop />}
+
+      {/* Baris 1: Aksen Garis Vertikal Bercahaya + Judul + Aksi Kanan */}
+      <div className="relative z-10 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+        <div className="flex min-w-0 items-center justify-between gap-2 lg:contents">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 lg:order-1 lg:flex-none lg:shrink-0">
             <span
               aria-hidden="true"
-              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[var(--primary-soft)] text-[var(--color-primary)] ring-1 ring-[var(--border-subtle)] lg:h-7 lg:w-7"
-            >
-              <Calculator className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-            </span>
-            <h1 className="truncate text-[13px] font-extrabold tracking-tight text-[var(--text-primary)] sm:text-sm lg:text-[17px]">
-              <span aria-hidden="true" className="sm:hidden">
-                {pickLang(language, "Formulasi", "Ration")}
-              </span>
-              <span className="sr-only sm:not-sr-only">
-                {pickLang(language, "Formulasi Ransum", "Ration Formulation")}
-              </span>
-            </h1>
+              className="h-6 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-[var(--status-success)] via-[var(--color-accent)] to-[var(--color-primary)] shadow-[0_0_12px_var(--glow-primary-soft,rgba(16,185,129,0.4))] lg:h-7"
+            />
+            <div className="min-w-0">
+              <h1 className="truncate text-[14px] font-extrabold tracking-tight text-[var(--text-primary)] sm:text-base lg:text-[20px] lg:leading-tight">
+                <span aria-hidden="true" className="sm:hidden">
+                  <AnimatedTextSwap text={pickLang(language, "Formulasi", "Ration")} />
+                </span>
+                <span className="sr-only sm:not-sr-only">
+                  <AnimatedTextSwap
+                    text={pickLang(language, "Formulasi Ransum", "Ration Formulation")}
+                  />
+                </span>
+              </h1>
+            </div>
           </div>
 
-          {/* Tombol Aksi Ringkas (sejajar judul di HP, di sisi kanan di desktop) */}
-          <div className="flex shrink-0 items-center gap-1 lg:order-3 lg:ml-auto">
+          {/* Tombol Aksi Ringkas (di atas ilustrasi hero kanan atas) */}
+          <div className="flex shrink-0 items-center gap-1.5 lg:order-3 lg:ml-auto">
             <Button
               variant="secondary"
               size="sm"
               onClick={onOpenExportDialog}
-              className="!min-h-8 gap-1 px-2 text-[11px] lg:!min-h-7 lg:px-2.5"
+              className="acrylic-control-capsule !min-h-8 gap-1.5 rounded-xl px-2.5 text-[11px] lg:!min-h-8 lg:px-3"
             >
               <Download className="h-3.5 w-3.5 shrink-0" />
               <span className="hidden sm:inline">
-                {pickLang(language, "Ekspor PDF", "Export PDF")}
+                <AnimatedTextSwap text={pickLang(language, "Ekspor PDF", "Export PDF")} />
               </span>
               <span className="sm:hidden">PDF</span>
             </Button>
             <Button
-              variant="primary"
+              variant="secondary"
               size="sm"
               onClick={onOpenSaveDialog}
-              className="!min-h-8 gap-1 px-2 text-[11px] lg:!min-h-7 lg:px-2.5"
+              className="acrylic-control-capsule !min-h-8 gap-1.5 rounded-xl px-2.5 text-[11px] lg:!min-h-8 lg:px-3"
             >
               <BookmarkPlus className="h-3.5 w-3.5 shrink-0" />
-              <span>{pickLang(language, "Simpan", "Save")}</span>
+              <span>
+                <AnimatedTextSwap text={pickLang(language, "Simpan", "Save")} />
+              </span>
             </Button>
             <Button
               variant="ghost"
@@ -395,7 +507,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
               onClick={onResetMock}
               aria-label={pickLang(language, "Reset data prototipe", "Reset sample data")}
               title={pickLang(language, "Reset ke data awal", "Reset to initial data")}
-              className="neu-pill-btn !min-h-8 w-8 rounded-lg px-0 lg:!min-h-7 lg:w-auto lg:px-2"
+              className="acrylic-control-capsule !min-h-8 w-8 rounded-xl px-0 lg:!min-h-8 lg:w-8"
             >
               <RotateCcw className="h-3.5 w-3.5 shrink-0" />
             </Button>
@@ -421,7 +533,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
                           "Collapse livestock controls",
                         )
                   }
-                  className="neu-pill-btn !min-h-8 w-8 rounded-lg px-0 text-[10px]"
+                  className="acrylic-control-capsule !min-h-8 w-8 rounded-xl px-0 text-[10px]"
                 >
                   {mobileCollapsed ? (
                     <ChevronDown className="h-3.5 w-3.5 shrink-0" />
@@ -434,7 +546,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
 
             <span className="hidden lg:inline-flex">
               <Button
-                variant="secondary"
+                variant="primary"
                 size="sm"
                 onClick={onToggleInspector}
                 aria-expanded={inspectorOpen}
@@ -464,94 +576,44 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
                         "Show nutrient targets panel",
                       )
                 }
-                className="min-h-7 px-2.5 text-[11px]"
+                className="!min-h-8 rounded-xl px-3 text-[11px] shadow-[0_6px_20px_-4px_var(--glow-primary-soft,rgba(16,185,129,0.38))]"
               >
                 {inspectorOpen ? (
                   <>
-                    <span>{pickLang(language, "Tutup Target", "Hide Targets")}</span>
-                    <ChevronsRight className="h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]" />
+                    <span>
+                      <AnimatedTextSwap text={pickLang(language, "Tutup Target", "Hide Targets")} />
+                    </span>
+                    <ChevronsRight className="h-3.5 w-3.5 shrink-0" />
                   </>
                 ) : (
                   <>
-                    <ChevronsLeft className="h-3.5 w-3.5 shrink-0 text-[var(--status-success)]" />
-                    <span>{pickLang(language, "Target Nutrien", "Nutrient Targets")}</span>
+                    <ChevronsLeft className="h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      <AnimatedTextSwap
+                        text={pickLang(language, "Target Nutrien", "Nutrient Targets")}
+                      />
+                    </span>
                   </>
                 )}
               </Button>
             </span>
           </div>
         </div>
-
-        {/* KPI biaya compact 1 baris rapi (tanpa teks patah vertikal di HP 360px–390px) */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:gap-x-2.5 lg:order-2 lg:border-l lg:border-[var(--border-subtle)] lg:pl-3">
-          <div className="flex shrink-0 items-baseline gap-1 whitespace-nowrap">
-            <span className="text-[10px] font-medium text-[var(--text-muted)] lg:text-[11px]">
-              <span aria-hidden="true" className="sm:hidden">
-                {pickLang(language, "Biaya/kg", "Cost/kg")}
-              </span>
-              <span className="sr-only sm:not-sr-only">
-                {pickLang(language, "Biaya / kg", "Cost / kg")} (
-                {result.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK", "DM")})
-              </span>
-            </span>
-            <span className="text-[11px] font-bold tabular-nums text-[var(--status-warning)] sm:text-xs lg:text-sm">
-              {result.costPerKg !== null ? formatCurrencyIdr(result.costPerKg) : "—"}
-            </span>
-          </div>
-
-          <div className="flex shrink-0 items-baseline gap-1 border-l border-[var(--border-subtle)] pl-2 whitespace-nowrap sm:pl-2.5">
-            <span className="text-[10px] font-medium text-[var(--text-muted)] lg:text-[11px]">
-              <span aria-hidden="true" className="sm:hidden">
-                /{config.batchSizeKg}kg
-              </span>
-              <span className="sr-only sm:not-sr-only">
-                {pickLang(language, "Biaya", "Cost")} / {config.batchSizeKg} kg
-              </span>
-            </span>
-            <span className="text-[11px] font-bold tabular-nums text-[var(--status-success)] sm:text-xs lg:text-sm">
-              {result.batchTotalCost !== null && result.batchTotalCost !== undefined
-                ? formatCurrencyIdr(result.batchTotalCost)
-                : "—"}
-            </span>
-          </div>
-
-          <div className="ml-auto flex shrink-0 items-center gap-2 sm:ml-0 sm:border-l sm:border-[var(--border-subtle)] sm:pl-2.5">
-            {statusBadge}
-            <label
-              title={pickLang(
-                language,
-                "Izinkan sedikit toleransi batas jika target nutrisi terlalu ketat agar aplikasi tetap mengeluarkan racikan terdekat.",
-                "Allow slight bound tolerance when targets are too tight so the solver still outputs the closest feasible ration.",
-              )}
-              className="hidden cursor-pointer items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)] sm:inline-flex"
-            >
-              <Switch
-                checked={config.enableElasticFallback}
-                onCheckedChange={onToggleElastic}
-                label={pickLang(
-                  language,
-                  "Aktifkan toleransi batas saat target terlalu ketat",
-                  "Enable flexible bounds when targets are too tight",
-                )}
-              />
-              <span>{pickLang(language, "Toleransi Target", "Flexible Bounds")}</span>
-            </label>
-          </div>
-        </div>
       </div>
 
-      {/* Baris 2: Standar Ternak, Basis & Mode (Collapsible pada mobile, selalu terbuka di desktop) */}
+      {/* Baris 2: Kapsul Kontrol Kaca (Standar Ternak + Basis + Mode + KPI Biaya & Toleransi Target) */}
       <div
         className={cn(
-          "flex flex-col gap-1.5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-2.5",
+          "relative z-10 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between",
           mobileCollapsed && "hidden lg:flex",
         )}
       >
-        <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center">
+        {/* Kapsul Kiri: Standar Ternak + As-Fed / BK (DM) */}
+        <div className="acrylic-control-capsule flex min-w-0 flex-col gap-1.5 rounded-2xl p-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:px-2.5">
           <div className="flex min-w-0 items-center gap-1.5">
             <label
               htmlFor="commodity-select"
-              className="shrink-0 text-[11px] font-semibold whitespace-nowrap text-[var(--text-secondary)]"
+              className="shrink-0 pl-1 text-[11px] font-semibold whitespace-nowrap text-[var(--text-secondary)]"
             >
               {pickLang(language, "Standar Ternak", "Livestock")}
             </label>
@@ -573,7 +635,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
                 language={language}
                 popoverMinWidthPx={210}
                 onChange={(v) => handleCommodityChange(v as CommodityGroup)}
-                className="h-8 min-h-8 py-0 text-[11px] font-semibold md:h-7 md:min-h-7"
+                className="h-8 min-h-8 rounded-xl py-0 text-[11px] font-semibold md:h-7 md:min-h-7"
               />
             </div>
           </div>
@@ -869,10 +931,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
               />
             </div>
           )}
-        </div>
-
-        {/* Baris Basis, Mode & Toleransi (rapat & terbaca utuh bahkan di 360px) */}
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          {/* Toggle Basis As-Fed / BK (DM) dengan 120 FPS GPU sliding pill */}
           <div
             role="group"
             aria-label={pickLang(
@@ -880,7 +939,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
               "Pilih basis As-Fed atau Bahan Kering",
               "Select As-Fed or Dry Matter basis",
             )}
-            className="neu-pressed inline-flex h-7 shrink-0 items-center rounded-lg p-0.5"
+            className="inline-flex h-7 shrink-0 items-center rounded-xl border border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--bg-sunken)]/70 p-0.5"
           >
             {(["as_fed", "dry_matter"] as const).map((basis) => {
               const active = config.activeBasis === basis;
@@ -891,29 +950,48 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
                   aria-pressed={active}
                   onClick={() => onSetBasis(basis)}
                   className={cn(
-                    "cursor-pointer rounded-md px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap transition-[transform,background-color,color] duration-150 active:scale-[0.97] sm:px-2.5 motion-reduce:transform-none",
+                    "elastic-size-box relative cursor-pointer rounded-lg px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap transition-[transform,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
                     active
-                      ? "bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[var(--shadow-neu-flat)]"
+                      ? "text-[var(--status-success)]"
                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
                   )}
                 >
-                  {basis === "as_fed" ? (
-                    "As-Fed"
-                  ) : (
-                    <>
-                      <span aria-hidden="true" className="sm:hidden">
-                        {pickLang(language, "BK", "DM")}
-                      </span>
-                      <span className="sr-only sm:not-sr-only">
-                        {pickLang(language, "BK (DM)", "DM")}
-                      </span>
-                    </>
-                  )}
+                  {active &&
+                    (useGpuFlip ? (
+                      <motion.span
+                        layoutId="toolbar-basis-pill"
+                        transition={{ type: "spring", stiffness: 460, damping: 34, mass: 0.75 }}
+                        aria-hidden="true"
+                        className="glow-pill-emerald pointer-events-none absolute inset-0 rounded-lg border border-[var(--status-success-border)]"
+                      />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 rounded-lg bg-[var(--bg-surface-elevated)] shadow-[var(--shadow-neu-flat)]"
+                      />
+                    ))}
+                  <span className="relative z-10">
+                    {basis === "as_fed" ? (
+                      "As-Fed"
+                    ) : (
+                      <>
+                        <span aria-hidden="true" className="sm:hidden">
+                          {pickLang(language, "BK", "DM")}
+                        </span>
+                        <span className="sr-only sm:not-sr-only">
+                          {pickLang(language, "BK (DM)", "DM")}
+                        </span>
+                      </>
+                    )}
+                  </span>
                 </button>
               );
             })}
           </div>
+        </div>
 
+        {/* Kapsul Kanan: Mode Optimasi + KPI Biaya & Status + Toleransi Target */}
+        <div className="acrylic-control-capsule flex flex-wrap items-center gap-2 rounded-2xl p-1.5 sm:px-3">
           <div className="flex min-w-[122px] flex-1 items-center gap-1.5 sm:flex-none">
             <span className="hidden shrink-0 text-[11px] font-semibold whitespace-nowrap text-[var(--text-secondary)] sm:inline">
               Mode
@@ -927,7 +1005,67 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
             </div>
           </div>
 
-          {/* Toggle Toleransi khusus mobile (< sm) agar tetap mudah dijangkau tanpa makan baris ekstra */}
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-l border-[var(--border-subtle)] pl-2.5">
+            <div className="flex shrink-0 items-baseline gap-1 whitespace-nowrap">
+              <span className="text-[10px] font-medium text-[var(--text-muted)] lg:text-[11px]">
+                <span aria-hidden="true" className="sm:hidden">
+                  {pickLang(language, "Biaya/kg", "Cost/kg")}
+                </span>
+                <span className="sr-only sm:not-sr-only">
+                  {pickLang(language, "Biaya / kg", "Cost / kg")} (
+                  {result.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK", "DM")})
+                </span>
+              </span>
+              <span className="text-[11px] font-bold tabular-nums text-[var(--status-warning)] sm:text-xs lg:text-sm">
+                {result.costPerKg !== null ? formatCurrencyIdr(result.costPerKg) : "—"}
+              </span>
+            </div>
+
+            <div className="flex shrink-0 items-baseline gap-1 border-l border-[var(--border-subtle)] pl-2.5 whitespace-nowrap">
+              <span className="text-[10px] font-medium text-[var(--text-muted)] lg:text-[11px]">
+                <span aria-hidden="true" className="sm:hidden">
+                  /{config.batchSizeKg}kg
+                </span>
+                <span className="sr-only sm:not-sr-only">
+                  {pickLang(language, "Biaya", "Cost")} / {config.batchSizeKg} kg
+                </span>
+              </span>
+              <span className="text-[11px] font-bold tabular-nums text-[var(--status-success)] sm:text-xs lg:text-sm">
+                {result.batchTotalCost !== null && result.batchTotalCost !== undefined
+                  ? formatCurrencyIdr(result.batchTotalCost)
+                  : "—"}
+              </span>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2 border-l border-[var(--border-subtle)] pl-2.5">
+              {statusBadge}
+              <label
+                title={pickLang(
+                  language,
+                  "Izinkan sedikit toleransi batas jika target nutrisi terlalu ketat agar aplikasi tetap mengeluarkan racikan terdekat.",
+                  "Allow slight bound tolerance when targets are too tight so the solver still outputs the closest feasible ration.",
+                )}
+                className="hidden cursor-pointer items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)] sm:inline-flex"
+              >
+                <Switch
+                  checked={config.enableElasticFallback}
+                  onCheckedChange={onToggleElastic}
+                  label={pickLang(
+                    language,
+                    "Aktifkan toleransi batas saat target terlalu ketat",
+                    "Enable flexible bounds when targets are too tight",
+                  )}
+                />
+                <span>
+                  <AnimatedTextSwap
+                    text={pickLang(language, "Toleransi Target", "Flexible Bounds")}
+                  />
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Toggle Toleransi khusus mobile (< sm) */}
           <label
             title={pickLang(
               language,

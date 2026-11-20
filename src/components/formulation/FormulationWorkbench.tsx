@@ -1,6 +1,14 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Search, SlidersHorizontal, Table } from "lucide-react";
-import { motion } from "motion/react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Layers,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Table,
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { FEED_CLASSES, getFeedClassLabel, resolveFeedClass } from "../../data/feed-classes";
 import type { PrototypeStore } from "../../hooks/use-prototype-store";
 import { getFormulationStatusLabel, pickLang } from "../../i18n";
@@ -289,20 +297,30 @@ export function FormulationWorkbench({
         />
       </div>
 
-      {store.isSolving && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="shrink-0 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-1.5 lg:px-5"
-        >
-          <div className="flex items-center gap-3 text-[11px] font-semibold text-[var(--status-success)]">
-            <span>
+      <AnimatePresence>
+        {store.isSolving && (
+          <motion.div
+            key="solving-toast"
+            role="status"
+            aria-live="polite"
+            data-solving-toast="top-right"
+            initial={{ opacity: 0, y: -10, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.96 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            className="acrylic-panel pointer-events-none fixed top-14 right-4 z-50 flex items-center gap-2.5 rounded-2xl border border-[var(--status-success-border)] px-3.5 py-2 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.28)] backdrop-blur-xl"
+          >
+            <span
+              aria-hidden="true"
+              className="inline-block h-2 w-2 shrink-0 rounded-full bg-[var(--status-success)] shadow-[0_0_8px_var(--status-success)]"
+            />
+            <span className="text-[11px] font-bold whitespace-nowrap text-[var(--status-success)]">
               {pickLang(language, "Menghitung formula optimal…", "Computing optimal ration…")}
             </span>
-            <div className="skeleton-shimmer h-1.5 flex-1 rounded-full" />
-          </div>
-        </div>
-      )}
+            <div className="skeleton-shimmer h-1.5 w-14 shrink-0 rounded-full" />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Mobile & Tablet Sticky Stepper (< lg): tetap menempel saat kontrol atas tergulir keluar */}
       <div className="sticky top-0 z-20 shrink-0 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.06)] lg:hidden">
@@ -359,20 +377,26 @@ export function FormulationWorkbench({
         animate="visible"
         className={cn(
           "hidden min-h-0 flex-1 gap-3.5 p-3 lg:grid lg:px-4",
-          inspectorOpen ? "lg:grid-cols-[minmax(0,2.7fr)_328px]" : "lg:grid-cols-[minmax(0,1fr)]",
+          inspectorOpen ? "lg:grid-cols-[minmax(0,2.7fr)_352px]" : "lg:grid-cols-[minmax(0,1fr)]",
         )}
       >
         {/* Area Kerja Utama dengan scrollbar lebar khusus (.workspace-main-scrollbar) agar jelas dibedakan dari tabel */}
         <div className="workspace-main-scrollbar flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto overscroll-contain pr-2">
-          {/* TABEL 1: Pakan yang Digunakan (Permukaan Aktif Beraksen Sukses) */}
+          {/* TABEL 1: Pakan yang Digunakan (3-Layer Acrylic Glass + Emerald Header Icon) */}
           <motion.div variants={WORKBENCH_PANEL_ITEM} className="shrink-0">
             <Card
               interactive={false}
               aria-label={pickLang(language, "Panel Bahan Pakan", "Feed Ingredients Panel")}
-              className="flex flex-col overflow-hidden border-t-2 border-t-[var(--status-success)] p-3"
+              className="acrylic-panel selectable-panel flex flex-col overflow-hidden p-3.5"
             >
-              <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5">
                 <div className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-soft)] text-[var(--status-success)] shadow-[0_0_12px_var(--glow-success-pill,transparent)]"
+                  >
+                    <Layers className="h-4 w-4" />
+                  </span>
                   <h2 className="text-sm font-bold tracking-tight text-[var(--text-primary)]">
                     {pickLang(language, "Pakan yang Digunakan", "Used Feed Ingredients")}
                   </h2>
@@ -380,7 +404,12 @@ export function FormulationWorkbench({
                     {usedIngredients.length} {pickLang(language, "bahan", "feeds")}
                   </Badge>
                 </div>
-                <Button variant="secondary" size="sm" onClick={onOpenAddIngredient}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={onOpenAddIngredient}
+                  className="acrylic-control-capsule rounded-xl"
+                >
                   <Plus className="h-3.5 w-3.5" />
                   <span>{pickLang(language, "Tambah Bahan Baru", "Add New Feed")}</span>
                 </Button>
@@ -407,6 +436,7 @@ export function FormulationWorkbench({
                   tableViewTier={tableViewTier}
                   onChangeTableViewTier={store.setTableViewTier}
                   decimalPlaces={decimalPlaces}
+                  simpleMode={simpleMode}
                   scrollMaxHeightClass="max-h-[296px]"
                   language={language}
                   onUpdateIngredient={store.updateIngredient}
@@ -418,7 +448,7 @@ export function FormulationWorkbench({
             </Card>
           </motion.div>
 
-          {/* TABEL 2: Daftar Semua Bahan (Katalog Referensi) */}
+          {/* TABEL 2: Daftar Semua Bahan (3-Layer Acrylic Glass Katalog Referensi) */}
           <motion.div variants={WORKBENCH_PANEL_ITEM} className="shrink-0">
             <Card
               interactive={false}
@@ -427,7 +457,7 @@ export function FormulationWorkbench({
                 "Tabel Semua Bahan Pakan",
                 "All Feed Ingredients Table",
               )}
-              className="flex flex-col overflow-hidden bg-[var(--bg-surface)] p-3"
+              className="acrylic-panel selectable-panel flex flex-col overflow-hidden p-3.5"
             >
               <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
                 <div className="flex items-center gap-2">
@@ -514,6 +544,7 @@ export function FormulationWorkbench({
                   showNdf={showNdf}
                   showBetn={showBetn}
                   decimalPlaces={decimalPlaces}
+                  simpleMode={simpleMode}
                   searchQuery={catalogSearch}
                   onToggleActive={handleToggleCatalogActive}
                   onOpenDetail={handleOpenDetail}
@@ -533,12 +564,12 @@ export function FormulationWorkbench({
           </motion.section>
         </div>
 
-        {/* Panel Sekunder Kanan Collapsible (lebar 328px) */}
+        {/* Panel Sekunder Kanan Collapsible (lebar 352px) */}
         {inspectorOpen && (
           <motion.section
             variants={WORKBENCH_PANEL_ITEM}
             aria-label={pickLang(language, "Panel Target Nutrien", "Nutrient Targets Panel")}
-            className="min-h-0 w-[328px]"
+            className="min-h-0 w-[352px]"
           >
             {targetPanel}
           </motion.section>
@@ -548,7 +579,7 @@ export function FormulationWorkbench({
       {/* Mobile & Tablet Stepper Content (< 1024px): menyatu dengan scroll utama halaman + padding bawah lega */}
       <div className="p-3 pb-36 md:p-4 md:pb-8 lg:hidden">
         {activeMobileStep === "ingredients" && (
-          <div className="space-y-3">
+          <div className="selectable-panel space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-[var(--text-primary)]">
@@ -591,6 +622,7 @@ export function FormulationWorkbench({
                   tableViewTier={tableViewTier}
                   onChangeTableViewTier={store.setTableViewTier}
                   decimalPlaces={decimalPlaces}
+                  simpleMode={simpleMode}
                   language={language}
                   onUpdateIngredient={store.updateIngredient}
                   onResetPriceOverride={store.resetPriceOverride}
@@ -602,6 +634,7 @@ export function FormulationWorkbench({
               <IngredientMobileCards
                 ingredients={usedIngredients}
                 decimalPlaces={decimalPlaces}
+                simpleMode={simpleMode}
                 language={language}
                 onUpdateIngredient={store.updateIngredient}
                 onResetPriceOverride={store.resetPriceOverride}

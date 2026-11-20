@@ -43,7 +43,7 @@ export function ConflictDiagnosticsBanner({
               <p className="font-bold text-[var(--status-danger)]">
                 {pickLang(
                   language,
-                  "Formula Tidak Ditemukan (Infeasible) — Kendala Konflik Terdeteksi",
+                  "Formula Tidak Ditemukan (Target Terlalu Ketat) — Kendala Konflik Terdeteksi",
                   "Infeasible Formulation — Conflicting Constraints Detected",
                 )}
               </p>

@@ -317,6 +317,8 @@ export type ThemePaletteId =
 export type ThemeModeSetting = "light" | "dark" | "system";
 export type ResolvedThemeMode = "light" | "dark";
 export type TableViewTier = "basic" | "standard" | "advanced";
+export type RenderingEngineMode = "ultra" | "balanced" | "crisp";
+export type MotionEngineMode = "gpu_flip" | "css_native";
 
 export interface UserPreferences {
   readonly language: AppLanguage;
@@ -324,6 +326,16 @@ export interface UserPreferences {
   readonly themePalette?: ThemePaletteId;
   readonly themeModeSetting?: ThemeModeSetting;
   readonly amoledPureBlack?: boolean;
+  /** Mode UI Enhancer (Glassmorphism & Volumetric Glow) aktif di semua 7 palet warna. */
+  readonly uiEnhancer?: boolean;
+  /** Profil engine grafis: ultra (20px blur + glow), balanced (12px), atau crisp (low-GPU). */
+  readonly renderingEngine?: RenderingEngineMode;
+  /** Engine animasi & tata letak anti-hardcut 120 FPS: gpu_flip atau css_native. */
+  readonly motionEngine?: MotionEngineMode;
+  /** Intensitas blur kaca akrilik (0–32 px). */
+  readonly glassBlurPx?: number;
+  /** Intensitas pendaran glow volumetrik (0–150%). */
+  readonly glowIntensityPct?: number;
   readonly defaultBasis: Basis;
   readonly defaultBatchKg: number;
   readonly zeroInclusionDefaultPct: number;

@@ -15,12 +15,12 @@ const HIGHLIGHT_CLASS: Record<CardHighlight, string> = {
   amber: "glass-card-amber",
 };
 
-/** Permukaan Tactile Neumorphism terkalibrasi luminansi dengan border semantik halus. */
+/** Permukaan 3-layer Acrylic Glass dengan specular rim light & ambient colored shadow. */
 export function Card({ interactive = true, highlight = "none", className, ...rest }: CardProps) {
   return (
     <div
       className={cn(
-        "glass-card rounded-xl",
+        "glass-card rounded-2xl",
         interactive && "glass-card-interactive",
         HIGHLIGHT_CLASS[highlight],
         className,

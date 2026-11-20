@@ -4,16 +4,28 @@ import {
   Cpu,
   Database,
   Download,
+  ExternalLink,
+  Gauge,
+  RefreshCw,
   RotateCcw,
   SlidersHorizontal,
   Smartphone,
+  Sparkles,
   Trash2,
+  Zap,
 } from "lucide-react";
 import type { PwaStatus } from "../../hooks/use-pwa-status";
 import { pickLang } from "../../i18n";
 import type { StorageStats } from "../../storage";
 import { useOptionalThemeContext } from "../../theme";
-import type { Basis, FormulationConfig, TableViewTier, UserPreferences } from "../../types";
+import type {
+  Basis,
+  FormulationConfig,
+  MotionEngineMode,
+  RenderingEngineMode,
+  TableViewTier,
+  UserPreferences,
+} from "../../types";
 import { cn } from "../../utils/cn";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -23,7 +35,11 @@ import { Input } from "../ui/Input";
 import { SegmentedTabs } from "../ui/SegmentedTabs";
 import { Switch } from "../ui/Switch";
 import { ThemedSelect } from "../ui/ThemedSelect";
+import { TrakteerSupportButton } from "../ui/TrakteerSupportButton";
 import { ThemeSwitcherMenu, type ThemeChangePayload } from "./ThemeSwitcherMenu";
+
+export const GITHUB_REPO_URL = "https://github.com/Widyatama-Pro/OpenFormul";
+export const GITHUB_RELEASES_URL = "https://github.com/Widyatama-Pro/OpenFormul/releases";
 
 export interface SettingsPageProps {
   readonly preferences: UserPreferences;
@@ -66,6 +82,7 @@ export const SettingsPage = memo(function SettingsPage({
   onOpenPrecisionDialog,
   storageStats,
   storageWarnings = [],
+  pwaStatus,
   onExportAllBackup,
   onResetSampleData,
   onClearAllUserData,
@@ -83,6 +100,7 @@ export const SettingsPage = memo(function SettingsPage({
   const isNdfEnabled = config ? config.showNdf === true || config.enableAdvanceNutrients : false;
   const isBetnEnabled = config?.showBetn === true;
   const decimalPlaces: 0 | 1 | 2 = preferences.decimalPlaces ?? 0;
+  const isNutrientAbbreviated: boolean = preferences.simpleMode ?? true;
   const amoledEnabled = themeCtx?.amoledPureBlack ?? Boolean(preferences.amoledPureBlack);
   const antiNolEnabled = config ? config.globalZeroInclusion.enforceNonZero : true;
   const antiNolMinPct =
@@ -100,7 +118,7 @@ export const SettingsPage = memo(function SettingsPage({
       return;
     }
     const advance = tier === "advanced";
-    onUpdate({ tableViewTier: tier, simpleMode: !advance });
+    onUpdate({ tableViewTier: tier });
     onToggleAdvance?.(advance);
   };
 
@@ -123,7 +141,38 @@ export const SettingsPage = memo(function SettingsPage({
       themePalette: next.paletteId,
       themeModeSetting: next.modeSetting,
       amoledPureBlack: next.amoledPureBlack,
+      ...(next.uiEnhancer !== undefined ? { uiEnhancer: next.uiEnhancer } : {}),
     });
+  };
+
+  const activeEngineMode: RenderingEngineMode =
+    themeCtx?.renderingEngine ?? preferences.renderingEngine ?? "ultra";
+  const activeMotionEngine: MotionEngineMode =
+    themeCtx?.motionEngine ?? preferences.motionEngine ?? "gpu_flip";
+  const glassBlurPx = themeCtx?.glassBlurPx ?? preferences.glassBlurPx ?? 20;
+  const glowIntensityPct = themeCtx?.glowIntensityPct ?? preferences.glowIntensityPct ?? 100;
+
+  const handleSelectEngineMode = (mode: RenderingEngineMode) => {
+    themeCtx?.setRenderingEngine(mode);
+    onUpdate({
+      renderingEngine: mode,
+      ...(mode === "ultra" ? { glassBlurPx: 20 } : mode === "balanced" ? { glassBlurPx: 12 } : {}),
+    });
+  };
+
+  const handleSelectMotionEngine = (mode: MotionEngineMode) => {
+    themeCtx?.setMotionEngine(mode);
+    onUpdate({ motionEngine: mode });
+  };
+
+  const handleChangeBlurPx = (px: number) => {
+    themeCtx?.setGlassBlurPx(px);
+    onUpdate({ glassBlurPx: px });
+  };
+
+  const handleChangeGlowPct = (pct: number) => {
+    themeCtx?.setGlowIntensityPct(pct);
+    onUpdate({ glowIntensityPct: pct });
   };
 
   const handleResetSamples = async () => {
@@ -279,6 +328,41 @@ export const SettingsPage = memo(function SettingsPage({
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
+              <div className="max-w-md">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">
+                    {pickLang(
+                      lang,
+                      "Singkatan Nama Nutrien (PK, EM, LK, SK)",
+                      "Abbreviate Nutrient Names (CP, ME, EE, CF)",
+                    )}
+                  </p>
+                  <Badge tone={isNutrientAbbreviated ? "emerald" : "sky"}>
+                    {isNutrientAbbreviated
+                      ? pickLang(lang, "Disingkat (Default)", "Abbreviated (Default)")
+                      : pickLang(lang, "Nama Lengkap", "Full Names")}
+                  </Badge>
+                </div>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                  {pickLang(
+                    lang,
+                    "Aktif (Default): menampilkan singkatan ringkas (PK, EM, LK, SK). Matikan untuk menampilkan nama lengkap (Protein Kasar, Energi Metabolis, Lemak Kasar, Serat Kasar).",
+                    "On (Default): displays compact abbreviations (CP, ME, EE, CF). Turn off to show full names (Crude Protein, Metabolizable Energy, Ether Extract, Crude Fiber).",
+                  )}
+                </p>
+              </div>
+              <Switch
+                checked={isNutrientAbbreviated}
+                onCheckedChange={(checked) => onUpdate({ simpleMode: checked })}
+                label={pickLang(
+                  lang,
+                  "Gunakan Singkatan Nama Nutrien (PK, EM, LK, SK)",
+                  "Use Abbreviated Nutrient Names (CP, ME, EE, CF)",
+                )}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
               <div>
                 <p className="text-sm font-semibold text-[var(--text-primary)]">
                   {pickLang(lang, "Basis Perhitungan Default", "Default Calculation Basis")}
@@ -340,7 +424,7 @@ export const SettingsPage = memo(function SettingsPage({
             </div>
           </Card>
 
-          {/* Kartu 2: Tema & Palet Warna (Kompak) */}
+          {/* Kartu 2: Tema & Palet Warna (UI Enhancer 7 Palet) */}
           <Card interactive={false} className="overflow-hidden">
             <ThemeSwitcherMenu
               language={lang}
@@ -349,6 +433,255 @@ export const SettingsPage = memo(function SettingsPage({
               onThemeChange={handleThemeChange}
             />
           </Card>
+
+          {/* Kartu 3: Rendering & Motion Engine (120 FPS Zero-Hardcut) */}
+          <Card interactive={false} className="space-y-4 p-4 sm:p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <GlossySquircleIcon tone="mint" size="sm" icon={<Gauge className="h-4 w-4" />} />
+                <div>
+                  <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                    {pickLang(lang, "Rendering & Motion Engine", "Rendering & Motion Engine")}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                    {pickLang(
+                      lang,
+                      "Pilih profil grafis kaca akrilik, mesin animasi 120 FPS anti-hardcut, serta intensitas blur dan pendaran cahaya.",
+                      "Select acrylic glass graphics profile, 120 FPS anti-hardcut motion engine, and blur/glow intensity.",
+                    )}
+                  </p>
+                </div>
+              </div>
+              <Badge tone="emerald">
+                <Zap className="h-3 w-3" />
+                <span>{activeMotionEngine === "gpu_flip" ? "120 FPS GPU FLIP" : "CSS Native"}</span>
+              </Badge>
+            </div>
+
+            {/* 3 Profil Rendering Engine */}
+            <div
+              role="radiogroup"
+              aria-label={pickLang(lang, "Profil Rendering Engine", "Rendering Engine Profile")}
+              className="grid grid-cols-1 gap-2.5 sm:grid-cols-3"
+            >
+              {(
+                [
+                  {
+                    id: "ultra",
+                    titleId: "Mode 1 · Ultra Glass",
+                    titleEn: "Mode 1 · Ultra Glass",
+                    descId:
+                      "Blur 20px, saturasi 165%, volumetric glow penuh & 120 FPS FLIP Physics (Default).",
+                    descEn:
+                      "20px blur, 165% saturation, full volumetric glow & 120 FPS FLIP Physics (Default).",
+                  },
+                  {
+                    id: "balanced",
+                    titleId: "Mode 2 · Balanced Acrylic",
+                    titleEn: "Mode 2 · Balanced Acrylic",
+                    descId: "Blur menengah 12px dengan specular rim light & transisi hemat daya.",
+                    descEn: "Medium 12px blur with specular rim light & battery-friendly motion.",
+                  },
+                  {
+                    id: "crisp",
+                    titleId: "Mode 3 · Crisp Native",
+                    titleEn: "Mode 3 · Crisp Native",
+                    descId:
+                      "Transparansi ringan tanpa shader blur berat untuk perangkat spesifikasi rendah.",
+                    descEn:
+                      "Lightweight crisp translucency without heavy shader blur for low-GPU devices.",
+                  },
+                ] as const
+              ).map((profile) => {
+                const selected = activeEngineMode === profile.id;
+                return (
+                  <button
+                    key={profile.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    data-engine-control={profile.id}
+                    onClick={() => handleSelectEngineMode(profile.id)}
+                    className={cn(
+                      "flex cursor-pointer flex-col rounded-xl border p-3 text-left transition-[transform,border-color,background-color,box-shadow] duration-150 hover:-translate-y-0.5 active:scale-[0.98] motion-reduce:transform-none",
+                      selected
+                        ? "border-[var(--status-success)] bg-[var(--status-success-soft)] shadow-[0_6px_18px_-6px_var(--glow-success-pill,rgba(16,185,129,0.28))]"
+                        : "acrylic-subcard",
+                    )}
+                  >
+                    <span className="text-xs font-bold text-[var(--text-primary)]">
+                      {pickLang(lang, profile.titleId, profile.titleEn)}
+                    </span>
+                    <span className="mt-1 text-[11px] leading-snug text-[var(--text-secondary)]">
+                      {pickLang(lang, profile.descId, profile.descEn)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Animation & Layout Engine */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-subtle)] pt-3">
+              <div>
+                <p className="text-xs font-bold text-[var(--text-primary)]">
+                  {pickLang(lang, "Animation & Layout Engine", "Animation & Layout Engine")}
+                </p>
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  {pickLang(
+                    lang,
+                    "Mencegah kedipan & lompatan tata letak saat berganti bahasa, tab, atau panel target.",
+                    "Eliminates flicker and layout jumps when switching languages, tabs, or panels.",
+                  )}
+                </p>
+              </div>
+              <div
+                role="radiogroup"
+                aria-label={pickLang(lang, "Pilih Animation Engine", "Select Animation Engine")}
+                className="neu-pressed inline-flex rounded-xl p-1"
+              >
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={activeMotionEngine === "gpu_flip"}
+                  onClick={() => handleSelectMotionEngine("gpu_flip")}
+                  className={cn(
+                    "cursor-pointer rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                    activeMotionEngine === "gpu_flip"
+                      ? "bg-[var(--color-primary)] text-[var(--text-on-primary)] shadow-xs"
+                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                  )}
+                >
+                  {pickLang(lang, "GPU FLIP 120 FPS", "GPU FLIP 120 FPS")}
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={activeMotionEngine === "css_native"}
+                  onClick={() => handleSelectMotionEngine("css_native")}
+                  className={cn(
+                    "cursor-pointer rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                    activeMotionEngine === "css_native"
+                      ? "bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-xs"
+                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                  )}
+                >
+                  {pickLang(lang, "CSS Native / Reduced", "CSS Native / Reduced")}
+                </button>
+              </div>
+            </div>
+
+            {/* Sliders Blur & Glow */}
+            <div className="grid grid-cols-1 gap-4 border-t border-[var(--border-subtle)] pt-3 sm:grid-cols-2">
+              <label className="block space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-[var(--text-primary)]">
+                    {pickLang(lang, "Intensitas Blur Kaca", "Glass Blur Intensity")}
+                  </span>
+                  <span className="font-bold tabular-nums text-[var(--status-success)]">
+                    {glassBlurPx}px
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={32}
+                  step={1}
+                  value={glassBlurPx}
+                  aria-label={pickLang(lang, "Intensitas Blur Kaca", "Glass Blur Intensity")}
+                  onChange={(e) => handleChangeBlurPx(Number(e.target.value))}
+                  className="w-full cursor-pointer accent-[var(--color-primary)]"
+                />
+              </label>
+
+              <label className="block space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1 font-semibold text-[var(--text-primary)]">
+                    <Sparkles className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+                    <span>{pickLang(lang, "Intensitas Glow", "Volumetric Glow")}</span>
+                  </span>
+                  <span className="font-bold tabular-nums text-[var(--status-success)]">
+                    {glowIntensityPct}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={150}
+                  step={5}
+                  value={glowIntensityPct}
+                  aria-label={pickLang(lang, "Intensitas Glow", "Volumetric Glow")}
+                  onChange={(e) => handleChangeGlowPct(Number(e.target.value))}
+                  className="w-full cursor-pointer accent-[var(--color-primary)]"
+                />
+              </label>
+            </div>
+          </Card>
+
+          {/* Kartu 4: Pembaruan Aplikasi & Repositori GitHub */}
+          <Card interactive={false} className="p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <GlossySquircleIcon tone="sky" size="sm" icon={<RefreshCw className="h-4 w-4" />} />
+                <div className="max-w-md">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                      {pickLang(
+                        lang,
+                        "Cek Pembaruan Aplikasi & Repositori",
+                        "Check App Updates & Repository",
+                      )}
+                    </h2>
+                    <Badge tone="neutral">GitHub Releases</Badge>
+                  </div>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                    {pickLang(
+                      lang,
+                      "Periksa apakah tersedia versi pembaruan (update) terbaru, catatan rilis, dan kode sumber resmi OpenFormul di repositori GitHub.",
+                      "Check for the latest application updates, release notes, and official OpenFormul source code on GitHub.",
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {pwaStatus?.needRefresh && pwaStatus.applyUpdate && (
+                  <Button variant="primary" size="sm" onClick={pwaStatus.applyUpdate}>
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    <span>{pickLang(lang, "Pasang Update Sekarang", "Apply Update Now")}</span>
+                  </Button>
+                )}
+                <a
+                  href={GITHUB_RELEASES_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={pickLang(
+                    lang,
+                    "Cek update aplikasi terbaru di repositori GitHub",
+                    "Check latest app updates on GitHub repository",
+                  )}
+                  className="neu-cta-btn inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-[transform,filter] duration-150 hover:brightness-105 active:scale-[0.97] motion-reduce:transform-none"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  <span>
+                    {pickLang(lang, "Cek Update di Repo GitHub", "Check Updates on GitHub")}
+                  </span>
+                  <ExternalLink className="h-3 w-3 opacity-85" />
+                </a>
+                <a
+                  href={GITHUB_REPO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="neu-pill-btn inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-transform duration-150 active:scale-[0.97] motion-reduce:transform-none"
+                >
+                  <span>{pickLang(lang, "Buka Repo", "Open Repo")}</span>
+                  <ExternalLink className="h-3 w-3 text-[var(--text-muted)]" />
+                </a>
+              </div>
+            </div>
+          </Card>
+
+          {/* Kartu 5: Dukungan Kreator via Trakteer & Tentang Aplikasi */}
+          <TrakteerSupportButton variant="settings" language={lang} />
         </div>
       ) : (
         <div className="space-y-5">

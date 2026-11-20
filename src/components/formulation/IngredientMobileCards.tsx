@@ -18,6 +18,7 @@ import { NumericCellInput } from "./NumericCellInput";
 export interface IngredientMobileCardsProps {
   readonly ingredients: readonly Ingredient[];
   readonly decimalPlaces?: 0 | 1 | 2;
+  readonly simpleMode?: boolean;
   readonly language: AppLanguage;
   readonly onUpdateIngredient: (id: string, patch: Partial<Ingredient>) => void;
   readonly onResetPriceOverride: (id: string) => void;
@@ -33,11 +34,19 @@ export interface IngredientMobileCardsProps {
 export const IngredientMobileCards = memo(function IngredientMobileCards({
   ingredients,
   decimalPlaces = 0,
+  simpleMode = true,
   language,
   onUpdateIngredient,
   onResetPriceOverride,
   onOpenDetail,
 }: IngredientMobileCardsProps) {
+  const cpLabel = simpleMode
+    ? pickLang(language, "PK", "CP")
+    : pickLang(language, "Protein Kasar", "Crude Protein");
+  const mePrefix = simpleMode
+    ? pickLang(language, "EM", "ME")
+    : pickLang(language, "Energi Metabolis", "Metabolizable Energy");
+
   return (
     <div className="space-y-3">
       {ingredients.map((ing) => {
@@ -51,7 +60,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
         const feedClass = resolveFeedClass(ing);
         const meLabel =
           ing.nutrients.me_poultry !== null && ing.nutrients.me_poultry !== undefined
-            ? `EM ${formatNumberLocale(ing.nutrients.me_poultry, 0)}`
+            ? `${mePrefix} ${formatNumberLocale(ing.nutrients.me_poultry, 0)}`
             : me !== null && me !== undefined
               ? `TDN ${formatNumberLocale(me, resolveDisplayDigits("%", "tdn", decimalPlaces, me))}%`
               : pickLang(language, "Energi N/A", "Energy N/A");
@@ -188,7 +197,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
             {/* Baris 3: Ringkasan metadata nutrisi 12px kontras tinggi */}
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border-subtle)] pt-2.5 text-xs tabular-nums text-[var(--text-secondary)]">
               <span>
-                {pickLang(language, "PK", "CP")}:{" "}
+                {cpLabel}:{" "}
                 <strong className="font-bold text-[var(--text-primary)]">
                   {cp !== null && cp !== undefined
                     ? `${formatNumberLocale(cp, resolveDisplayDigits("%", "cp", decimalPlaces, cp))}%`

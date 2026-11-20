@@ -1,13 +1,20 @@
-import { memo, useEffect, useRef, useState } from "react";
-import { Activity } from "lucide-react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { Activity, CheckCircle2, Target } from "lucide-react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
-import { getFormulationStatusLabel, getNutrientDisplayName, pickLang } from "../../i18n";
+import {
+  getFormulationStatusLabel,
+  getNutrientDisplayName,
+  getNutrientFullName,
+  pickLang,
+} from "../../i18n";
+import { isUpperBoundOnlyNutrient, resolveSingleTargetValue } from "../../solver";
 import type {
   AppLanguage,
   FormulationConfig,
   FormulationResult,
   Ingredient,
   Nutrient,
+  NutrientResult,
   Requirement,
 } from "../../types";
 import { cn } from "../../utils/cn";
@@ -16,6 +23,8 @@ import {
   formatNumberLocale,
   resolveDisplayDigits,
 } from "../../utils/locale-number";
+import { isPoultrySpecies, isRuminantSpecies } from "../../utils/species";
+import { NutrientStatusBadge } from "../formulation/NutrientStatusBadge";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { SegmentedTabs } from "../ui/SegmentedTabs";
@@ -25,6 +34,9 @@ import { ConflictDiagnosticsBanner } from "./ConflictDiagnosticsBanner";
 import { FormulationCharts } from "./FormulationCharts";
 import { ShadowPriceTab } from "./ShadowPriceTab";
 import { WhatIfManualLock } from "./WhatIfManualLock";
+
+const NDF_IDS = new Set(["ndf", "adf"]);
+const BETN_IDS = new Set(["betn"]);
 
 export type ResultSubTab = "batch" | "charts" | "dual" | "whatif";
 export type ResultSpotlightTarget = "dual" | "whatif" | "rumen" | null;
@@ -97,7 +109,50 @@ export const ResultsPanel = memo(function ResultsPanel({
     return () => cancelAnimationFrame(id);
   }, [spotlightTarget, subTab]);
 
-  const nutrientsCatalog = allNutrients ?? [...MOCK_NUTRIENTS, ...(config.customNutrients ?? [])];
+  const nutrientsCatalog = useMemo(
+    () => allNutrients ?? [...MOCK_NUTRIENTS, ...(config.customNutrients ?? [])],
+    [allNutrients, config.customNutrients],
+  );
+
+  const isPoultry = isPoultrySpecies(requirement?.species);
+  const isRuminant = isRuminantSpecies(requirement?.species);
+  const showNdf = config.showNdf === true;
+  const showBetn = config.showBetn === true;
+  const enableAdvance = config.enableAdvanceNutrients;
+  const enableDigestible = config.enableDigestibleBasis;
+  const singleMode = (config.targetInputMode ?? "range") === "single";
+
+  const visibleSummaryNutrients = useMemo(() => {
+    return nutrientsCatalog.filter((nut) => {
+      if (nut.isCustom) return true;
+      if (isPoultry && nut.id === "tdn") return false;
+      if (isRuminant && nut.id === "me_poultry") return false;
+      const isBasic = (nut.tier ?? "basic") === "basic";
+      if (isBasic) return true;
+      if (showBetn && BETN_IDS.has(nut.id)) return true;
+      if (showNdf && NDF_IDS.has(nut.id)) return true;
+      if (!enableAdvance) return false;
+      if (nut.isDigestibleVariant && !enableDigestible) return false;
+      return true;
+    });
+  }, [nutrientsCatalog, isPoultry, isRuminant, showBetn, showNdf, enableAdvance, enableDigestible]);
+
+  const nutrientResultMap = useMemo(
+    () => new Map<string, NutrientResult>(result.nutrients.map((n) => [n.nutrientId, n])),
+    [result.nutrients],
+  );
+
+  const { metTargetCount, totalEvaluatedTargetCount } = useMemo(() => {
+    const constrained = visibleSummaryNutrients.filter(
+      (n) => (nutrientResultMap.get(n.id)?.status ?? "unconstrained") !== "unconstrained",
+    );
+    const pool = constrained.length > 0 ? constrained : visibleSummaryNutrients;
+    const met = pool.filter((n) => nutrientResultMap.get(n.id)?.status === "met").length;
+    return {
+      metTargetCount: met,
+      totalEvaluatedTargetCount: pool.length,
+    };
+  }, [visibleSummaryNutrients, nutrientResultMap]);
 
   const statusBadge =
     result.status === "optimal" ? (
@@ -116,7 +171,7 @@ export const ResultsPanel = memo(function ResultsPanel({
     <Card
       interactive={false}
       highlight={result.status === "infeasible" ? "coral" : "none"}
-      className="flex flex-col lg:h-full lg:overflow-hidden"
+      className="acrylic-panel selectable-panel flex flex-col lg:h-full lg:overflow-hidden"
     >
       {!hideKpiStrip && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-subtle)] px-4 py-2.5">
@@ -207,7 +262,7 @@ export const ResultsPanel = memo(function ResultsPanel({
         </div>
       )}
 
-      <div className="custom-scrollbar space-y-3 p-3 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
+      <div className="custom-scrollbar space-y-3 p-3 lg:flex-1 lg:overflow-y-auto">
         <ConflictDiagnosticsBanner
           status={result.status}
           conflicts={result.conflicts ?? []}
@@ -230,6 +285,181 @@ export const ResultsPanel = memo(function ResultsPanel({
                   decimalPlaces={decimalPlaces}
                   language={language}
                 />
+
+                {/* Tabel Ringkasan Capaian Nutrien Hasil Formulasi (Target vs Aktual & Kedekatan) */}
+                {visibleSummaryNutrients.length > 0 && (
+                  <div
+                    aria-label={pickLang(
+                      language,
+                      "Ringkasan Capaian Nutrien Hasil Formulasi",
+                      "Formulation Nutrient Achievement Summary",
+                    )}
+                    className="overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg-sunken)] px-3 py-2">
+                      <div className="flex items-center gap-1.5">
+                        <Target className="h-3.5 w-3.5 text-[var(--status-success)]" />
+                        <h3 className="text-xs font-bold text-[var(--text-primary)]">
+                          {pickLang(
+                            language,
+                            "Capaian Nutrien Hasil Formulasi (Target vs Aktual)",
+                            "Formulated Nutrient Achievement (Target vs Actual)",
+                          )}
+                        </h3>
+                      </div>
+                      <Badge
+                        tone={
+                          metTargetCount === totalEvaluatedTargetCount &&
+                          totalEvaluatedTargetCount > 0
+                            ? "emerald"
+                            : "amber"
+                        }
+                      >
+                        <CheckCircle2 className="h-3 w-3" />
+                        <span>
+                          {metTargetCount}/{totalEvaluatedTargetCount}{" "}
+                          {pickLang(language, "Terpenuhi", "Met")}
+                        </span>
+                      </Badge>
+                    </div>
+
+                    <div className="custom-scrollbar overflow-x-auto">
+                      <table className="w-full border-collapse text-xs">
+                        <thead className="bg-[var(--bg-sunken)]/65 text-[11px] font-bold tracking-wide text-[var(--text-secondary)]">
+                          <tr>
+                            <th className="px-3 py-1.5 text-left">
+                              {pickLang(language, "Nutrien", "Nutrient")}
+                            </th>
+                            <th className="px-2.5 py-1.5 text-right">
+                              {pickLang(language, "Target Dipasang", "Target Set")}
+                            </th>
+                            <th className="px-2.5 py-1.5 text-right">
+                              {pickLang(language, "Hasil Aktual", "Actual Result")}
+                            </th>
+                            <th className="px-2.5 py-1.5 text-right">
+                              {pickLang(language, "Selisih / Kedekatan", "Proximity / Delta")}
+                            </th>
+                            <th className="px-3 py-1.5 text-right">
+                              {pickLang(language, "Status", "Status")}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--border-subtle)]">
+                          {visibleSummaryNutrients.map((nut) => {
+                            const res = nutrientResultMap.get(nut.id);
+                            const constraint = requirement?.constraints.find(
+                              (c) => c.nutrientId === nut.id,
+                            );
+                            const singleTarget = constraint
+                              ? resolveSingleTargetValue(constraint)
+                              : null;
+                            const isUpperOnly = isUpperBoundOnlyNutrient(nut.id, constraint);
+                            const minVal = res?.min ?? constraint?.min;
+                            const maxVal = res?.max ?? constraint?.max;
+                            const digits = resolveDisplayDigits(
+                              nut.unit,
+                              nut.id,
+                              decimalPlaces,
+                              res?.value ?? singleTarget ?? minVal ?? maxVal,
+                            );
+                            const displayName = getNutrientDisplayName(nut, language, simpleMode);
+                            const fullName = getNutrientFullName(nut, language);
+
+                            const targetText = singleMode
+                              ? singleTarget !== null
+                                ? isUpperOnly
+                                  ? `≤ ${formatNumberLocale(singleTarget, digits)} ${nut.unit}`
+                                  : `${formatNumberLocale(singleTarget, digits)} ${nut.unit}`
+                                : pickLang(language, "Bebas", "Free")
+                              : minVal !== undefined && maxVal !== undefined
+                                ? `${formatNumberLocale(minVal, digits)}–${formatNumberLocale(maxVal, digits)} ${nut.unit}`
+                                : minVal !== undefined
+                                  ? `≥ ${formatNumberLocale(minVal, digits)} ${nut.unit}`
+                                  : maxVal !== undefined
+                                    ? `≤ ${formatNumberLocale(maxVal, digits)} ${nut.unit}`
+                                    : pickLang(language, "Bebas", "Free");
+
+                            const actualVal = res?.value;
+                            const refTarget = singleMode
+                              ? singleTarget
+                              : minVal !== undefined && maxVal !== undefined
+                                ? actualVal !== undefined
+                                  ? actualVal < minVal
+                                    ? minVal
+                                    : actualVal > maxVal
+                                      ? maxVal
+                                      : actualVal
+                                  : (minVal + maxVal) / 2
+                                : (minVal ?? maxVal ?? null);
+
+                            const deltaVal =
+                              actualVal !== undefined &&
+                              refTarget !== null &&
+                              refTarget !== undefined
+                                ? actualVal - refTarget
+                                : null;
+
+                            const deltaText =
+                              deltaVal === null
+                                ? "—"
+                                : Math.abs(deltaVal) < 1e-4
+                                  ? pickLang(language, "Tepat Target", "Exact Fit")
+                                  : `${deltaVal > 0 ? "+" : ""}${formatNumberLocale(deltaVal, digits)} ${nut.unit}`;
+
+                            const isAlert =
+                              res?.status === "below_min" || res?.status === "above_max";
+
+                            return (
+                              <tr
+                                key={nut.id}
+                                className={cn(
+                                  "transition-colors hover:bg-[var(--bg-surface)]",
+                                  isAlert && "bg-[var(--status-danger-soft)]/50",
+                                )}
+                              >
+                                <td
+                                  title={`${fullName} (${nut.unit})`}
+                                  className="px-3 py-1.5 font-semibold text-[var(--text-primary)]"
+                                >
+                                  <span>{displayName}</span>{" "}
+                                  <span className="text-[10px] font-normal text-[var(--text-muted)]">
+                                    ({nut.unit})
+                                  </span>
+                                </td>
+                                <td className="px-2.5 py-1.5 text-right tabular-nums text-[var(--text-secondary)]">
+                                  {targetText}
+                                </td>
+                                <td className="px-2.5 py-1.5 text-right font-bold tabular-nums text-[var(--text-primary)]">
+                                  {actualVal !== undefined
+                                    ? `${formatNumberLocale(actualVal, digits)} ${nut.unit}`
+                                    : "—"}
+                                </td>
+                                <td
+                                  className={cn(
+                                    "px-2.5 py-1.5 text-right font-semibold tabular-nums",
+                                    isAlert
+                                      ? "text-[var(--status-danger)]"
+                                      : "text-[var(--status-success)]",
+                                  )}
+                                >
+                                  {deltaText}
+                                </td>
+                                <td className="px-3 py-1.5 text-right">
+                                  <NutrientStatusBadge
+                                    status={res?.status ?? "unconstrained"}
+                                    deviation={res?.deviation}
+                                    digits={digits}
+                                    language={language}
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
 
                 {result.rumenEvaluation && (
                   <div

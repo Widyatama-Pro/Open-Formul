@@ -202,6 +202,7 @@ export function usePrototypeStore(): PrototypeStore {
   const [storageMode, setStorageMode] = useState<"indexeddb" | "memory">("memory");
   const [storageWarnings, setStorageWarnings] = useState<readonly string[]>([]);
   const [sessionDirty, setSessionDirty] = useState(false);
+  const hasExplicitSimpleModeRef = useRef(false);
 
   // Hidrasi asinkron awal dari IndexedDB (graceful fallback bila IDB tidak tersedia)
   useEffect(() => {
@@ -611,7 +612,7 @@ export function usePrototypeStore(): PrototypeStore {
     setConfig((prev) => ({ ...prev, enableAdvanceNutrients }));
     setPreferences((prev) => ({
       ...prev,
-      simpleMode: !enableAdvanceNutrients,
+      ...(hasExplicitSimpleModeRef.current ? {} : { simpleMode: !enableAdvanceNutrients }),
       tableViewTier: enableAdvanceNutrients
         ? "advanced"
         : prev.tableViewTier === "advanced"
@@ -641,7 +642,7 @@ export function usePrototypeStore(): PrototypeStore {
     setPreferences((prev) => ({
       ...prev,
       tableViewTier,
-      simpleMode: !enableAdvance,
+      ...(hasExplicitSimpleModeRef.current ? {} : { simpleMode: !enableAdvance }),
     }));
   }, []);
 
@@ -1000,16 +1001,11 @@ export function usePrototypeStore(): PrototypeStore {
   }, []);
 
   const updatePreferences = useCallback((patch: Partial<UserPreferences>) => {
+    if (patch.simpleMode !== undefined) {
+      hasExplicitSimpleModeRef.current = true;
+    }
     setPreferences((prev) => {
-      const nextTableTier =
-        patch.tableViewTier ??
-        (patch.simpleMode !== undefined
-          ? patch.simpleMode
-            ? prev.tableViewTier === "advanced"
-              ? "basic"
-              : (prev.tableViewTier ?? "basic")
-            : "advanced"
-          : prev.tableViewTier);
+      const nextTableTier = patch.tableViewTier ?? prev.tableViewTier;
       return {
         ...prev,
         ...patch,
@@ -1022,13 +1018,11 @@ export function usePrototypeStore(): PrototypeStore {
         ...prev,
         enableAdvanceNutrients: patch.tableViewTier === "advanced",
       }));
-    } else if (patch.simpleMode !== undefined) {
-      setSessionDirty(true);
-      setConfig((prev) => ({ ...prev, enableAdvanceNutrients: !patch.simpleMode }));
     }
   }, []);
 
   const resetAllSampleData = useCallback(async () => {
+    hasExplicitSimpleModeRef.current = false;
     const snapshot = await resetAllSampleDataDb();
     setIngredients(snapshot.ingredients);
     setRequirements(snapshot.requirements);
@@ -1043,6 +1037,7 @@ export function usePrototypeStore(): PrototypeStore {
   }, []);
 
   const resetAllMock = useCallback(() => {
+    hasExplicitSimpleModeRef.current = false;
     setIngredients(MOCK_INGREDIENTS);
     setRequirements(MOCK_REQUIREMENTS);
     setActiveReqId(MOCK_REQUIREMENTS[0]!.id);
@@ -1056,6 +1051,7 @@ export function usePrototypeStore(): PrototypeStore {
   }, []);
 
   const clearAllUserData = useCallback(async () => {
+    hasExplicitSimpleModeRef.current = false;
     const snapshot = await clearAllUserDataDb();
     setIngredients(snapshot.ingredients);
     setRequirements(snapshot.requirements);

@@ -131,7 +131,7 @@ export function NumericCellInput({
       }}
       onKeyDown={handleKeyDown}
       className={cn(
-        "min-h-10 w-full min-w-0 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-sunken)] px-2 py-1 text-right text-sm font-medium tabular-nums text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-[border-color,background-color] duration-150 focus-visible:border-[var(--color-primary)] focus-visible:bg-[var(--bg-surface-elevated)] focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[var(--focus-ring)] disabled:opacity-55 md:min-h-7 md:py-0.5 md:text-xs",
+        "min-h-10 w-full min-w-0 rounded-lg border border-transparent bg-[var(--glass-row-bg,var(--bg-sunken))] px-1.5 py-1 text-right text-sm font-medium tabular-nums text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-[border-color,background-color,box-shadow] duration-150 hover:border-[var(--glass-border-tint,var(--border-subtle))] hover:bg-[var(--glass-sticky-bg,var(--bg-surface-elevated))] focus-visible:border-[var(--color-primary)] focus-visible:bg-[var(--bg-surface-elevated)] focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[var(--focus-ring)] disabled:opacity-55 md:min-h-7 md:py-0.5 md:text-xs",
         isError &&
           "border-[var(--status-danger)] bg-[var(--status-danger-soft)] text-[var(--text-primary)] focus-visible:outline-[var(--status-danger)]",
         className,

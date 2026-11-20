@@ -1,11 +1,14 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { Languages, Menu, Moon, RefreshCw, Sun } from "lucide-react";
+import { Languages, Menu, Moon, Palette, RefreshCw, Sun } from "lucide-react";
 import { MotionConfig, motion } from "motion/react";
 import appLogo from "../../assets/logo.jpg";
 import type { AppRoute } from "../../hooks/use-prototype-store";
+import { pickLang } from "../../i18n";
+import { useOptionalThemeContext } from "../../theme";
 import type { AppLanguage, ThemeMode } from "../../types";
 import { cn } from "../../utils/cn";
+import { AnimatedTextSwap } from "../ui/AnimatedText";
 import { DesktopSidebar } from "./DesktopSidebar";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { MobileNavDrawer } from "./MobileNavDrawer";
@@ -54,11 +57,18 @@ const MAIN_ITEM_VARIANTS = {
   },
 } as const;
 
+function resolveDefaultSidebarExpanded(): boolean {
+  if (typeof import.meta !== "undefined" && import.meta.env?.MODE === "test") {
+    return false;
+  }
+  return true;
+}
+
 /**
  * Kerangka aplikasi OpenFormul:
  * - Intro reveal dari titik logo pojok kiri atas dalam 380ms
- * - Sidebar desktop collapsible + header selaras dengan palet tema aktif
- * - Kanvas utama bersih berfokus pada produktivitas formulasi
+ * - Sidebar desktop berlapis dengan glowing pill aktif, Trakteer, dan kartu pengguna Online
+ * - Kanvas ambient mesh 3-layer acrylic glass dengan kontrol utilitas header atas
  */
 export function AppShell({
   route,
@@ -67,6 +77,7 @@ export function AppShell({
   theme,
   onToggleTheme,
   onToggleLanguage,
+  isOnline = true,
   needRefresh = false,
   onApplyUpdate,
   children,
@@ -74,10 +85,13 @@ export function AppShell({
   const [drawerMode, setDrawerMode] = useState<"closed" | "mobile-secondary" | "tablet-all">(
     "closed",
   );
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(resolveDefaultSidebarExpanded);
+  const themeCtx = useOptionalThemeContext();
+  const uiEnhancer = themeCtx?.uiEnhancer ?? true;
+  const reducedMotionMode = themeCtx?.motionEngine === "css_native" ? "always" : ("user" as const);
 
   return (
-    <MotionConfig reducedMotion="user">
+    <MotionConfig reducedMotion={reducedMotionMode}>
       <div className="relative flex h-dvh w-full overflow-hidden overscroll-none bg-[var(--bg-canvas)] text-[var(--text-primary)]">
         <motion.div
           initial={{ clipPath: "circle(0% at 32px 32px)" }}
@@ -91,6 +105,7 @@ export function AppShell({
             language={language}
             expanded={sidebarExpanded}
             onToggleExpanded={() => setSidebarExpanded((prev) => !prev)}
+            isOnline={isOnline}
           />
 
           <motion.div
@@ -99,39 +114,65 @@ export function AppShell({
             animate="visible"
             className="workspace-canvas relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden overscroll-none"
           >
-            {/* Header atas ringkas (50px di HP agar ruang kerja lega, 60px di desktop) */}
+            {/* Header atas ringkas: menyatu dengan kanvas ambient mesh saat UI Enhancer aktif */}
             <motion.header
               variants={HEADER_ITEM_VARIANTS}
               style={{ paddingTop: "var(--safe-area-top)" }}
-              className="flex min-h-[50px] shrink-0 items-center justify-between gap-3 border-b border-[var(--shell-chrome-border)] bg-[var(--shell-chrome-bg)] px-3.5 text-[var(--shell-chrome-fg)] lg:min-h-[60px] lg:px-5"
+              className={cn(
+                "relative z-20 flex min-h-[50px] shrink-0 items-center justify-between gap-3 px-3.5 lg:min-h-[54px] lg:px-5",
+                uiEnhancer
+                  ? "border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-table-bg,var(--bg-surface))] text-[var(--text-primary)] backdrop-blur-md"
+                  : "border-b border-[var(--shell-chrome-border)] bg-[var(--shell-chrome-bg)] text-[var(--shell-chrome-fg)]",
+              )}
             >
               <div className="flex min-w-0 items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => setDrawerMode("tablet-all")}
                   aria-label={language === "id" ? "Buka menu navigasi" : "Open navigation menu"}
-                  className="hidden min-h-9 min-w-9 cursor-pointer items-center justify-center rounded-lg border border-[var(--shell-chrome-border)] bg-[var(--shell-chrome-btn-bg)] text-[var(--shell-chrome-fg)] transition-colors hover:bg-[var(--shell-chrome-btn-hover)] active:scale-95 md:inline-flex lg:hidden"
+                  className={cn(
+                    "hidden min-h-9 min-w-9 cursor-pointer items-center justify-center rounded-lg border transition-colors active:scale-95 md:inline-flex lg:hidden",
+                    uiEnhancer
+                      ? "acrylic-control-capsule text-[var(--text-primary)]"
+                      : "border-[var(--shell-chrome-border)] bg-[var(--shell-chrome-btn-bg)] text-[var(--shell-chrome-fg)] hover:bg-[var(--shell-chrome-btn-hover)]",
+                  )}
                 >
                   <Menu className="h-4 w-4" />
                 </button>
 
-                {!sidebarExpanded && (
-                  <button
-                    type="button"
-                    onClick={() => onNavigate("formulation")}
-                    className="flex min-w-0 cursor-pointer items-center gap-2 text-left transition-opacity hover:opacity-95 active:scale-[0.99] motion-reduce:transform-none lg:gap-2.5"
-                  >
-                    <img
-                      src={appLogo}
-                      alt="Logo OpenFormul"
-                      className="h-8 w-8 shrink-0 rounded-lg object-cover ring-1 ring-white/25 lg:hidden"
-                    />
-                    <p className="inline-flex items-baseline gap-0 truncate text-[18px] font-extrabold tracking-tight lg:text-[20px]">
-                      <span className="text-[var(--shell-chrome-fg)]">Open</span>
-                      <span className="text-[var(--shell-chrome-accent)]">Formul</span>
-                    </p>
-                  </button>
-                )}
+                {/* Selalu berada di DOM header untuk konsistensi brand & testing; pada desktop expanded tersembunyi visual agar sidebar menjadi jangkar utama */}
+                <button
+                  type="button"
+                  onClick={() => onNavigate("formulation")}
+                  className={cn(
+                    "flex min-w-0 cursor-pointer items-center gap-2 text-left transition-opacity hover:opacity-95 active:scale-[0.99] motion-reduce:transform-none lg:gap-2.5",
+                    sidebarExpanded && "lg:hidden",
+                  )}
+                >
+                  <img
+                    src={appLogo}
+                    alt="Logo OpenFormul"
+                    className="h-8 w-8 shrink-0 rounded-lg object-cover ring-1 ring-white/25 lg:hidden"
+                  />
+                  <p className="inline-flex items-baseline gap-0 truncate text-[18px] font-extrabold tracking-tight lg:text-[20px]">
+                    <span
+                      className={
+                        uiEnhancer ? "text-[var(--text-primary)]" : "text-[var(--shell-chrome-fg)]"
+                      }
+                    >
+                      Open
+                    </span>
+                    <span
+                      className={
+                        uiEnhancer
+                          ? "text-[var(--status-success)]"
+                          : "text-[var(--shell-chrome-accent)]"
+                      }
+                    >
+                      Formul
+                    </span>
+                  </p>
+                </button>
               </div>
 
               <div className="flex items-center gap-2">
@@ -139,51 +180,105 @@ export function AppShell({
                   <button
                     type="button"
                     onClick={onApplyUpdate}
-                    className="hidden cursor-pointer items-center gap-1 rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--status-warning)] transition-colors hover:brightness-95 active:scale-95 sm:inline-flex"
+                    className="hidden cursor-pointer items-center gap-1 rounded-full border border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--status-warning)] transition-colors hover:brightness-95 active:scale-95 sm:inline-flex"
                   >
                     <RefreshCw className="h-3 w-3" />
                     <span>{language === "id" ? "Update Tersedia" : "Update Ready"}</span>
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  onClick={onToggleLanguage}
-                  aria-label={
-                    language === "id" ? "Ganti bahasa ke English" : "Switch language to Indonesian"
-                  }
-                  title={language === "id" ? "Bahasa: Indonesia" : "Language: English"}
-                  className="inline-flex h-8 min-w-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[var(--shell-chrome-border)] bg-[var(--shell-chrome-btn-bg)] px-2.5 text-xs font-bold uppercase text-[var(--shell-chrome-fg)] transition-[transform,background-color] duration-150 hover:bg-[var(--shell-chrome-btn-hover)] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none"
+                <div
+                  data-header-utility-capsule={uiEnhancer ? "acrylic" : "chrome"}
+                  className={cn(
+                    "relative flex items-center gap-1.5 rounded-full p-1",
+                    uiEnhancer
+                      ? "acrylic-control-capsule"
+                      : "border border-[var(--shell-chrome-border)] bg-[var(--shell-chrome-btn-bg)] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]",
+                  )}
                 >
-                  <Languages className="h-3.5 w-3.5 text-[var(--shell-chrome-accent)]" />
-                  <span className="hidden sm:inline">{language}</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={onToggleLanguage}
+                    aria-label={
+                      language === "id"
+                        ? "Ganti bahasa ke English"
+                        : "Switch language to Indonesian"
+                    }
+                    title={language === "id" ? "Bahasa: Indonesia" : "Language: English"}
+                    className={cn(
+                      "elastic-size-box inline-flex h-7 min-w-8 cursor-pointer items-center justify-center gap-1 rounded-full px-2 text-[11px] font-bold uppercase transition-[transform,background-color] duration-150 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none",
+                      uiEnhancer
+                        ? "text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10"
+                        : "text-[var(--shell-chrome-fg)] hover:bg-[var(--shell-chrome-btn-hover)]",
+                    )}
+                  >
+                    <Languages
+                      className={cn(
+                        "h-3.5 w-3.5",
+                        uiEnhancer
+                          ? "text-[var(--status-success)]"
+                          : "text-[var(--shell-chrome-accent)]",
+                      )}
+                    />
+                    <span className="hidden sm:inline">
+                      <AnimatedTextSwap text={language.toUpperCase()} />
+                    </span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={onToggleTheme}
-                  aria-label={
-                    theme === "light"
-                      ? language === "id"
-                        ? "Mode gelap"
-                        : "Dark mode"
-                      : language === "id"
-                        ? "Mode terang"
-                        : "Light mode"
-                  }
-                  title={
-                    theme === "light"
-                      ? language === "id"
-                        ? "Aktifkan mode gelap"
-                        : "Enable dark mode"
-                      : language === "id"
-                        ? "Aktifkan mode terang"
-                        : "Enable light mode"
-                  }
-                  className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-[var(--shell-chrome-border)] bg-[var(--shell-chrome-btn-bg)] text-[var(--shell-chrome-fg)] transition-[transform,background-color] duration-150 hover:bg-[var(--shell-chrome-btn-hover)] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none"
-                >
-                  {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                </button>
+                  <button
+                    type="button"
+                    onClick={onToggleTheme}
+                    aria-label={
+                      theme === "light"
+                        ? language === "id"
+                          ? "Mode gelap"
+                          : "Dark mode"
+                        : language === "id"
+                          ? "Mode terang"
+                          : "Light mode"
+                    }
+                    title={
+                      theme === "light"
+                        ? language === "id"
+                          ? "Aktifkan mode gelap"
+                          : "Enable dark mode"
+                        : language === "id"
+                          ? "Aktifkan mode terang"
+                          : "Enable light mode"
+                    }
+                    className={cn(
+                      "inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition-[transform,background-color] duration-150 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none",
+                      uiEnhancer
+                        ? "text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10"
+                        : "text-[var(--shell-chrome-fg)] hover:bg-[var(--shell-chrome-btn-hover)]",
+                    )}
+                  >
+                    {theme === "light" ? (
+                      <Moon className="h-3.5 w-3.5" />
+                    ) : (
+                      <Sun className="h-3.5 w-3.5 text-[var(--status-warning)]" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onNavigate("settings")}
+                    aria-label={pickLang(language, "Tema & UI Enhancer", "Theme & UI Enhancer")}
+                    title={pickLang(
+                      language,
+                      "Buka Pengaturan Tema & Engine",
+                      "Open Theme & Engine Settings",
+                    )}
+                    className={cn(
+                      "hidden h-7 w-7 cursor-pointer items-center justify-center rounded-full transition-[transform,background-color,color] duration-150 active:scale-95 sm:inline-flex",
+                      uiEnhancer
+                        ? "text-[var(--text-secondary)] hover:bg-black/5 hover:text-[var(--text-primary)] dark:hover:bg-white/10"
+                        : "text-[var(--shell-chrome-fg)]/85 hover:bg-[var(--shell-chrome-btn-hover)] hover:text-[var(--shell-chrome-fg)]",
+                    )}
+                  >
+                    <Palette className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             </motion.header>
 

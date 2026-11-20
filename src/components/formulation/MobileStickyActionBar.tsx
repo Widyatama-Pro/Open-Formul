@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Calculator } from "lucide-react";
-import { pickLang } from "../../i18n";
+import { getFormulationStatusLabel, pickLang } from "../../i18n";
 import type { AppLanguage, FormulationStatus } from "../../types";
 import { formatCurrencyIdr } from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
@@ -28,7 +28,7 @@ export const MobileStickyActionBar = memo(function MobileStickyActionBar({
     ) : status === "near_feasible" ? (
       <Badge tone="amber">{pickLang(language, "Terdekat", "Closest")}</Badge>
     ) : (
-      <Badge tone="rose">Infeasible</Badge>
+      <Badge tone="rose">{getFormulationStatusLabel(language, status)}</Badge>
     );
 
   return (

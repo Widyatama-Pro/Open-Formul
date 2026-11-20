@@ -16,6 +16,7 @@ export interface RequirementLibraryPageProps {
   readonly activeRequirementId: string;
   readonly language: AppLanguage;
   readonly decimalPlaces?: 0 | 1 | 2 | undefined;
+  readonly simpleMode?: boolean | undefined;
   readonly onSelectAndUse: (id: string) => void;
   readonly onCreateProfile: (req: Requirement) => void;
 }
@@ -54,6 +55,7 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
   activeRequirementId,
   language,
   decimalPlaces = 0,
+  simpleMode = true,
   onSelectAndUse,
   onCreateProfile,
 }: RequirementLibraryPageProps) {
@@ -137,10 +139,22 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
         </Button>
       </div>
 
-      {/* Bar Pencarian + Filter Kelompok Kompak */}
+      {/* Bar Pencarian + Filter Kelompok Kompak (mendukung horizontal scroll) */}
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Filter standar ternak">
-          {filterTabs.map((tab) => {
+        <div
+          className="custom-scrollbar flex max-w-full gap-1.5 overflow-x-auto pb-0.5"
+          role="tablist"
+          aria-label="Filter standar ternak"
+          onWheel={(e) => {
+            if (
+              e.currentTarget.scrollWidth > e.currentTarget.clientWidth &&
+              Math.abs(e.deltaY) > Math.abs(e.deltaX)
+            ) {
+              e.currentTarget.scrollLeft += e.deltaY;
+            }
+          }}
+        >
+          {filterTabs.map((tab, idx) => {
             const active = groupFilter === tab.key;
             return (
               <button
@@ -148,9 +162,42 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => setGroupFilter(tab.key)}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    const delta = e.key === "ArrowRight" ? 1 : -1;
+                    const nextIdx = (idx + delta + filterTabs.length) % filterTabs.length;
+                    const nextTab = filterTabs[nextIdx];
+                    if (nextTab) {
+                      setGroupFilter(nextTab.key);
+                      const buttons =
+                        e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                          '[role="tab"]',
+                        );
+                      const nextBtn = buttons?.[nextIdx];
+                      nextBtn?.focus();
+                      if (typeof nextBtn?.scrollIntoView === "function") {
+                        nextBtn.scrollIntoView({
+                          behavior: "smooth",
+                          inline: "center",
+                          block: "nearest",
+                        });
+                      }
+                    }
+                  }
+                }}
+                onClick={(e) => {
+                  setGroupFilter(tab.key);
+                  if (typeof e.currentTarget.scrollIntoView === "function") {
+                    e.currentTarget.scrollIntoView({
+                      behavior: "smooth",
+                      inline: "center",
+                      block: "nearest",
+                    });
+                  }
+                }}
                 className={cn(
-                  "cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
+                  "shrink-0 cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
                   active
                     ? "border-transparent bg-[var(--color-primary)] text-[var(--text-on-primary)] shadow-[var(--shadow-neu-flat)]"
                     : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]",
@@ -184,8 +231,8 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
       </div>
 
       {/* Tabel Ringkas Standar Kebutuhan */}
-      <Card interactive={false} className="overflow-hidden">
-        <div className="custom-scrollbar max-h-[68vh] overflow-auto overscroll-contain">
+      <Card interactive={false} className="selectable-panel overflow-hidden">
+        <div className="custom-scrollbar max-h-[68vh] overflow-auto">
           <table className="w-full border-collapse text-left text-xs">
             <thead className="sticky top-0 z-10 bg-[var(--bg-sunken)] text-[11px] font-bold text-[var(--text-secondary)]">
               <tr>
@@ -199,13 +246,19 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
                   Basis
                 </th>
                 <th className="border-b border-[var(--border-subtle)] px-2.5 py-2.5 text-right">
-                  {pickLang(language, "PK (%)", "CP (%)")}
+                  {simpleMode
+                    ? pickLang(language, "PK (%)", "CP (%)")
+                    : pickLang(language, "Protein Kasar (%)", "Crude Protein (%)")}
                 </th>
                 <th className="border-b border-[var(--border-subtle)] px-2.5 py-2.5 text-right">
-                  {pickLang(language, "EM / TDN", "ME / TDN")}
+                  {simpleMode
+                    ? pickLang(language, "EM / TDN", "ME / TDN")
+                    : pickLang(language, "Energi Metabolis / TDN", "Metabolizable Energy / TDN")}
                 </th>
                 <th className="border-b border-[var(--border-subtle)] px-2.5 py-2.5 text-right">
-                  Ca / P (%)
+                  {simpleMode
+                    ? "Ca / P (%)"
+                    : pickLang(language, "Kalsium / Fosfor (%)", "Calcium / Phosphorus (%)")}
                 </th>
                 <th className="w-28 border-b border-[var(--border-subtle)] px-3 py-2.5 text-right">
                   {pickLang(language, "Aksi", "Action")}

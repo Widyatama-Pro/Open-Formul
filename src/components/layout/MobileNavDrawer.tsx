@@ -13,6 +13,7 @@ import type { AppRoute } from "../../hooks/use-prototype-store";
 import type { AppLanguage, ThemeMode } from "../../types";
 import { cn } from "../../utils/cn";
 import { SheetDialog } from "../ui/SheetDialog";
+import { TrakteerSupportButton } from "../ui/TrakteerSupportButton";
 import { NAV_ITEMS, getNavLabel } from "./navigation-config";
 
 export interface MobileNavDrawerProps {
@@ -128,6 +129,8 @@ export const MobileNavDrawer = memo(function MobileNavDrawer({
             {language === "id" ? "Bahasa: ID" : "Language: EN"}
           </button>
         </div>
+
+        <TrakteerSupportButton variant="sidebar" compact={false} language={language} />
       </div>
     </SheetDialog>
   );

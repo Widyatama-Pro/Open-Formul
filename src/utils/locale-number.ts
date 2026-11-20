@@ -8,6 +8,60 @@ export interface ParseLocaleOptions {
   readonly treatSingleThousandDot?: boolean;
 }
 
+const MICRO_PERCENT_NUTRIENTS = new Set([
+  "ca",
+  "p",
+  "p_total",
+  "p_avail",
+  "avp",
+  "na",
+  "k",
+  "cl",
+  "s",
+  "lys",
+  "met",
+  "metcys",
+  "met_cys",
+  "thr",
+  "trp",
+  "val",
+  "sid_lys",
+  "tannin",
+]);
+
+/** Mengembalikan true untuk nutrien mikro bersatuan % yang sensitif terhadap pembulatan 0 desimal. */
+export function isMicroPercentNutrient(nutrientId: string): boolean {
+  return MICRO_PERCENT_NUTRIENTS.has(nutrientId);
+}
+
+/**
+ * Menentukan jumlah desimal tampilan dengan aturan Smart Micro Floor:
+ * - kcal/kg, mg/kg, mEq/kg, IU/kg selalu 0 desimal.
+ * - Nutrien mikro (%) saat nilai 0 < |val| < 2 minimal 2 desimal agar Ca/P/Asam Amino tidak terpotong ke 0.
+ * - Nilai % lainnya mengikuti pengaturan pengguna `decimalPlaces` (0 | 1 | 2).
+ */
+export function resolveDisplayDigits(
+  unit: string | undefined,
+  nutrientId: string,
+  decimalPlaces: 0 | 1 | 2 = 0,
+  value?: number | null,
+): number {
+  if (unit === "kcal/kg" || unit === "mg/kg" || unit === "mEq/kg" || unit === "IU/kg") {
+    return 0;
+  }
+  if (
+    isMicroPercentNutrient(nutrientId) &&
+    value !== undefined &&
+    value !== null &&
+    Number.isFinite(value) &&
+    Math.abs(value) > 0 &&
+    Math.abs(value) < 2
+  ) {
+    return Math.max(decimalPlaces, 2);
+  }
+  return decimalPlaces;
+}
+
 export function parseLocaleDecimal(raw: string, options: ParseLocaleOptions = {}): number | null {
   const trimmed = raw.trim();
   if (trimmed === "" || trimmed === "-" || trimmed === "." || trimmed === ",") {

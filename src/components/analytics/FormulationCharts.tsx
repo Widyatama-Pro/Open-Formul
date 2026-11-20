@@ -9,7 +9,7 @@ import type {
   Nutrient,
   NutrientResult,
 } from "../../types";
-import { formatNumberLocale } from "../../utils/locale-number";
+import { formatNumberLocale, resolveDisplayDigits } from "../../utils/locale-number";
 import { NeumorphicProgressTrack } from "../ui/NeumorphicProgressTrack";
 
 export interface FormulationChartsProps {
@@ -18,6 +18,7 @@ export interface FormulationChartsProps {
   readonly allNutrients?: readonly Nutrient[];
   readonly ingredients: readonly Ingredient[];
   readonly batchTotalCost: number | null;
+  readonly decimalPlaces?: 0 | 1 | 2;
   readonly simpleMode?: boolean;
   readonly language?: AppLanguage;
 }
@@ -28,6 +29,7 @@ export const FormulationCharts = memo(function FormulationCharts({
   nutrients,
   allNutrients = MOCK_NUTRIENTS,
   ingredients,
+  decimalPlaces = 0,
   simpleMode = true,
   language = "id",
 }: FormulationChartsProps) {
@@ -196,8 +198,16 @@ export const FormulationCharts = memo(function FormulationCharts({
                     {ingName}
                   </span>
                   <span className="shrink-0 text-[10px] tabular-nums text-[var(--text-secondary)]">
-                    {formatNumberLocale(weightPct, 1)}% {pickLang(language, "berat", "wt")} ·{" "}
-                    {formatNumberLocale(costPct, 1)}% {pickLang(language, "biaya", "cost")}
+                    {formatNumberLocale(
+                      weightPct,
+                      resolveDisplayDigits("%", "inclusion", decimalPlaces, weightPct),
+                    )}
+                    % {pickLang(language, "berat", "wt")} ·{" "}
+                    {formatNumberLocale(
+                      costPct,
+                      resolveDisplayDigits("%", "inclusion", decimalPlaces, costPct),
+                    )}
+                    % {pickLang(language, "biaya", "cost")}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 gap-0.5">
@@ -249,7 +259,10 @@ export const FormulationCharts = memo(function FormulationCharts({
                     {nutName}
                   </span>
                   <span className="shrink-0 font-semibold tabular-nums text-[var(--text-secondary)]">
-                    {formatNumberLocale(n.value, meta?.unit === "kcal/kg" ? 0 : 2)}{" "}
+                    {formatNumberLocale(
+                      n.value,
+                      resolveDisplayDigits(meta?.unit, n.nutrientId, decimalPlaces, n.value),
+                    )}{" "}
                     {meta?.unit ?? ""}
                   </span>
                 </div>

@@ -201,6 +201,7 @@ describe("UI Export PDF-Only, 8 Kelas Database, TSV Paste & Settings Formulasi",
         ingredients={starterSubset}
         allIngredients={MOCK_INGREDIENTS}
         showAdvanceColumns={false}
+        tableViewTier="standard"
         language="id"
         onUpdateIngredient={vi.fn()}
         onResetPriceOverride={vi.fn()}
@@ -261,6 +262,9 @@ describe("UI Export PDF-Only, 8 Kelas Database, TSV Paste & Settings Formulasi",
       />,
     );
 
+    expect(screen.getByText(/Desimal Tampilan Angka/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /Pengaturan Lanjutan/i }));
     expect(screen.getByText(/Penyimpanan Lokal Aktif/i)).toBeInTheDocument();
     expect(screen.getByText(/23 bahan/i)).toBeInTheDocument();
 

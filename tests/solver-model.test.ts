@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_CONFIG, MOCK_INGREDIENTS, MOCK_REQUIREMENTS } from "../src/data/mock-state";
+import {
+  DEFAULT_CONFIG,
+  MOCK_INGREDIENTS,
+  MOCK_REQUIREMENTS,
+  evaluateMockFormulation,
+} from "../src/data/mock-state";
 import { buildLpModel } from "../src/solver/buildModel";
+import { solveLpInNode } from "../src/solver/highsNodeRunner";
+import { resolveActiveConstraints } from "../src/solver/modelHelpers";
 import { runPrecheck } from "../src/solver/precheck";
+import { solveFormulationWithRunner } from "../src/solver/solveFormulation";
 import { toLpString } from "../src/solver/toLpString";
 import type { FormulationConfig, Ingredient, Requirement } from "../src/types";
 
@@ -250,5 +258,37 @@ describe("ENG-02 & ENG-05: LP Model Builder (buildLpModel) & CPLEX Formatter (to
     const x0 = elasticModel.variables.find((v) => v.varName === "x0");
     expect(x0?.modelPricePerKg).toBe(5500);
     expect(x0?.objectiveCoeff).toBe(5500);
+  });
+
+  it("mengevaluasi & menampilkan BETN serta NDF/ADF saat config.showBetn dan config.showNdf diaktifkan", async () => {
+    const req = MOCK_REQUIREMENTS[0]!;
+    const cfg: FormulationConfig = {
+      ...DEFAULT_CONFIG,
+      showBetn: true,
+      showNdf: true,
+      enableAdvanceNutrients: false,
+    };
+
+    const solved = await solveFormulationWithRunner(MOCK_INGREDIENTS, req, cfg, solveLpInNode);
+    expect(solved.status).toBe("optimal");
+    expect(solved.nutrients.some((n) => n.nutrientId === "betn")).toBe(true);
+    expect(solved.nutrients.some((n) => n.nutrientId === "ndf")).toBe(true);
+    expect(solved.nutrients.some((n) => n.nutrientId === "adf")).toBe(true);
+
+    const reqWithBetnNdf: Requirement = {
+      ...req,
+      constraints: [
+        ...req.constraints,
+        { nutrientId: "betn", min: 20, max: 60, isAdvance: true, enabled: true },
+        { nutrientId: "ndf", max: 25, isAdvance: true, enabled: true },
+      ],
+    };
+    const activeIds = resolveActiveConstraints(reqWithBetnNdf, cfg).map((c) => c.nutrientId);
+    expect(activeIds).toContain("betn");
+    expect(activeIds).toContain("ndf");
+
+    const mockEval = evaluateMockFormulation(MOCK_INGREDIENTS, req, cfg);
+    expect(mockEval.nutrients.some((n) => n.nutrientId === "betn")).toBe(true);
+    expect(mockEval.nutrients.some((n) => n.nutrientId === "ndf")).toBe(true);
   });
 });

@@ -1,11 +1,13 @@
+import { useMemo } from "react";
 import { OPTIMIZATION_MODE_META } from "../../data/mock-state";
 import type { AppLanguage, OptimizationMode } from "../../types";
-import { Select } from "../ui/Select";
+import { ThemedSelect, type ThemedSelectOption } from "../ui/ThemedSelect";
 
 export interface OptimizationModeSelectorProps {
   readonly value: OptimizationMode;
   readonly onChange: (mode: OptimizationMode) => void;
   readonly language: AppLanguage;
+  readonly className?: string | undefined;
 }
 
 const MODES: readonly OptimizationMode[] = [1, 2, 3, 4, 5];
@@ -14,29 +16,36 @@ export function OptimizationModeSelector({
   value,
   onChange,
   language,
+  className,
 }: OptimizationModeSelectorProps) {
-  const activeMeta = OPTIMIZATION_MODE_META[value];
+  const options = useMemo<readonly ThemedSelectOption[]>(
+    () =>
+      MODES.map((m) => {
+        const meta = OPTIMIZATION_MODE_META[m];
+        return {
+          value: String(m),
+          label: `${m}. ${language === "id" ? meta.name : meta.nameEn}`,
+          subtitle: meta.hint,
+        };
+      }),
+    [language],
+  );
+
   return (
-    <Select
-      aria-label={language === "id" ? "Mode Optimasi" : "Optimization Mode"}
-      title={activeMeta.hint}
+    <ThemedSelect
+      ariaLabel={language === "id" ? "Mode Optimasi" : "Optimization Mode"}
+      modalTitle={language === "id" ? "Pilih Mode Optimasi" : "Select Optimization Mode"}
       value={String(value)}
-      onChange={(e) => {
-        const parsed = Number(e.target.value);
+      options={options}
+      language={language}
+      popoverMinWidthPx={260}
+      onChange={(nextVal) => {
+        const parsed = Number(nextVal);
         if (parsed >= 1 && parsed <= 5) {
           onChange(parsed as OptimizationMode);
         }
       }}
-      className="h-7 min-h-7 w-auto py-0 text-[11px] md:min-w-40"
-    >
-      {MODES.map((m) => {
-        const meta = OPTIMIZATION_MODE_META[m];
-        return (
-          <option key={m} value={m}>
-            {m}. {language === "id" ? meta.name : meta.nameEn}
-          </option>
-        );
-      })}
-    </Select>
+      className={className ?? "h-7 min-h-7 w-full py-0 text-[11px] md:w-auto md:min-w-40"}
+    />
   );
 }

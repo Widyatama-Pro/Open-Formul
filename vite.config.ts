@@ -35,8 +35,8 @@ export default defineConfig(({ mode }) => {
               ],
               manifest: {
                 id: "./",
-                name: "Open Formulasi",
-                short_name: "Open Formulasi",
+                name: "OpenFormul",
+                short_name: "OpenFormul",
                 description:
                   "Aplikasi PWA offline-first lintas platform (Desktop & Mobile) untuk formulasi pakan ternak presisi berbasis Linear Programming (HiGHS WASM).",
                 theme_color: "#F5F4EF",

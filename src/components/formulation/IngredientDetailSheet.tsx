@@ -4,7 +4,11 @@ import { MOCK_NUTRIENTS } from "../../data/mock-state";
 import { pickLang } from "../../i18n";
 import type { AppLanguage, Ingredient, Nutrient, NutrientTier } from "../../types";
 import { isDerivedNutrient, resolveNutrientValue } from "../../utils/equations";
-import { formatCurrencyIdr, formatNumberLocale } from "../../utils/locale-number";
+import {
+  formatCurrencyIdr,
+  formatNumberLocale,
+  resolveDisplayDigits,
+} from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { SegmentedTabs } from "../ui/SegmentedTabs";
@@ -17,6 +21,7 @@ export interface IngredientDetailSheetProps {
   readonly allNutrients?: readonly Nutrient[];
   readonly open: boolean;
   readonly stochasticEnabled?: boolean;
+  readonly decimalPlaces?: 0 | 1 | 2;
   readonly onClose: () => void;
   readonly onUpdate: (id: string, patch: Partial<Ingredient>) => void;
   readonly onResetPrice: (id: string) => void;
@@ -30,6 +35,7 @@ export function IngredientDetailSheet({
   allNutrients = MOCK_NUTRIENTS,
   open,
   stochasticEnabled = false,
+  decimalPlaces = 0,
   onClose,
   onUpdate,
   onResetPrice,
@@ -64,13 +70,13 @@ export function IngredientDetailSheet({
         {list.map((nut) => {
           const nutName = language === "id" ? nut.name : (nut.nameEn ?? nut.name);
           const derived = isDerivedNutrient(nut.id);
-          const digits =
-            nut.unit === "kcal/kg" || nut.unit === "mg/kg" || nut.unit === "mEq/kg" ? 0 : 2;
+          const val = ingredient.nutrients[nut.id];
+          const digits = resolveDisplayDigits(nut.unit, nut.id, decimalPlaces, val);
 
           if (derived) {
             const derivedVal = resolveNutrientValue(ingredient, nut.id);
             return (
-              <div key={nut.id} className="glass-card rounded-2xl p-3">
+              <div key={nut.id} className="modal-section-card rounded-2xl p-3">
                 <div className="mb-1.5 flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-[var(--text-primary)]">
                     {nutName} <span className="text-[var(--text-muted)]">({nut.unit})</span>
@@ -91,11 +97,10 @@ export function IngredientDetailSheet({
             );
           }
 
-          const val = ingredient.nutrients[nut.id];
           const isNull = val === null || val === undefined;
           const sigmaVal = ingredient.stdDev?.[nut.id] ?? null;
           return (
-            <div key={nut.id} className="glass-card rounded-2xl p-3">
+            <div key={nut.id} className="modal-section-card rounded-2xl p-3">
               <div className="mb-1.5 flex items-center justify-between gap-2">
                 <label className="text-xs font-semibold text-[var(--text-primary)]">
                   {nutName}{" "}

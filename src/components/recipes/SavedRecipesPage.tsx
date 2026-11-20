@@ -14,6 +14,7 @@ export interface SavedRecipesPageProps {
   readonly recipes: readonly Recipe[];
   readonly nutrientsCatalog?: readonly Nutrient[];
   readonly language: AppLanguage;
+  readonly decimalPlaces?: 0 | 1 | 2 | undefined;
   readonly onLoadRecipe: (id: string) => void;
   readonly onOpenSaveCurrent: () => void;
   readonly onOpenExport: () => void;
@@ -31,6 +32,7 @@ export const SavedRecipesPage = memo(function SavedRecipesPage({
   recipes,
   nutrientsCatalog = MOCK_NUTRIENTS,
   language,
+  decimalPlaces = 0,
   onLoadRecipe,
   onOpenSaveCurrent,
   onOpenExport,
@@ -39,7 +41,7 @@ export const SavedRecipesPage = memo(function SavedRecipesPage({
   const [notice, setNotice] = useState<string | null>(null);
 
   const handleExportRecipePdf = (recipe: Recipe) => {
-    const bytes = generateRecipePdf({ recipe, nutrientsCatalog });
+    const bytes = generateRecipePdf({ recipe, nutrientsCatalog, decimalPlaces });
     const filename = `${sanitizeFilenameSlug(recipe.name)}.pdf`;
     downloadBinaryFile(bytes, filename, "application/pdf");
     setNotice(

@@ -9,21 +9,29 @@ import {
   type KeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { GripVertical, RotateCcw, Sliders } from "lucide-react";
+import { ChevronDown, Columns3, GripVertical, RotateCcw, Sliders } from "lucide-react";
+import { resolveFeedClass } from "../../data/feed-classes";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
-import { getNutrientDisplayName, getNutrientFullName, pickLang } from "../../i18n";
+import { getNutrientFullName, getNutrientShortName, pickLang } from "../../i18n";
 import type {
   AppLanguage,
   CompositionItem,
   Ingredient,
-  IngredientCategory,
   Nutrient,
+  NutrientTier,
+  TableViewTier,
 } from "../../types";
 import { cn } from "../../utils/cn";
 import { isDerivedNutrient, resolveNutrientValue } from "../../utils/equations";
-import { formatCurrencyIdr, formatNumberLocale } from "../../utils/locale-number";
+import {
+  formatCurrencyIdr,
+  formatNumberLocale,
+  resolveDisplayDigits,
+} from "../../utils/locale-number";
+import { isPoultrySpecies, isRuminantSpecies } from "../../utils/species";
 import { applyTsvGridPaste, type PasteColumnKey } from "../../utils/tsvPaste";
 import { Badge } from "../ui/Badge";
+import { FeedClassIcon } from "../ui/FeedClassIcon";
 import { NumericCellInput } from "./NumericCellInput";
 
 export interface IngredientDesktopTableProps {
@@ -31,9 +39,13 @@ export interface IngredientDesktopTableProps {
   readonly allIngredients?: readonly Ingredient[];
   readonly allNutrients?: readonly Nutrient[];
   readonly composition?: readonly CompositionItem[];
+  readonly activeSpecies?: string;
   readonly showAdvanceColumns: boolean;
   readonly showNdf?: boolean;
-  readonly simpleMode?: boolean;
+  readonly showBetn?: boolean;
+  readonly tableViewTier?: TableViewTier;
+  readonly onChangeTableViewTier?: (tier: TableViewTier) => void;
+  readonly decimalPlaces?: 0 | 1 | 2;
   readonly scrollMaxHeightClass?: string;
   readonly globalAntiNol?: boolean;
   readonly language: AppLanguage;
@@ -45,20 +57,11 @@ export interface IngredientDesktopTableProps {
 
 const BASIC_NUTRIENT_IDS = new Set(["cp", "me_poultry", "tdn", "ee", "cf", "ca", "p"]);
 const NDF_NUTRIENT_IDS = new Set(["ndf", "adf"]);
+const BETN_NUTRIENT_IDS = new Set(["betn"]);
 
 const MIN_NAME_COL_WIDTH = 96;
 const MAX_NAME_COL_WIDTH = 340;
 const DEFAULT_NAME_COL_WIDTH = 196;
-
-const CATEGORY_DOT: Record<IngredientCategory, string> = {
-  energy: "bg-[var(--status-warning)]",
-  protein: "bg-[var(--status-info)]",
-  mineral: "bg-[var(--color-secondary)]",
-  premix: "bg-[var(--color-accent)]",
-  forage: "bg-[var(--status-success)]",
-  additive: "bg-[var(--status-danger)]",
-  enzyme: "bg-[var(--color-primary)]",
-};
 
 interface CoreColumnVisibility {
   readonly price: boolean;
@@ -74,6 +77,7 @@ interface IngredientTableRowProps {
   readonly nameColWidth: number;
   readonly coreCols: CoreColumnVisibility;
   readonly visibleNutrients: readonly Nutrient[];
+  readonly decimalPlaces: 0 | 1 | 2;
   readonly language: AppLanguage;
   readonly onUpdateIngredient: (id: string, patch: Partial<Ingredient>) => void;
   readonly onResetPriceOverride: (id: string) => void;
@@ -92,6 +96,7 @@ const IngredientTableRow = memo(function IngredientTableRow({
   nameColWidth,
   coreCols,
   visibleNutrients,
+  decimalPlaces,
   language,
   onUpdateIngredient,
   onResetPriceOverride,
@@ -106,6 +111,11 @@ const IngredientTableRow = memo(function IngredientTableRow({
   const hasInclusion = inclusionPct > 0.005;
   const displayName = language === "id" ? ing.name : (ing.nameEn ?? ing.name);
   const compactName = nameColWidth < 145;
+  const feedClass = resolveFeedClass(ing);
+  const dmDigits = resolveDisplayDigits("%", "dm", decimalPlaces, ing.dryMatter);
+  const minDigits = resolveDisplayDigits("%", "min", decimalPlaces, min);
+  const maxDigits = resolveDisplayDigits("%", "max", decimalPlaces, max);
+  const incDigits = resolveDisplayDigits("%", "inclusion", decimalPlaces, inclusionPct);
 
   return (
     <tr
@@ -135,10 +145,7 @@ const IngredientTableRow = memo(function IngredientTableRow({
       >
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex min-w-0 items-center gap-1.5">
-            <span
-              aria-hidden="true"
-              className={cn("h-2 w-2 shrink-0 rounded-xs", CATEGORY_DOT[ing.category])}
-            />
+            <FeedClassIcon code={feedClass} language={language} />
             <span className="truncate font-semibold text-[var(--text-primary)]">{displayName}</span>
           </div>
           {!compactName && (
@@ -150,7 +157,7 @@ const IngredientTableRow = memo(function IngredientTableRow({
       </td>
 
       {coreCols.price && (
-        <td className="px-2 py-1">
+        <td className="w-24 min-w-24 px-2 py-1">
           <div className="flex items-center gap-1">
             <NumericCellInput
               value={ing.priceOverride ?? ing.pricePerKg}
@@ -189,10 +196,10 @@ const IngredientTableRow = memo(function IngredientTableRow({
       )}
 
       {coreCols.dm && (
-        <td className="px-2 py-1">
+        <td className="w-[68px] min-w-[68px] px-2 py-1">
           <NumericCellInput
             value={ing.dryMatter}
-            fractionDigits={1}
+            fractionDigits={dmDigits}
             gridRow={rowIdx}
             gridCol="dm"
             onPaste={(e) => onCellPaste(rowIdx, "dm", e)}
@@ -210,10 +217,10 @@ const IngredientTableRow = memo(function IngredientTableRow({
 
       {coreCols.bounds && (
         <>
-          <td className="px-2 py-1">
+          <td className="w-[68px] min-w-[68px] px-2 py-1">
             <NumericCellInput
               value={min}
-              fractionDigits={1}
+              fractionDigits={minDigits}
               gridRow={rowIdx}
               gridCol="min"
               onPaste={(e) => onCellPaste(rowIdx, "min", e)}
@@ -228,10 +235,10 @@ const IngredientTableRow = memo(function IngredientTableRow({
             />
           </td>
 
-          <td className="px-2 py-1">
+          <td className="w-[68px] min-w-[68px] px-2 py-1">
             <NumericCellInput
               value={max}
-              fractionDigits={1}
+              fractionDigits={maxDigits}
               gridRow={rowIdx}
               gridCol="max"
               onPaste={(e) => onCellPaste(rowIdx, "max", e)}
@@ -251,23 +258,31 @@ const IngredientTableRow = memo(function IngredientTableRow({
       {coreCols.inclusion && (
         <td
           className={cn(
-            "px-2 py-1 text-right tabular-nums",
+            "w-20 min-w-20 px-2 py-1 text-right tabular-nums",
             hasInclusion
               ? "bg-[var(--status-success-soft)] font-bold text-[var(--status-success)]"
               : "text-[var(--text-muted)]",
           )}
         >
-          {formatNumberLocale(inclusionPct, 2)}%
+          {formatNumberLocale(inclusionPct, incDigits)}%
         </td>
       )}
 
       {visibleNutrients.map((nut) => {
+        const isEnergySlot = nut.id === "me_poultry" || nut.id === "tdn";
+        const cellWidthClass = isEnergySlot
+          ? "w-[86px] min-w-[86px] max-w-[86px]"
+          : "w-[74px] min-w-[74px] max-w-[74px]";
+
         if (isDerivedNutrient(nut.id)) {
           const derivedVal = resolveNutrientValue(ing, nut.id);
           return (
             <td
               key={nut.id}
-              className="px-2 py-1 text-right tabular-nums text-[var(--text-secondary)]"
+              className={cn(
+                cellWidthClass,
+                "px-2 py-1 text-right tabular-nums text-[var(--text-secondary)]",
+              )}
             >
               {derivedVal !== null ? formatNumberLocale(derivedVal, 0) : "N/A"}
             </td>
@@ -275,10 +290,9 @@ const IngredientTableRow = memo(function IngredientTableRow({
         }
         const val = ing.nutrients[nut.id];
         const isNull = val === null || val === undefined;
-        const digits =
-          nut.unit === "kcal/kg" || nut.unit === "mg/kg" || nut.unit === "mEq/kg" ? 0 : 2;
+        const digits = resolveDisplayDigits(nut.unit, nut.id, decimalPlaces, val);
         return (
-          <td key={nut.id} className="px-2 py-1">
+          <td key={nut.id} className={cn(cellWidthClass, "px-2 py-1")}>
             <NumericCellInput
               value={val ?? null}
               allowNull
@@ -302,7 +316,7 @@ const IngredientTableRow = memo(function IngredientTableRow({
         );
       })}
 
-      <td className="px-2 py-1 text-center">
+      <td className="w-12 min-w-12 px-2 py-1 text-center">
         <button
           type="button"
           onClick={() => onOpenDetail(ing)}
@@ -316,14 +330,30 @@ const IngredientTableRow = memo(function IngredientTableRow({
   );
 });
 
+const TIER_GROUP_LABEL: Record<
+  NutrientTier | "custom",
+  { readonly id: string; readonly en: string }
+> = {
+  basic: { id: "Makro & Energi", en: "Macro & Energy" },
+  mineral_electrolyte: { id: "Mineral & Elektrolit", en: "Minerals & Electrolytes" },
+  amino_acid: { id: "Asam Amino", en: "Amino Acids" },
+  fiber_carb: { id: "Serat & BETN", en: "Fiber & NFE" },
+  anf_physical: { id: "ANF & Fisik", en: "ANF & Physical" },
+  custom: { id: "Nutrien Kustom", en: "Custom Nutrients" },
+};
+
 export const IngredientDesktopTable = memo(function IngredientDesktopTable({
   ingredients,
   allIngredients,
   allNutrients = MOCK_NUTRIENTS,
   composition,
+  activeSpecies,
   showAdvanceColumns,
   showNdf = false,
-  simpleMode = !showAdvanceColumns,
+  showBetn = false,
+  tableViewTier,
+  onChangeTableViewTier,
+  decimalPlaces = 0,
   scrollMaxHeightClass,
   language,
   onUpdateIngredient,
@@ -337,9 +367,44 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
   } | null>(null);
   const [nameColWidth, setNameColWidth] = useState<number>(DEFAULT_NAME_COL_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
-  const [hiddenCols, setHiddenCols] = useState<ReadonlySet<string>>(() => new Set());
+  const [localTier, setLocalTier] = useState<TableViewTier>(
+    showAdvanceColumns ? "advanced" : "basic",
+  );
+  const activeTier: TableViewTier = tableViewTier ?? (showAdvanceColumns ? "advanced" : localTier);
 
+  // Per-column user overrides on top of the active tier default
+  const [colOverrides, setColOverrides] = useState<Readonly<Record<string, boolean>>>({});
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  const popoverRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  useEffect(() => {
+    if (!popoverOpen) return;
+    const handleOutside = (event: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        setPopoverOpen(false);
+      }
+    };
+    const handleEsc = (event: KeyboardEvent | globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setPopoverOpen(false);
+    };
+    window.addEventListener("mousedown", handleOutside);
+    window.addEventListener("keydown", handleEsc);
+    return () => {
+      window.removeEventListener("mousedown", handleOutside);
+      window.removeEventListener("keydown", handleEsc);
+    };
+  }, [popoverOpen]);
+
+  const handleSelectTier = useCallback(
+    (nextTier: TableViewTier) => {
+      setLocalTier(nextTier);
+      setColOverrides({});
+      onChangeTableViewTier?.(nextTier);
+    },
+    [onChangeTableViewTier],
+  );
 
   const handleResizePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -386,45 +451,70 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
     }
   }, []);
 
-  const toggleColumn = useCallback((colId: string) => {
-    setHiddenCols((prev) => {
-      const next = new Set(prev);
-      if (next.has(colId)) next.delete(colId);
-      else next.add(colId);
-      return next;
-    });
-  }, []);
+  const isPoultry = isPoultrySpecies(activeSpecies);
+  const isRuminant = isRuminantSpecies(activeSpecies);
+
+  const isColVisibleByDefault = useCallback(
+    (colId: string): boolean => {
+      if (colId === "price" || colId === "inclusion") return true;
+      if (colId === "dm" || colId === "bounds") {
+        return activeTier !== "basic";
+      }
+      return true;
+    },
+    [activeTier],
+  );
+
+  const isColVisible = useCallback(
+    (colId: string): boolean => {
+      const override = colOverrides[colId];
+      return override !== undefined ? override : isColVisibleByDefault(colId);
+    },
+    [colOverrides, isColVisibleByDefault],
+  );
+
+  const toggleColumn = useCallback(
+    (colId: string) => {
+      setColOverrides((prev) => {
+        const current = prev[colId] ?? isColVisibleByDefault(colId);
+        return { ...prev, [colId]: !current };
+      });
+    },
+    [isColVisibleByDefault],
+  );
 
   const compositionMap = useMemo(
     () => new Map((composition ?? []).map((c) => [c.ingredientId, c.fraction * 100])),
     [composition],
   );
 
-  const candidateNutrients: readonly Nutrient[] = useMemo(
-    () =>
-      allNutrients.filter(
-        (n) =>
-          showAdvanceColumns ||
-          BASIC_NUTRIENT_IDS.has(n.id) ||
-          n.isCustom === true ||
-          (showNdf && NDF_NUTRIENT_IDS.has(n.id)),
-      ),
-    [allNutrients, showAdvanceColumns, showNdf],
-  );
+  const candidateNutrients: readonly Nutrient[] = useMemo(() => {
+    const isAdvanceTier = activeTier === "advanced" || showAdvanceColumns;
+    return allNutrients.filter((n) => {
+      if (isPoultry && n.id === "tdn") return false;
+      if (isRuminant && n.id === "me_poultry") return false;
+      if (BASIC_NUTRIENT_IDS.has(n.id) || n.isCustom === true) return true;
+      if (showBetn && BETN_NUTRIENT_IDS.has(n.id)) return true;
+      if ((showNdf || activeTier !== "basic") && NDF_NUTRIENT_IDS.has(n.id) && showNdf) {
+        return true;
+      }
+      return isAdvanceTier;
+    });
+  }, [allNutrients, activeTier, showAdvanceColumns, isPoultry, isRuminant, showBetn, showNdf]);
 
   const visibleNutrients: readonly Nutrient[] = useMemo(
-    () => candidateNutrients.filter((n) => !hiddenCols.has(n.id)),
-    [candidateNutrients, hiddenCols],
+    () => candidateNutrients.filter((n) => isColVisible(n.id)),
+    [candidateNutrients, isColVisible],
   );
 
   const coreCols: CoreColumnVisibility = useMemo(
     () => ({
-      price: !hiddenCols.has("price"),
-      dm: !hiddenCols.has("dm"),
-      bounds: !hiddenCols.has("bounds"),
-      inclusion: !hiddenCols.has("inclusion"),
+      price: isColVisible("price"),
+      dm: isColVisible("dm"),
+      bounds: isColVisible("bounds"),
+      inclusion: isColVisible("inclusion"),
     }),
-    [hiddenCols],
+    [isColVisible],
   );
 
   const orderedCols: PasteColumnKey[] = useMemo(() => {
@@ -479,6 +569,22 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
     { id: "inclusion", label: pickLang(language, "Inklusi", "Inclusion") },
   ];
 
+  const groupedNutrients = useMemo(() => {
+    const groups = new Map<string, Nutrient[]>();
+    for (const nut of candidateNutrients) {
+      const key = nut.isCustom ? "custom" : (nut.tier ?? "basic");
+      const list = groups.get(key) ?? [];
+      list.push(nut);
+      groups.set(key, list);
+    }
+    return Array.from(groups.entries());
+  }, [candidateNutrients]);
+
+  const totalColCount = coreToggleItems.length + candidateNutrients.length;
+  const visibleColCount =
+    coreToggleItems.filter((c) => isColVisible(c.id)).length + visibleNutrients.length;
+  const hasCustomOverrides = Object.keys(colOverrides).length > 0;
+
   return (
     <div
       className={cn(
@@ -486,70 +592,184 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
         scrollMaxHeightClass ? "min-h-0" : "h-full min-h-0",
       )}
     >
-      {/* Bar kotak centang tampilkan / sembunyikan kolom harga & nutrisi */}
-      <div
-        role="group"
-        aria-label={pickLang(
-          language,
-          "Pilih kolom tabel yang ditampilkan",
-          "Toggle table columns",
-        )}
-        className="neu-pressed flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-lg px-2.5 py-1.5 text-[11px]"
-      >
-        <span className="font-semibold text-[var(--text-secondary)]">
-          {pickLang(language, "Kolom:", "Columns:")}
-        </span>
+      {/* Kontrol 1 Baris Ringkas: Segmented Tier (Dasar / Standar / Lanjutan) + Popover Kolom */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--bg-sunken)] px-2.5 py-1.5 text-[11px] border border-[var(--border-subtle)]">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-semibold text-[var(--text-secondary)]">
+            {pickLang(language, "Tampilan Kolom:", "Column View:")}
+          </span>
+          <div
+            role="group"
+            aria-label={pickLang(language, "Tingkat tampilan kolom tabel", "Table column tier")}
+            className="neu-pressed inline-flex rounded-lg p-0.5"
+          >
+            {(
+              [
+                {
+                  id: "basic",
+                  label: pickLang(language, "Dasar", "Basic"),
+                  hint: pickLang(
+                    language,
+                    "Tampilan ringkas tanpa BK & Min/Max",
+                    "Clean view without DM & Min/Max",
+                  ),
+                },
+                {
+                  id: "standard",
+                  label: pickLang(language, "Standar", "Standard"),
+                  hint: pickLang(
+                    language,
+                    "Tampilkan BK % serta batas Min & Max bahan",
+                    "Show DM % and ingredient Min/Max limits",
+                  ),
+                },
+                {
+                  id: "advanced",
+                  label: pickLang(language, "Lanjutan", "Advanced"),
+                  hint: pickLang(
+                    language,
+                    "Aktifkan seluruh nutrien lanjutan (Asam Amino, Elektrolit, NDF, ANF) di tabel & solver",
+                    "Enable all advanced nutrients in table & solver",
+                  ),
+                },
+              ] as const
+            ).map((t) => {
+              const active = activeTier === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  aria-pressed={active}
+                  title={t.hint}
+                  onClick={() => handleSelectTier(t.id)}
+                  className={cn(
+                    "cursor-pointer rounded-md px-2.5 py-0.5 text-[11px] font-semibold transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
+                    active
+                      ? t.id === "advanced"
+                        ? "bg-[var(--color-primary)] text-[var(--text-on-primary)] shadow-[var(--shadow-neu-flat)]"
+                        : "bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[var(--shadow-neu-flat)]"
+                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                  )}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-        {coreToggleItems.map((col) => {
-          const checked = !hiddenCols.has(col.id);
-          return (
-            <label
-              key={col.id}
-              className="inline-flex cursor-pointer items-center gap-1 font-medium text-[var(--text-primary)] select-none"
-            >
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => toggleColumn(col.id)}
-                className="h-3.5 w-3.5 cursor-pointer rounded border-[var(--border-subtle)] accent-[var(--color-primary)]"
-              />
-              <span>{col.label}</span>
-            </label>
-          );
-        })}
-
-        <span className="h-3.5 w-px bg-[var(--border-subtle)]" aria-hidden="true" />
-
-        {candidateNutrients.map((nut) => {
-          const checked = !hiddenCols.has(nut.id);
-          const label = getNutrientDisplayName(nut, language, simpleMode);
-          const fullName = getNutrientFullName(nut, language);
-          return (
-            <label
-              key={nut.id}
-              title={fullName}
-              className="inline-flex cursor-pointer items-center gap-1 font-medium text-[var(--text-primary)] select-none"
-            >
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => toggleColumn(nut.id)}
-                className="h-3.5 w-3.5 cursor-pointer rounded border-[var(--border-subtle)] accent-[var(--color-primary)]"
-              />
-              <span>{label}</span>
-            </label>
-          );
-        })}
-
-        {hiddenCols.size > 0 && (
+        {/* Tombol Popover Kolom Terkelompok */}
+        <div className="relative" ref={popoverRef}>
           <button
             type="button"
-            onClick={() => setHiddenCols(new Set())}
-            className="ml-auto cursor-pointer rounded px-1.5 py-0.5 text-[10px] font-semibold text-[var(--status-success)] hover:bg-[var(--status-success-soft)]"
+            aria-expanded={popoverOpen}
+            aria-haspopup="dialog"
+            onClick={() => setPopoverOpen((prev) => !prev)}
+            className={cn(
+              "neu-pill-btn inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-[var(--text-primary)]",
+              popoverOpen && "border-[var(--color-primary)] bg-[var(--bg-surface-elevated)]",
+            )}
           >
-            {pickLang(language, "Tampilkan Semua", "Show All")}
+            <Columns3 className="h-3.5 w-3.5 text-[var(--color-primary)]" />
+            <span>
+              {pickLang(language, "Kolom", "Columns")} ({visibleColCount}/{totalColCount})
+            </span>
+            <ChevronDown
+              className={cn(
+                "h-3 w-3 text-[var(--text-muted)] transition-transform duration-150",
+                popoverOpen && "rotate-180",
+              )}
+            />
           </button>
-        )}
+
+          {popoverOpen && (
+            <div
+              role="dialog"
+              aria-label={pickLang(
+                language,
+                "Pilih kolom tabel yang ditampilkan",
+                "Toggle table columns",
+              )}
+              className="absolute right-0 z-40 mt-1.5 w-72 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] p-3 text-xs shadow-[0_14px_34px_-10px_rgba(0,0,0,0.28)] sm:w-80"
+            >
+              <div className="mb-2 flex items-center justify-between border-b border-[var(--border-subtle)] pb-1.5">
+                <span className="font-bold text-[var(--text-primary)]">
+                  {pickLang(language, "Atur Kolom Tabel", "Customize Table Columns")}
+                </span>
+                {hasCustomOverrides && (
+                  <button
+                    type="button"
+                    onClick={() => setColOverrides({})}
+                    className="cursor-pointer rounded px-1.5 py-0.5 text-[10px] font-semibold text-[var(--status-success)] hover:bg-[var(--status-success-soft)]"
+                  >
+                    {pickLang(language, "Reset", "Reset")}
+                  </button>
+                )}
+              </div>
+
+              <div className="custom-scrollbar max-h-64 space-y-2.5 overflow-y-auto overscroll-contain pr-1">
+                <div>
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+                    {pickLang(language, "Inti & Batasan", "Core & Bounds")}
+                  </p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {coreToggleItems.map((col) => {
+                      const checked = isColVisible(col.id);
+                      return (
+                        <label
+                          key={col.id}
+                          className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-[var(--text-primary)] select-none"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleColumn(col.id)}
+                            className="h-3.5 w-3.5 cursor-pointer rounded border-[var(--border-subtle)] accent-[var(--color-primary)]"
+                          />
+                          <span>{col.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {groupedNutrients.map(([groupKey, nuts]) => {
+                  const groupMeta =
+                    TIER_GROUP_LABEL[groupKey as NutrientTier | "custom"] ?? TIER_GROUP_LABEL.basic;
+                  return (
+                    <div key={groupKey} className="border-t border-[var(--border-subtle)] pt-2">
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+                        {language === "id" ? groupMeta.id : groupMeta.en}
+                      </p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {nuts.map((nut) => {
+                          const checked = isColVisible(nut.id);
+                          const shortLabel = getNutrientShortName(nut, language);
+                          const fullName = getNutrientFullName(nut, language);
+                          return (
+                            <label
+                              key={nut.id}
+                              title={fullName}
+                              className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-[var(--text-primary)] select-none"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleColumn(nut.id)}
+                                className="h-3.5 w-3.5 cursor-pointer rounded border-[var(--border-subtle)] accent-[var(--color-primary)]"
+                              />
+                              <span className="truncate">{shortLabel}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {pasteNotice && (
@@ -573,7 +793,7 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
 
       <div
         className={cn(
-          "custom-scrollbar relative min-h-0 overflow-auto rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]",
+          "custom-scrollbar relative min-h-0 overflow-auto overscroll-contain rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)]",
           scrollMaxHeightClass ?? "flex-1",
         )}
       >
@@ -657,17 +877,18 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
                 </th>
               )}
               {visibleNutrients.map((nut) => {
-                const headerLabel = getNutrientDisplayName(nut, language, simpleMode);
+                const headerLabel = getNutrientShortName(nut, language);
                 const fullLabel = getNutrientFullName(nut, language);
-                const wideUnit =
-                  nut.unit === "kcal/kg" || nut.unit === "mg/kg" || nut.unit === "mEq/kg";
+                const isEnergySlot = nut.id === "me_poultry" || nut.id === "tdn";
                 return (
                   <th
                     key={nut.id}
                     title={`${fullLabel} (${nut.unit})`}
                     className={cn(
                       "border-b border-[var(--border-subtle)] px-2 py-2 text-right whitespace-nowrap",
-                      wideUnit ? "w-[88px] min-w-[88px]" : "w-[74px] min-w-[74px]",
+                      isEnergySlot
+                        ? "w-[86px] min-w-[86px] max-w-[86px]"
+                        : "w-[74px] min-w-[74px] max-w-[74px]",
                     )}
                   >
                     <div className="text-[var(--text-primary)]">{headerLabel}</div>
@@ -693,6 +914,7 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
                 nameColWidth={nameColWidth}
                 coreCols={coreCols}
                 visibleNutrients={visibleNutrients}
+                decimalPlaces={decimalPlaces}
                 language={language}
                 onUpdateIngredient={onUpdateIngredient}
                 onResetPriceOverride={onResetPriceOverride}

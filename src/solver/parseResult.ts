@@ -16,8 +16,11 @@ import { isDerivedNutrient, resolveNutrientValue } from "../utils/equations";
 import type { LpSolveOutput } from "./highsTypes";
 import {
   BASIC_NUTRIENT_IDS,
+  BETN_NUTRIENT_IDS,
   DIGESTIBLE_NUTRIENT_IDS,
+  NDF_NUTRIENT_IDS,
   resolveActiveConstraints,
+  resolveEffectiveConstraintBounds,
   resolveEffectiveInclusion,
   resolveEffectivePricePerKg,
   resolveIngredientStdDev,
@@ -52,13 +55,21 @@ function collectDisplayNutrientIds(
   config: FormulationConfig,
 ): readonly string[] {
   const customIds = new Set((config.customNutrients ?? []).map((n) => n.id));
-  const seen = new Set<string>([...BASIC_NUTRIENT_IDS, ...customIds]);
+  const seen = new Set<string>([
+    ...BASIC_NUTRIENT_IDS,
+    ...customIds,
+    ...(config.showNdf === true ? NDF_NUTRIENT_IDS : []),
+    ...(config.showBetn === true ? BETN_NUTRIENT_IDS : []),
+  ]);
   const addIfVisible = (nutId: string) => {
     const isBasic = BASIC_NUTRIENT_IDS.has(nutId);
     const isDerived = isDerivedNutrient(nutId);
     const isExplicitCustom = customIds.has(nutId);
+    const isOptionalVisible =
+      (config.showNdf === true && NDF_NUTRIENT_IDS.has(nutId)) ||
+      (config.showBetn === true && BETN_NUTRIENT_IDS.has(nutId));
     if (DIGESTIBLE_NUTRIENT_IDS.has(nutId) && !config.enableDigestibleBasis) return;
-    if (isBasic || isDerived || isExplicitCustom) {
+    if (isBasic || isDerived || isExplicitCustom || isOptionalVisible) {
       seen.add(nutId);
       return;
     }
@@ -278,11 +289,15 @@ export function parseHighsResult(
     nutrientValues.set(nutId, val);
   }
 
+  const singleTargetMode = config.targetInputMode === "single";
   const nutrientResults: NutrientResult[] = nutrientIds.map((nutId) => {
     const val = nutrientValues.get(nutId) ?? 0;
     const constraint = constraintMap.get(nutId);
-    const min = constraint?.min;
-    const max = constraint?.max;
+    const effBounds = constraint
+      ? resolveEffectiveConstraintBounds(constraint, singleTargetMode)
+      : undefined;
+    const min = effBounds?.min;
+    const max = effBounds?.max;
     const rhsRange = nutrientRhsRangeMap.get(nutId);
 
     let status: NutrientStatus = "unconstrained";

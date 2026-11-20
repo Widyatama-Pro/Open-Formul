@@ -1,18 +1,23 @@
-import { useCallback, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Search, Table } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, Plus, Search, SlidersHorizontal, Table } from "lucide-react";
 import { motion } from "motion/react";
 import { FEED_CLASSES, getFeedClassLabel, resolveFeedClass } from "../../data/feed-classes";
 import type { PrototypeStore } from "../../hooks/use-prototype-store";
-import { pickLang } from "../../i18n";
-import type { FeedClassCode, Ingredient } from "../../types";
+import { getFormulationStatusLabel, pickLang } from "../../i18n";
+import type { FeedClassCode, Ingredient, TableViewTier } from "../../types";
 import { cn } from "../../utils/cn";
-import { ResultsPanel, type ResultSubTab } from "../analytics/ResultsPanel";
+import { formatCurrencyIdr } from "../../utils/locale-number";
+import {
+  ResultsPanel,
+  type ResultSpotlightTarget,
+  type ResultSubTab,
+} from "../analytics/ResultsPanel";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { Input } from "../ui/Input";
 import { SegmentedTabs } from "../ui/SegmentedTabs";
-import { Select } from "../ui/Select";
+import { ThemedSelect, type ThemedSelectOption } from "../ui/ThemedSelect";
 import { AllIngredientsCatalogTable } from "./AllIngredientsCatalogTable";
 import { IngredientDesktopTable } from "./IngredientDesktopTable";
 import { IngredientDetailSheet } from "./IngredientDetailSheet";
@@ -21,16 +26,20 @@ import { MobileStickyActionBar } from "./MobileStickyActionBar";
 import { NutrientTargetsPanel } from "./NutrientTargetsPanel";
 import { WorkbenchToolbar } from "./WorkbenchToolbar";
 
+export type MobileStep = "ingredients" | "targets" | "results";
+
 export interface FormulationWorkbenchProps {
   readonly store: PrototypeStore;
-  readonly resultSubTab?: ResultSubTab;
-  readonly onResultSubTabChange?: (tab: ResultSubTab) => void;
+  readonly resultSubTab?: ResultSubTab | undefined;
+  readonly onResultSubTabChange?: ((tab: ResultSubTab) => void) | undefined;
+  readonly mobileStep?: MobileStep | undefined;
+  readonly onMobileStepChange?: ((step: MobileStep) => void) | undefined;
+  readonly spotlightTarget?: ResultSpotlightTarget;
+  readonly onClearSpotlight?: (() => void) | undefined;
   readonly onOpenSaveDialog: () => void;
   readonly onOpenExportDialog: () => void;
   readonly onOpenAddIngredient: () => void;
 }
-
-type MobileStep = "ingredients" | "targets" | "results";
 
 const WORKBENCH_STAGGER = {
   hidden: {},
@@ -55,17 +64,47 @@ export function FormulationWorkbench({
   store,
   resultSubTab,
   onResultSubTabChange,
+  mobileStep: controlledMobileStep,
+  onMobileStepChange,
+  spotlightTarget = null,
+  onClearSpotlight,
   onOpenSaveDialog,
   onOpenExportDialog,
   onOpenAddIngredient,
 }: FormulationWorkbenchProps) {
-  const [mobileStep, setMobileStep] = useState<MobileStep>("ingredients");
+  const [localMobileStep, setLocalMobileStep] = useState<MobileStep>("ingredients");
+  const activeMobileStep = controlledMobileStep ?? localMobileStep;
+  const handleMobileStepChange = onMobileStepChange ?? setLocalMobileStep;
   const [catalogSearch, setCatalogSearch] = useState("");
   const [catalogClassFilter, setCatalogClassFilter] = useState<"all" | FeedClassCode>("all");
   const [catalogExpanded, setCatalogExpanded] = useState(true);
   const [mobileTableMode, setMobileTableMode] = useState(false);
   const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [mobileControlsCollapsed, setMobileControlsCollapsed] = useState(false);
+  const [mobileScrolledCompact, setMobileScrolledCompact] = useState(false);
+
+  const mobileScrollRef = useRef<HTMLDivElement | null>(null);
+  const toolbarWrapRef = useRef<HTMLDivElement | null>(null);
+
+  const handleMobileScroll = useCallback(() => {
+    const el = mobileScrollRef.current;
+    if (!el) return;
+    const top = el.scrollTop;
+    const toolbarHeight = toolbarWrapRef.current?.offsetHeight ?? 150;
+    const enterThreshold = Math.max(84, toolbarHeight - 12);
+    const exitThreshold = Math.max(36, toolbarHeight - 56);
+    setMobileScrolledCompact((prev) => {
+      if (!prev && top > enterThreshold) return true;
+      if (prev && top < exitThreshold) return false;
+      return prev;
+    });
+  }, []);
+
+  const handleOpenMobileControls = useCallback(() => {
+    setMobileControlsCollapsed(false);
+    mobileScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   const handleOpenDetail = useCallback((ing: Ingredient) => {
     setEditingIngredientId(ing.id);
@@ -88,6 +127,13 @@ export function FormulationWorkbench({
     [updateIngredient],
   );
 
+  const handleActivateSuggestedIngredient = useCallback(
+    (id: string) => {
+      updateIngredient(id, { isActive: true });
+    },
+    [updateIngredient],
+  );
+
   const handleResetCatalogFilter = useCallback(() => {
     setCatalogSearch("");
     setCatalogClassFilter("all");
@@ -96,6 +142,26 @@ export function FormulationWorkbench({
   const language = store.preferences.language;
   const simpleMode = store.preferences.simpleMode ?? !store.config.enableAdvanceNutrients;
   const showNdf = store.config.showNdf === true;
+  const showBetn = store.config.showBetn === true;
+  const decimalPlaces: 0 | 1 | 2 = store.preferences.decimalPlaces ?? 0;
+  const tableViewTier: TableViewTier =
+    store.preferences.tableViewTier ?? (store.config.enableAdvanceNutrients ? "advanced" : "basic");
+  const activeSpecies = store.activeRequirement.species;
+
+  const catalogClassOptions = useMemo<readonly ThemedSelectOption[]>(
+    () => [
+      {
+        value: "all",
+        label: pickLang(language, "Semua 8 Kelas Pakan", "All 8 Feed Classes"),
+      },
+      ...FEED_CLASSES.map((fc) => ({
+        value: String(fc.code),
+        label: getFeedClassLabel(language, fc.code),
+        group: pickLang(language, "Klasifikasi Standar (IFN / NRC)", "Standard Feed Classes"),
+      })),
+    ],
+    [language],
+  );
 
   // Tabel 1: Khusus pakan yang digunakan (aktif)
   const usedIngredients = useMemo(
@@ -129,9 +195,17 @@ export function FormulationWorkbench({
     <NutrientTargetsPanel
       requirement={store.activeRequirement}
       allNutrients={store.allNutrients}
+      allIngredients={store.ingredients}
+      config={store.config}
+      result={store.result}
       activeBasis={store.config.activeBasis}
+      targetInputMode={store.config.targetInputMode ?? "range"}
+      onChangeTargetInputMode={store.setTargetInputMode}
+      onActivateSuggestedIngredient={handleActivateSuggestedIngredient}
       enableAdvance={store.config.enableAdvanceNutrients}
       showNdf={showNdf}
+      showBetn={showBetn}
+      decimalPlaces={decimalPlaces}
       simpleMode={simpleMode}
       enableDigestible={store.config.enableDigestibleBasis}
       enableStochastic={store.config.enableStochasticSlp === true}
@@ -154,10 +228,13 @@ export function FormulationWorkbench({
       allNutrients={store.allNutrients}
       requirement={store.activeRequirement}
       config={store.config}
+      decimalPlaces={decimalPlaces}
       simpleMode={simpleMode}
       language={language}
       hideKpiStrip
       {...(resultSubTab !== undefined ? { activeSubTab: resultSubTab } : {})}
+      {...(spotlightTarget !== undefined ? { spotlightTarget } : {})}
+      {...(onClearSpotlight !== undefined ? { onClearSpotlight } : {})}
       {...(onResultSubTabChange !== undefined ? { onSubTabChange: onResultSubTabChange } : {})}
       onSetBatchSize={store.setBatchSizeKg}
       onToggleElastic={store.toggleElasticFallback}
@@ -167,31 +244,38 @@ export function FormulationWorkbench({
   );
 
   return (
-    <div className="flex h-full flex-col">
-      <WorkbenchToolbar
-        requirements={store.requirements}
-        activeRequirement={store.activeRequirement}
-        config={store.config}
-        result={store.result}
-        language={language}
-        simpleMode={simpleMode}
-        inspectorOpen={inspectorOpen}
-        onToggleInspector={handleToggleInspector}
-        onSelectPreset={store.selectPreset}
-        onSetBasis={store.setActiveBasis}
-        onSetMode={store.setOptimizationMode}
-        onToggleAdvance={store.toggleAdvanceNutrients}
-        onToggleElastic={store.toggleElasticFallback}
-        onOpenSaveDialog={onOpenSaveDialog}
-        onOpenExportDialog={onOpenExportDialog}
-        onResetMock={store.resetAllMock}
-      />
+    <div
+      ref={mobileScrollRef}
+      onScroll={handleMobileScroll}
+      className="custom-scrollbar flex h-full flex-col overflow-y-auto overscroll-contain lg:overflow-hidden"
+    >
+      <div ref={toolbarWrapRef} className="shrink-0">
+        <WorkbenchToolbar
+          requirements={store.requirements}
+          activeRequirement={store.activeRequirement}
+          config={store.config}
+          result={store.result}
+          language={language}
+          inspectorOpen={inspectorOpen}
+          mobileCollapsed={mobileControlsCollapsed}
+          onToggleMobileCollapsed={() => setMobileControlsCollapsed((prev) => !prev)}
+          onToggleInspector={handleToggleInspector}
+          onSelectPreset={store.selectPreset}
+          onApplyDynamicRequirement={store.applyDynamicRequirement}
+          onSetBasis={store.setActiveBasis}
+          onSetMode={store.setOptimizationMode}
+          onToggleElastic={store.toggleElasticFallback}
+          onOpenSaveDialog={onOpenSaveDialog}
+          onOpenExportDialog={onOpenExportDialog}
+          onResetMock={store.resetAllMock}
+        />
+      </div>
 
       {store.isSolving && (
         <div
           role="status"
           aria-live="polite"
-          className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-1.5 lg:px-5"
+          className="shrink-0 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-1.5 lg:px-5"
         >
           <div className="flex items-center gap-3 text-[11px] font-semibold text-[var(--status-success)]">
             <span>
@@ -202,12 +286,42 @@ export function FormulationWorkbench({
         </div>
       )}
 
-      {/* Mobile & Tablet Stepper (< lg) */}
-      <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 lg:hidden">
+      {/* Mobile & Tablet Sticky Stepper (< lg): tetap menempel saat kontrol atas tergulir keluar */}
+      <div className="sticky top-0 z-20 shrink-0 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.06)] lg:hidden">
+        {mobileScrolledCompact && (
+          <div className="mb-1.5 flex items-center justify-between gap-2 text-[11px]">
+            <div className="flex min-w-0 items-center gap-1.5 truncate">
+              <span className="font-bold tabular-nums text-[var(--status-warning)]">
+                {store.result.costPerKg !== null
+                  ? `${formatCurrencyIdr(store.result.costPerKg)}/kg`
+                  : "—"}
+              </span>
+              <Badge
+                tone={
+                  store.result.status === "optimal"
+                    ? "emerald"
+                    : store.result.status === "near_feasible"
+                      ? "amber"
+                      : "rose"
+                }
+              >
+                {getFormulationStatusLabel(language, store.result.status)}
+              </Badge>
+            </div>
+            <button
+              type="button"
+              onClick={handleOpenMobileControls}
+              className="neu-pill-btn inline-flex min-h-7 shrink-0 cursor-pointer items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold text-[var(--text-primary)]"
+            >
+              <SlidersHorizontal className="h-3 w-3 text-[var(--color-primary)]" />
+              <span>{pickLang(language, "Kontrol", "Controls")}</span>
+            </button>
+          </div>
+        )}
         <SegmentedTabs
           ariaLabel={pickLang(language, "Tahapan formulasi mobile", "Mobile formulation steps")}
-          value={mobileStep}
-          onChange={setMobileStep}
+          value={activeMobileStep}
+          onChange={handleMobileStepChange}
           options={[
             {
               value: "ingredients",
@@ -226,12 +340,12 @@ export function FormulationWorkbench({
         initial="hidden"
         animate="visible"
         className={cn(
-          "hidden min-h-0 flex-1 gap-3 p-3 lg:grid lg:px-4",
-          inspectorOpen ? "lg:grid-cols-[minmax(0,2.7fr)_320px]" : "lg:grid-cols-[minmax(0,1fr)]",
+          "hidden min-h-0 flex-1 gap-3.5 p-3 lg:grid lg:px-4",
+          inspectorOpen ? "lg:grid-cols-[minmax(0,2.7fr)_328px]" : "lg:grid-cols-[minmax(0,1fr)]",
         )}
       >
-        {/* Area Kerja Utama (scroll vertikal mulus agar 2 tabel + hasil tidak saling bertumpuk) */}
-        <div className="custom-scrollbar flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto pr-0.5">
+        {/* Area Kerja Utama dengan scrollbar lebar khusus (.workspace-main-scrollbar) agar jelas dibedakan dari tabel */}
+        <div className="workspace-main-scrollbar flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto overscroll-contain pr-2">
           {/* TABEL 1: Pakan yang Digunakan (Permukaan Aktif Beraksen Sukses) */}
           <motion.div variants={WORKBENCH_PANEL_ITEM} className="shrink-0">
             <Card
@@ -268,9 +382,13 @@ export function FormulationWorkbench({
                   allIngredients={store.ingredients}
                   allNutrients={store.allNutrients}
                   composition={store.result.composition}
+                  activeSpecies={activeSpecies}
                   showAdvanceColumns={store.config.enableAdvanceNutrients}
                   showNdf={showNdf}
-                  simpleMode={simpleMode}
+                  showBetn={showBetn}
+                  tableViewTier={tableViewTier}
+                  onChangeTableViewTier={store.setTableViewTier}
+                  decimalPlaces={decimalPlaces}
                   scrollMaxHeightClass="max-h-[296px]"
                   language={language}
                   onUpdateIngredient={store.updateIngredient}
@@ -322,28 +440,30 @@ export function FormulationWorkbench({
                       className="h-8 min-h-8 pl-8 text-xs md:min-h-8"
                     />
                   </div>
-                  <Select
-                    aria-label={pickLang(
-                      language,
-                      "Filter kelas bahan pakan",
-                      "Filter feed classification",
-                    )}
-                    value={String(catalogClassFilter)}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setCatalogClassFilter(val === "all" ? "all" : (Number(val) as FeedClassCode));
-                    }}
-                    className="h-8 min-h-8 w-52 py-0 text-[11px]"
-                  >
-                    <option value="all">
-                      {pickLang(language, "Semua 8 Kelas Pakan", "All 8 Feed Classes")}
-                    </option>
-                    {FEED_CLASSES.map((fc) => (
-                      <option key={fc.code} value={fc.code}>
-                        {getFeedClassLabel(language, fc.code)}
-                      </option>
-                    ))}
-                  </Select>
+                  <div className="w-52">
+                    <ThemedSelect
+                      ariaLabel={pickLang(
+                        language,
+                        "Filter kelas bahan pakan",
+                        "Filter feed classification",
+                      )}
+                      modalTitle={pickLang(
+                        language,
+                        "Filter Kelas Bahan Pakan",
+                        "Filter Feed Class",
+                      )}
+                      value={String(catalogClassFilter)}
+                      options={catalogClassOptions}
+                      language={language}
+                      popoverMinWidthPx={250}
+                      onChange={(val) => {
+                        setCatalogClassFilter(
+                          val === "all" ? "all" : (Number(val) as FeedClassCode),
+                        );
+                      }}
+                      className="h-8 min-h-8 py-0 text-[11px]"
+                    />
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -369,8 +489,13 @@ export function FormulationWorkbench({
               {catalogExpanded && (
                 <AllIngredientsCatalogTable
                   items={allCatalogFiltered}
+                  allNutrients={store.allNutrients}
                   language={language}
-                  simpleMode={simpleMode}
+                  activeSpecies={activeSpecies}
+                  tableViewTier={tableViewTier}
+                  showNdf={showNdf}
+                  showBetn={showBetn}
+                  decimalPlaces={decimalPlaces}
                   searchQuery={catalogSearch}
                   onToggleActive={handleToggleCatalogActive}
                   onOpenDetail={handleOpenDetail}
@@ -390,21 +515,21 @@ export function FormulationWorkbench({
           </motion.section>
         </div>
 
-        {/* Panel Sekunder Kanan Collapsible (lebar 320px) */}
+        {/* Panel Sekunder Kanan Collapsible (lebar 328px) */}
         {inspectorOpen && (
           <motion.section
             variants={WORKBENCH_PANEL_ITEM}
             aria-label={pickLang(language, "Panel Target Nutrien", "Nutrient Targets Panel")}
-            className="min-h-0 w-[320px]"
+            className="min-h-0 w-[328px]"
           >
             {targetPanel}
           </motion.section>
         )}
       </motion.div>
 
-      {/* Mobile & Tablet Stepper Content (< 1024px) */}
-      <div className="custom-scrollbar flex-1 overflow-y-auto p-3.5 pb-28 md:p-4 md:pb-8 lg:hidden">
-        {mobileStep === "ingredients" && (
+      {/* Mobile & Tablet Stepper Content (< 1024px): menyatu dengan scroll utama halaman + padding bawah lega */}
+      <div className="p-3 pb-36 md:p-4 md:pb-8 lg:hidden">
+        {activeMobileStep === "ingredients" && (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -441,9 +566,13 @@ export function FormulationWorkbench({
                   allIngredients={store.ingredients}
                   allNutrients={store.allNutrients}
                   composition={store.result.composition}
+                  activeSpecies={activeSpecies}
                   showAdvanceColumns={store.config.enableAdvanceNutrients}
                   showNdf={showNdf}
-                  simpleMode={simpleMode}
+                  showBetn={showBetn}
+                  tableViewTier={tableViewTier}
+                  onChangeTableViewTier={store.setTableViewTier}
+                  decimalPlaces={decimalPlaces}
                   language={language}
                   onUpdateIngredient={store.updateIngredient}
                   onResetPriceOverride={store.resetPriceOverride}
@@ -454,6 +583,7 @@ export function FormulationWorkbench({
             ) : (
               <IngredientMobileCards
                 ingredients={usedIngredients}
+                decimalPlaces={decimalPlaces}
                 language={language}
                 onUpdateIngredient={store.updateIngredient}
                 onResetPriceOverride={store.resetPriceOverride}
@@ -463,16 +593,16 @@ export function FormulationWorkbench({
           </div>
         )}
 
-        {mobileStep === "targets" && targetPanel}
-        {mobileStep === "results" && resultsPanel}
+        {activeMobileStep === "targets" && targetPanel}
+        {activeMobileStep === "results" && resultsPanel}
       </div>
 
       <MobileStickyActionBar
         status={store.result.status}
         costPerKg={store.result.costPerKg}
-        activeStep={mobileStep}
+        activeStep={activeMobileStep}
         language={language}
-        onShowResults={() => setMobileStep("results")}
+        onShowResults={() => handleMobileStepChange("results")}
       />
 
       <IngredientDetailSheet
@@ -480,6 +610,7 @@ export function FormulationWorkbench({
         allNutrients={store.allNutrients}
         open={editingIngredient !== null}
         stochasticEnabled={store.config.enableStochasticSlp === true}
+        decimalPlaces={decimalPlaces}
         onClose={() => setEditingIngredientId(null)}
         onUpdate={store.updateIngredient}
         onResetPrice={store.resetPriceOverride}

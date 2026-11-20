@@ -157,8 +157,8 @@ export function updateDynamicManifestLink(options: PwaThemeSyncOptions = {}): vo
   };
 
   const dynamicManifest = {
-    name: options.appName ?? "Open Formulasi",
-    short_name: options.shortName ?? "Open Formulasi",
+    name: options.appName ?? "OpenFormul",
+    short_name: options.shortName ?? "OpenFormul",
     start_url: resolveAsset("./?source=pwa"),
     scope: resolveAsset("./"),
     display: "standalone",

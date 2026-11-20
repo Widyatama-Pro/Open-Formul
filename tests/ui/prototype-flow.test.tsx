@@ -10,14 +10,14 @@ import {
   evaluateMockFormulation,
 } from "../../src/data/mock-state";
 
-describe("Open Formulasi Desktop UI Flow", () => {
-  it("merender header Open Formulasi tanpa keterangan tambahan, dua tabel terpisah, dan KPI biaya", () => {
+describe("OpenFormul Desktop UI Flow", () => {
+  it("merender header OpenFormul tanpa keterangan tambahan, dua tabel terpisah, dan KPI biaya", () => {
     render(<App />);
 
     const header = screen.getByRole("banner");
-    expect(screen.getAllByAltText("Logo Open Formulasi").length).toBeGreaterThan(0);
+    expect(screen.getAllByAltText("Logo OpenFormul").length).toBeGreaterThan(0);
     expect(within(header).getByText("Open")).toBeInTheDocument();
-    expect(within(header).getByText("Formulasi")).toBeInTheDocument();
+    expect(within(header).getByText("Formul")).toBeInTheDocument();
     expect(screen.queryByText(/Formulasi Pakan Presisi/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Workspace$/i)).not.toBeInTheDocument();
 
@@ -36,17 +36,29 @@ describe("Open Formulasi Desktop UI Flow", () => {
     expect(screen.getByText(/Biaya \/ kg/i)).toBeInTheDocument();
   });
 
-  it("mendukung checkbox tampil/sembunyi kolom dan resize lebar kolom nama bahan", async () => {
+  it("mendukung tier kolom Dasar/Standar/Lanjutan, popover Kolom, dan resize lebar kolom nama bahan", async () => {
     const user = userEvent.setup();
     render(<App />);
 
     const usedPanel = screen.getByLabelText("Panel Bahan Pakan");
-    // Mode Simpel default menyingkat Protein Kasar -> PK
+    // Tier default Dasar menyembunyikan BK %, Min %, Max % agar tabel lapang
+    expect(
+      within(usedPanel).queryByRole("columnheader", { name: /BK %/i }),
+    ).not.toBeInTheDocument();
     expect(within(usedPanel).getAllByRole("columnheader", { name: /PK/i }).length).toBeGreaterThan(
       0,
     );
 
-    // Sembunyikan kolom Harga/kg lewat checkbox
+    // Beralih ke tier Standar memunculkan BK %, lalu kembali ke Dasar
+    await user.click(within(usedPanel).getByRole("button", { name: /^Standar$/i }));
+    expect(
+      within(usedPanel).getAllByRole("columnheader", { name: /BK %/i }).length,
+    ).toBeGreaterThan(0);
+    await user.click(within(usedPanel).getByRole("button", { name: /^Dasar$/i }));
+
+    // Buka popover Kolom lalu sembunyikan dan tampilkan kembali Harga/kg
+    const kolomBtn = within(usedPanel).getByRole("button", { name: /Kolom/i });
+    await user.click(kolomBtn);
     const priceToggle = within(usedPanel).getByLabelText("Harga");
     expect(priceToggle).toBeChecked();
     await user.click(priceToggle);
@@ -58,6 +70,7 @@ describe("Open Formulasi Desktop UI Flow", () => {
     expect(
       within(usedPanel).getAllByRole("columnheader", { name: "Harga/kg" }).length,
     ).toBeGreaterThan(0);
+    await user.click(kolomBtn);
 
     // Resize kolom nama bahan via keyboard ArrowLeft
     const resizer = screen.getByRole("separator", { name: /Geser lebar kolom nama bahan/i });
@@ -67,12 +80,23 @@ describe("Open Formulasi Desktop UI Flow", () => {
     expect(afterVal).toBeLessThan(beforeVal);
   });
 
-  it("beralih preset ternak SNI & Sapi Potong mengganti basis otomatis", async () => {
+  it("beralih komoditas 4 utama, kalkulator Sapi Potong, & preset SNI Lainnya mengganti basis otomatis", async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    const presetSelect = screen.getByLabelText(/Standar Ternak/i);
-    await user.selectOptions(presetSelect, "sni-3148-2-penggemukan-2017");
+    const commodityTrigger = screen.getByRole("combobox", { name: /Pilih komoditas ternak/i });
+    await user.click(commodityTrigger);
+    await user.click(screen.getByRole("option", { name: /Sapi Potong/i }));
+    expect(screen.getByLabelText(/Bobot badan sapi potong kg/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Target PBBH kg per hari/i)).toBeInTheDocument();
+
+    await user.click(commodityTrigger);
+    await user.click(screen.getByRole("option", { name: /Lainnya/i }));
+    const otherPresetTrigger = screen.getByRole("combobox", { name: /Standar Ternak Lainnya/i });
+    await user.click(otherPresetTrigger);
+    const searchInput = screen.getByPlaceholderText(/Cari Standar/i);
+    await user.type(searchInput, "3148-2");
+    await user.click(screen.getByRole("option", { name: /Penggemukan.*3148-2/i }));
 
     expect(screen.getByText("Basis: BK (DM)")).toBeInTheDocument();
 
@@ -81,13 +105,14 @@ describe("Open Formulasi Desktop UI Flow", () => {
     expect(screen.getByText("Basis: As-Fed")).toBeInTheDocument();
   });
 
-  it("beralih Mode Simpel ke Mode Lanjutan menampilkan nama nutrisi lengkap serta asam amino & SID/AvP", async () => {
+  it("beralih tier Dasar ke Lanjutan pada tabel menyinkronkan asam amino serta SID/AvP di Target Nutrien", async () => {
     const user = userEvent.setup();
     render(<App />);
 
     expect(screen.queryByText(/Triptofan/i)).not.toBeInTheDocument();
 
-    const advanceBtn = screen.getByRole("button", { name: "Mode Lanjutan" });
+    const usedPanel = screen.getByLabelText("Panel Bahan Pakan");
+    const advanceBtn = within(usedPanel).getByRole("button", { name: /^Lanjutan$/i });
     await user.click(advanceBtn);
 
     expect(screen.getAllByText("Protein Kasar").length).toBeGreaterThan(0);
@@ -191,14 +216,19 @@ describe("Open Formulasi Desktop UI Flow", () => {
     expect(screen.queryByText(/Single-Mix/i)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Buka Harga Bayangan/i }));
-    expect(screen.getByText(/Apa itu Harga Bayangan/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Apa itu Harga Bayangan/i).length).toBeGreaterThan(0);
 
-    // 5. Pengaturan: Mode Simpel/Lanjutan, NDF, Anti-Nol Otomatis, Presisi LP, & Bahasa EN
+    // 5. Pengaturan: Dasar (Desimal & Bahasa) & Lanjutan (Tier/BETN/NDF/Anti-Nol/Presisi LP)
     await user.click(screen.getAllByRole("button", { name: /Pengaturan/i })[0]!);
+    expect(screen.getByText(/Desimal Tampilan Angka/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /Pengaturan Lanjutan/i }));
     expect(screen.getByText(/Aturan Anti-Nol Otomatis/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tampilkan Parameter BETN/i)).toBeInTheDocument();
     expect(screen.getByText(/Tampilkan Parameter NDF & ADF/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Atur Presisi LP/i })).toBeInTheDocument();
 
+    await user.click(screen.getByRole("tab", { name: /Pengaturan Dasar/i }));
     await user.selectOptions(screen.getByLabelText("Pilih bahasa"), "en");
     expect(screen.getByRole("heading", { name: "Application Settings" })).toBeInTheDocument();
 
@@ -256,8 +286,8 @@ describe("Open Formulasi Desktop UI Flow", () => {
     expect(screen.getByRole("button", { name: /Perkecil sidebar navigasi/i })).toBeInTheDocument();
   });
 
-  it("menghitung Porsi Biaya (%) di FormulationCharts secara akurat baik untuk costContribution per-kg maupun per-batch", () => {
-    render(
+  it("menghitung Porsi Biaya (%) di FormulationCharts dan mematuhi decimalPlaces global", () => {
+    const { rerender } = render(
       <FormulationCharts
         composition={[
           { ingredientId: "corn-ground", fraction: 0.7, weightKg: 70, costContribution: 3000 },
@@ -270,6 +300,28 @@ describe("Open Formulasi Desktop UI Flow", () => {
         ]}
         ingredients={MOCK_INGREDIENTS}
         batchTotalCost={500000}
+        simpleMode
+        language="id"
+      />,
+    );
+
+    expect(screen.getByText(/70% berat · 60% biaya/i)).toBeInTheDocument();
+    expect(screen.getByText(/30% berat · 40% biaya/i)).toBeInTheDocument();
+
+    rerender(
+      <FormulationCharts
+        composition={[
+          { ingredientId: "corn-ground", fraction: 0.7, weightKg: 70, costContribution: 3000 },
+          { ingredientId: "soybean-meal", fraction: 0.3, weightKg: 30, costContribution: 2000 },
+        ]}
+        nutrients={[
+          { nutrientId: "cp", value: 21, min: 20, max: 23, status: "met" },
+          { nutrientId: "me_poultry", value: 3000, min: 2950, max: 3150, status: "met" },
+          { nutrientId: "ca", value: 1, min: 0.9, max: 1.1, status: "met" },
+        ]}
+        ingredients={MOCK_INGREDIENTS}
+        batchTotalCost={500000}
+        decimalPlaces={1}
         simpleMode
         language="id"
       />,

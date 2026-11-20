@@ -280,7 +280,22 @@ export async function hydrateOrSeedDatabase(
       }
     }
 
-    const finalIngredients = validIngredients.length > 0 ? validIngredients : MOCK_INGREDIENTS;
+    const seedById = new Map(MOCK_INGREDIENTS.map((ing) => [ing.id, ing]));
+    const finalIngredients: readonly Ingredient[] =
+      validIngredients.length > 0
+        ? validIngredients.map((ing) => {
+            if (ing.nutrients["betn"] !== undefined) return ing;
+            const seed = seedById.get(ing.id);
+            if (!seed || seed.nutrients["betn"] === undefined) return ing;
+            return {
+              ...ing,
+              nutrients: {
+                ...ing.nutrients,
+                betn: seed.nutrients["betn"],
+              },
+            };
+          })
+        : MOCK_INGREDIENTS;
     let finalRequirements: readonly Requirement[] =
       validRequirements.length > 0 ? validRequirements : MOCK_REQUIREMENTS;
     if (validRequirements.length > 0) {

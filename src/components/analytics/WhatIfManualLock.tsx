@@ -2,7 +2,7 @@ import { memo } from "react";
 import { Info, Lock, Unlock } from "lucide-react";
 import { pickLang } from "../../i18n";
 import type { AppLanguage, CompositionItem, Ingredient } from "../../types";
-import { formatNumberLocale } from "../../utils/locale-number";
+import { formatNumberLocale, resolveDisplayDigits } from "../../utils/locale-number";
 import { NumericCellInput } from "../formulation/NumericCellInput";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -11,6 +11,7 @@ export interface WhatIfManualLockProps {
   readonly ingredients: readonly Ingredient[];
   readonly composition: readonly CompositionItem[];
   readonly manualLocks: Readonly<Record<string, number>>;
+  readonly decimalPlaces?: 0 | 1 | 2;
   readonly language?: AppLanguage;
   readonly onSetManualLock: (id: string, pct: number | null) => void;
   readonly onClearLocks: () => void;
@@ -21,6 +22,7 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
   ingredients,
   composition,
   manualLocks,
+  decimalPlaces = 0,
   language = "id",
   onSetManualLock,
   onClearLocks,
@@ -58,7 +60,11 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
               "Total currently locked ingredient share:",
             )}{" "}
             <strong className="tabular-nums text-[var(--text-primary)]">
-              {formatNumberLocale(totalLocked, 1)}%
+              {formatNumberLocale(
+                totalLocked,
+                resolveDisplayDigits("%", "inclusion", decimalPlaces, totalLocked),
+              )}
+              %
             </strong>{" "}
             / 100%
           </p>
@@ -112,7 +118,12 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
                 <div className="w-20">
                   <NumericCellInput
                     value={currentPct}
-                    fractionDigits={1}
+                    fractionDigits={resolveDisplayDigits(
+                      "%",
+                      "inclusion",
+                      decimalPlaces,
+                      currentPct,
+                    )}
                     ariaLabel={`${pickLang(language, "Persentase What-If", "What-If %")} ${ingName}`}
                     onCommit={(val) => onSetManualLock(ing.id, val)}
                   />

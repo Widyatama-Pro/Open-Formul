@@ -3,6 +3,7 @@ import { normalizeIngredientToBasis } from "../utils/basis";
 import { isDerivedNutrient, resolveNutrientValue } from "../utils/equations";
 import {
   resolveActiveConstraints,
+  resolveEffectiveConstraintBounds,
   resolveEffectiveInclusion,
   type EffectiveInclusionBounds,
 } from "./modelHelpers";
@@ -199,16 +200,18 @@ export function runPrecheck(
   }
 
   // Cek constraint nutrien aktif
+  const singleTargetMode = config.targetInputMode === "single";
   const activeConstraints = resolveActiveConstraints(requirement, config);
   const missingAdvanceFields: string[] = [];
 
   for (const c of activeConstraints) {
-    if (c.min !== undefined && c.max !== undefined && c.min > c.max + EPS) {
+    const eff = resolveEffectiveConstraintBounds(c, singleTargetMode);
+    if (eff.min !== undefined && eff.max !== undefined && eff.min > eff.max + EPS) {
       hasStructuralBoundError = true;
       diagnostics.push({
         code: "MIN_GT_MAX",
         severity: "error",
-        message: `Target nutrien "${c.nutrientId}" memiliki Min (${c.min}) > Max (${c.max}).`,
+        message: `Target nutrien "${c.nutrientId}" memiliki Min (${eff.min}) > Max (${eff.max}).`,
         suggestion: "Pastikan batas minimum <= batas maksimum pada panel Target Nutrien.",
       });
       continue;
@@ -238,20 +241,22 @@ export function runPrecheck(
         normalizedPairs,
         c.nutrientId,
       );
-      if (c.min !== undefined && maxAchievable + 1e-5 < c.min) {
+      if (eff.min !== undefined && maxAchievable + 1e-5 < eff.min) {
         diagnostics.push({
           code: "NUTRIENT_UNREACHABLE",
           severity: "error",
-          message: `Target Min "${c.nutrientId}" (${c.min}) mustahil dicapai; maksimum gabungan bahan saat ini hanya ${maxAchievable.toFixed(2)}.`,
+          targetId: c.nutrientId,
+          message: `Target Min "${c.nutrientId}" (${eff.min}) mustahil dicapai; maksimum gabungan bahan saat ini hanya ${maxAchievable.toFixed(2)}.`,
           suggestion:
             "Tambahkan bahan kaya nutrien ini, naikkan Max inklusi sumber utama, atau longgarkan target.",
         });
       }
-      if (c.max !== undefined && minAchievable - 1e-5 > c.max) {
+      if (eff.max !== undefined && minAchievable - 1e-5 > eff.max) {
         diagnostics.push({
           code: "NUTRIENT_UNREACHABLE",
           severity: "error",
-          message: `Target Max "${c.nutrientId}" (${c.max}) mustahil dicapai; minimum gabungan bahan terpakai adalah ${minAchievable.toFixed(2)}.`,
+          targetId: c.nutrientId,
+          message: `Target Max "${c.nutrientId}" (${eff.max}) mustahil dicapai; minimum gabungan bahan terpakai adalah ${minAchievable.toFixed(2)}.`,
           suggestion: "Kurangi batas Min bahan penyumbang berlebih atau naikkan batas Max nutrien.",
         });
       }

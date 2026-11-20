@@ -1,54 +1,38 @@
 import { memo } from "react";
-import { ChevronRight, Leaf, Pill, RotateCcw, Sparkles, Wheat } from "lucide-react";
+import { ChevronRight, RotateCcw } from "lucide-react";
+import { resolveFeedClass } from "../../data/feed-classes";
 import { getCategoryLabel, pickLang } from "../../i18n";
-import type { AppLanguage, Ingredient, IngredientCategory } from "../../types";
+import type { AppLanguage, Ingredient } from "../../types";
 import { cn } from "../../utils/cn";
-import { formatCurrencyIdr, formatNumberLocale } from "../../utils/locale-number";
+import {
+  formatCurrencyIdr,
+  formatNumberLocale,
+  resolveDisplayDigits,
+} from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
-import { GlossySquircleIcon, type SquircleTone } from "../ui/GlossySquircleIcon";
+import { FeedClassIcon } from "../ui/FeedClassIcon";
 import { NumericCellInput } from "./NumericCellInput";
 
 export interface IngredientMobileCardsProps {
   readonly ingredients: readonly Ingredient[];
+  readonly decimalPlaces?: 0 | 1 | 2;
   readonly language: AppLanguage;
   readonly onUpdateIngredient: (id: string, patch: Partial<Ingredient>) => void;
   readonly onResetPriceOverride: (id: string) => void;
   readonly onOpenDetail: (ingredient: Ingredient) => void;
 }
 
-const CATEGORY_TONE: Record<IngredientCategory, SquircleTone> = {
-  energy: "coral",
-  protein: "sky",
-  mineral: "indigo",
-  premix: "orchid",
-  forage: "mint",
-  additive: "amber",
-  enzyme: "petrol",
-};
-
-function renderCategoryIcon(category: IngredientCategory) {
-  switch (category) {
-    case "forage":
-      return <Leaf className="h-4 w-4" />;
-    case "mineral":
-    case "premix":
-      return <Pill className="h-4 w-4" />;
-    case "additive":
-    case "enzyme":
-      return <Sparkles className="h-4 w-4" />;
-    default:
-      return <Wheat className="h-4 w-4" />;
-  }
-}
-
 /**
  * Transformasi tabel matriks bahan untuk layar sempit (<768px):
- * Card-Stack Tactile Neumorphism dengan ikon squircle kategori & sorotan aksen bahaya saat bentrok batas.
+ * - Nama bahan pakan tampil penuh hingga 2 baris (line-clamp-2) tanpa terjepit tombol Nutrien >
+ * - Tombol Nutrien > ditempatkan di baris kedua sejajar badge kategori & basis
+ * - Metadata bawah (PK | EM/TDN | BK | Pasar) berukuran 12px kontras jelas
  */
 export const IngredientMobileCards = memo(function IngredientMobileCards({
   ingredients,
+  decimalPlaces = 0,
   language,
   onUpdateIngredient,
   onResetPriceOverride,
@@ -64,11 +48,12 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
         const hasOverride = ing.priceOverride !== undefined;
         const cp = ing.nutrients.cp;
         const me = ing.nutrients.me_poultry ?? ing.nutrients.tdn;
+        const feedClass = resolveFeedClass(ing);
         const meLabel =
           ing.nutrients.me_poultry !== null && ing.nutrients.me_poultry !== undefined
-            ? `ME ${formatNumberLocale(ing.nutrients.me_poultry, 0)}`
+            ? `EM ${formatNumberLocale(ing.nutrients.me_poultry, 0)}`
             : me !== null && me !== undefined
-              ? `TDN ${formatNumberLocale(me, 1)}%`
+              ? `TDN ${formatNumberLocale(me, resolveDisplayDigits("%", "tdn", decimalPlaces, me))}%`
               : pickLang(language, "Energi N/A", "Energy N/A");
         const ingName = language === "id" ? ing.name : (ing.nameEn ?? ing.name);
 
@@ -78,46 +63,46 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
             highlight={invalidBounds ? "coral" : hasOverride ? "amber" : "none"}
             className={cn("p-3.5", !isActive && "opacity-60")}
           >
-            {/* Baris 1: Squircle Kategori, Toggle Aktif, Nama & Akses Detail */}
-            <div className="flex items-start justify-between gap-2">
-              <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2.5">
-                <input
-                  type="checkbox"
-                  checked={isActive}
-                  aria-label={`Aktifkan ${ing.name}`}
-                  onChange={(e) => onUpdateIngredient(ing.id, { isActive: e.target.checked })}
-                  className="h-5 w-5 shrink-0 cursor-pointer rounded border-[var(--border-subtle)] accent-[var(--color-primary)]"
-                />
-                <GlossySquircleIcon
-                  tone={CATEGORY_TONE[ing.category]}
-                  size="sm"
-                  icon={renderCategoryIcon(ing.category)}
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-[var(--text-primary)]">{ingName}</p>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                    <Badge tone="neutral">{getCategoryLabel(language, ing.category)}</Badge>
-                    <Badge tone={ing.basis === "as_fed" ? "sky" : "emerald"}>
-                      {ing.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK", "DM")}
-                    </Badge>
-                    {hasOverride && (
-                      <Badge tone="amber">
-                        {pickLang(language, "Harga Custom", "Custom Price")}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </label>
+            {/* Baris 1A: Checkbox + Ikon Kelas Kontekstual + Judul Nama Bahan Penuh (max 2 baris) */}
+            <label className="flex min-h-9 min-w-0 cursor-pointer items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={isActive}
+                aria-label={`Aktifkan ${ing.name}`}
+                onChange={(e) => onUpdateIngredient(ing.id, { isActive: e.target.checked })}
+                className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-[var(--border-subtle)] accent-[var(--color-primary)]"
+              />
+              <FeedClassIcon
+                code={feedClass}
+                language={language}
+                className="mt-0.5 h-6 w-6 rounded-lg"
+              />
+              <p className="line-clamp-2 min-w-0 flex-1 text-sm leading-snug font-bold text-[var(--text-primary)]">
+                {ingName}
+              </p>
+            </label>
+
+            {/* Baris 1B: Badge Kategori / Basis sejajar dengan tombol Nutrien > di kanan */}
+            <div className="mt-2 flex items-center justify-between gap-2 pl-7">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                <Badge tone="neutral">{getCategoryLabel(language, ing.category)}</Badge>
+                <Badge tone={ing.basis === "as_fed" ? "sky" : "emerald"}>
+                  {ing.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK", "DM")}
+                </Badge>
+                {hasOverride && (
+                  <Badge tone="amber">{pickLang(language, "Harga Custom", "Custom Price")}</Badge>
+                )}
+              </div>
 
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => onOpenDetail(ing)}
                 aria-label={`Edit nutrien ${ing.name}`}
-                className="neu-pill-btn shrink-0 rounded-xl"
+                className="neu-pill-btn min-h-8 shrink-0 rounded-lg px-2.5 text-xs md:min-h-8"
               >
                 <span>{pickLang(language, "Nutrien", "Nutrients")}</span>
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </div>
 
@@ -161,7 +146,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
                 </span>
                 <NumericCellInput
                   value={min}
-                  fractionDigits={1}
+                  fractionDigits={resolveDisplayDigits("%", "inclusion", decimalPlaces, min)}
                   invalid={invalidBounds}
                   ariaLabel={`Min % ${ing.name}`}
                   onCommit={(next) =>
@@ -178,7 +163,7 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
                 </span>
                 <NumericCellInput
                   value={max}
-                  fractionDigits={1}
+                  fractionDigits={resolveDisplayDigits("%", "inclusion", decimalPlaces, max)}
                   invalid={invalidBounds}
                   ariaLabel={`Max % ${ing.name}`}
                   onCommit={(next) =>
@@ -200,20 +185,32 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
               </p>
             )}
 
-            {/* Baris 3: Ringkasan 3 nutrien kunci tabular */}
-            <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-[var(--border-subtle)] pt-2.5 text-[11px] tabular-nums text-[var(--text-secondary)]">
+            {/* Baris 3: Ringkasan metadata nutrisi 12px kontras tinggi */}
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border-subtle)] pt-2.5 text-xs tabular-nums text-[var(--text-secondary)]">
               <span>
                 {pickLang(language, "PK", "CP")}:{" "}
-                <strong className="text-[var(--text-primary)]">
-                  {cp !== null && cp !== undefined ? `${formatNumberLocale(cp, 1)}%` : "N/A"}
+                <strong className="font-bold text-[var(--text-primary)]">
+                  {cp !== null && cp !== undefined
+                    ? `${formatNumberLocale(cp, resolveDisplayDigits("%", "cp", decimalPlaces, cp))}%`
+                    : "N/A"}
                 </strong>
               </span>
-              <span>{meLabel}</span>
+              <span className="font-medium text-[var(--text-primary)]">{meLabel}</span>
               <span>
-                {pickLang(language, "BK", "DM")}: {formatNumberLocale(ing.dryMatter, 0)}%
+                {pickLang(language, "BK", "DM")}:{" "}
+                <strong className="font-semibold text-[var(--text-primary)]">
+                  {formatNumberLocale(
+                    ing.dryMatter,
+                    resolveDisplayDigits("%", "dm", decimalPlaces, ing.dryMatter),
+                  )}
+                  %
+                </strong>
               </span>
-              <span className="ml-auto text-[var(--text-muted)]">
-                {pickLang(language, "Pasar", "Market")}: {formatCurrencyIdr(ing.pricePerKg)}
+              <span className="ml-auto font-medium text-[var(--text-secondary)]">
+                {pickLang(language, "Pasar", "Market")}:{" "}
+                <strong className="font-semibold text-[var(--text-primary)]">
+                  {formatCurrencyIdr(ing.pricePerKg)}
+                </strong>
               </span>
             </div>
           </Card>

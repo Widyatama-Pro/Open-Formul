@@ -3,7 +3,7 @@ import { Check, Plus, Search } from "lucide-react";
 import { getSpeciesLabelI18n, pickLang } from "../../i18n";
 import type { AppLanguage, Basis, Requirement } from "../../types";
 import { cn } from "../../utils/cn";
-import { formatNumberLocale } from "../../utils/locale-number";
+import { formatNumberLocale, resolveDisplayDigits } from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -15,6 +15,7 @@ export interface RequirementLibraryPageProps {
   readonly requirements: readonly Requirement[];
   readonly activeRequirementId: string;
   readonly language: AppLanguage;
+  readonly decimalPlaces?: 0 | 1 | 2 | undefined;
   readonly onSelectAndUse: (id: string) => void;
   readonly onCreateProfile: (req: Requirement) => void;
 }
@@ -52,6 +53,7 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
   requirements,
   activeRequirementId,
   language,
+  decimalPlaces = 0,
   onSelectAndUse,
   onCreateProfile,
 }: RequirementLibraryPageProps) {
@@ -183,7 +185,7 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
 
       {/* Tabel Ringkas Standar Kebutuhan */}
       <Card interactive={false} className="overflow-hidden">
-        <div className="custom-scrollbar max-h-[68vh] overflow-auto">
+        <div className="custom-scrollbar max-h-[68vh] overflow-auto overscroll-contain">
           <table className="w-full border-collapse text-left text-xs">
             <thead className="sticky top-0 z-10 bg-[var(--bg-sunken)] text-[11px] font-bold text-[var(--text-secondary)]">
               <tr>
@@ -219,10 +221,20 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
                 const ca = req.constraints.find((c) => c.nutrientId === "ca");
                 const p = req.constraints.find((c) => c.nutrientId === "p");
 
+                const cpDigits = resolveDisplayDigits("%", "cp", decimalPlaces, cp?.min ?? cp?.max);
+                const tdnDigits = resolveDisplayDigits(
+                  "%",
+                  "tdn",
+                  decimalPlaces,
+                  tdn?.min ?? tdn?.max,
+                );
+                const caDigits = resolveDisplayDigits("%", "ca", decimalPlaces, ca?.min ?? ca?.max);
+                const pDigits = resolveDisplayDigits("%", "p", decimalPlaces, p?.min ?? p?.max);
+
                 const energyLabel = me
                   ? `${formatBoundCell(me.min, me.max, 0)} kcal`
                   : tdn
-                    ? `${formatBoundCell(tdn.min, tdn.max, 1)}% TDN`
+                    ? `${formatBoundCell(tdn.min, tdn.max, tdnDigits)}% TDN`
                     : "—";
 
                 return (
@@ -253,14 +265,14 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
                       </Badge>
                     </td>
                     <td className="px-2.5 py-2 text-right font-semibold tabular-nums text-[var(--text-primary)]">
-                      {cp ? formatBoundCell(cp.min, cp.max, 1) : "—"}
+                      {cp ? formatBoundCell(cp.min, cp.max, cpDigits) : "—"}
                     </td>
                     <td className="px-2.5 py-2 text-right tabular-nums text-[var(--text-secondary)]">
                       {energyLabel}
                     </td>
                     <td className="px-2.5 py-2 text-right whitespace-nowrap tabular-nums text-[var(--text-secondary)]">
-                      {ca ? formatBoundCell(ca.min, ca.max, 2) : "—"} /{" "}
-                      {p ? formatBoundCell(p.min, p.max, 2) : "—"}
+                      {ca ? formatBoundCell(ca.min, ca.max, caDigits) : "—"} /{" "}
+                      {p ? formatBoundCell(p.min, p.max, pDigits) : "—"}
                     </td>
                     <td className="px-3 py-2 text-right">
                       <Button

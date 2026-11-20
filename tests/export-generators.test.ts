@@ -185,7 +185,7 @@ describe("Task 2 — Pure TS CSV, OOXML .xlsx & PDF 1.4 Generators + Safety Gate
     });
     const dbAscii = new TextDecoder("latin1").decode(dbPdf);
     expect(dbAscii.startsWith("%PDF-1.4")).toBe(true);
-    expect(dbAscii).toContain("OPEN FORMULASI");
+    expect(dbAscii).toContain("OPENFORMUL");
     expect(dbAscii).toContain("KELAS 4 - SUMBER ENERGI");
     expect(dbAscii).toContain("KELAS 5 - SUMBER PROTEIN");
     expect(dbAscii.trimEnd().endsWith("%%EOF")).toBe(true);

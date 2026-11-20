@@ -3,7 +3,11 @@ import { EyeOff } from "lucide-react";
 import { getCategoryLabel, pickLang } from "../../i18n";
 import type { AppLanguage, Basis, CompositionItem, Ingredient } from "../../types";
 import { cn } from "../../utils/cn";
-import { formatCurrencyIdr, formatNumberLocale } from "../../utils/locale-number";
+import {
+  formatCurrencyIdr,
+  formatNumberLocale,
+  resolveDisplayDigits,
+} from "../../utils/locale-number";
 import { NumericCellInput } from "../formulation/NumericCellInput";
 import { Badge } from "../ui/Badge";
 
@@ -13,6 +17,7 @@ export interface BatchMixerCalculatorProps {
   readonly composition: readonly CompositionItem[];
   readonly ingredients: readonly Ingredient[];
   readonly activeBasis: Basis;
+  readonly decimalPlaces?: 0 | 1 | 2;
   readonly language?: AppLanguage;
 }
 
@@ -34,6 +39,7 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
   composition,
   ingredients,
   activeBasis,
+  decimalPlaces = 0,
   language = "id",
 }: BatchMixerCalculatorProps) {
   const [printBatchOnly, setPrintBatchOnly] = useState(false);
@@ -41,9 +47,9 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
 
   return (
     <div className="space-y-3">
-      {/* Kontrol ukuran adukan dalam wadah ringkas */}
-      <div className="neu-well flex flex-wrap items-center justify-between gap-2.5 rounded-xl p-2.5">
-        <div className="no-scrollbar flex flex-1 items-center gap-1.5 overflow-x-auto">
+      {/* Kontrol ukuran adukan dalam wadah ringkas (stack rapi pada HP, 1 baris di layar lebar) */}
+      <div className="neu-well flex flex-col gap-2 rounded-xl p-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-1.5">
           <span className="shrink-0 text-xs font-semibold text-[var(--text-primary)]">
             {pickLang(language, "Skala Adukan:", "Batch Size:")}
           </span>
@@ -162,7 +168,11 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
               const ing = ingMap.get(item.ingredientId);
               const color = BAR_COLORS[idx % BAR_COLORS.length]!;
               const pct = item.fraction * 100;
+              const afPct = (item.asFedFraction ?? item.fraction) * 100;
               const weightKg = item.weightKg ?? item.fraction * batchSizeKg;
+              const pctDigits = resolveDisplayDigits("%", "inclusion", decimalPlaces, pct);
+              const afDigits = resolveDisplayDigits("%", "inclusion", decimalPlaces, afPct);
+              const wtDigits = resolveDisplayDigits("%", "ca", decimalPlaces, weightKg);
               const ingName = ing
                 ? language === "id"
                   ? ing.name
@@ -178,15 +188,15 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
                     {ingName}
                   </td>
                   <td className="px-2 py-1.5 text-right font-semibold tabular-nums text-[var(--status-success)]">
-                    {formatNumberLocale(pct, 2)}%
+                    {formatNumberLocale(pct, pctDigits)}%
                   </td>
                   {activeBasis === "dry_matter" && (
                     <td className="px-2 py-1.5 text-right tabular-nums text-[var(--text-secondary)]">
-                      {formatNumberLocale((item.asFedFraction ?? item.fraction) * 100, 2)}%
+                      {formatNumberLocale(afPct, afDigits)}%
                     </td>
                   )}
                   <td className="px-2 py-1.5 text-right font-bold tabular-nums text-[var(--text-primary)]">
-                    {formatNumberLocale(weightKg, 2)} kg
+                    {formatNumberLocale(weightKg, wtDigits)} kg
                   </td>
                   {!printBatchOnly && (
                     <td className="px-3 py-1.5 text-right tabular-nums text-[var(--text-secondary)]">
@@ -206,7 +216,11 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
           const ing = ingMap.get(item.ingredientId);
           const color = BAR_COLORS[idx % BAR_COLORS.length]!;
           const pct = item.fraction * 100;
+          const afPct = (item.asFedFraction ?? item.fraction) * 100;
           const weightKg = item.weightKg ?? item.fraction * batchSizeKg;
+          const pctDigits = resolveDisplayDigits("%", "inclusion", decimalPlaces, pct);
+          const afDigits = resolveDisplayDigits("%", "inclusion", decimalPlaces, afPct);
+          const wtDigits = resolveDisplayDigits("%", "ca", decimalPlaces, weightKg);
           const ingName = ing
             ? language === "id"
               ? ing.name
@@ -222,13 +236,14 @@ export const BatchMixerCalculator = memo(function BatchMixerCalculator({
                   </span>
                 </div>
                 <span className="shrink-0 text-xs font-bold tabular-nums text-[var(--status-success)]">
-                  {formatNumberLocale(pct, 2)}% · {formatNumberLocale(weightKg, 2)} kg
+                  {formatNumberLocale(pct, pctDigits)}% · {formatNumberLocale(weightKg, wtDigits)}{" "}
+                  kg
                 </span>
               </div>
               <div className="mt-1.5 flex items-center justify-between text-[11px] tabular-nums text-[var(--text-secondary)]">
                 <span>
                   {activeBasis === "dry_matter"
-                    ? `${pickLang(language, "Segar As-Fed:", "Fresh As-Fed:")} ${formatNumberLocale((item.asFedFraction ?? item.fraction) * 100, 2)}%`
+                    ? `${pickLang(language, "Segar As-Fed:", "Fresh As-Fed:")} ${formatNumberLocale(afPct, afDigits)}%`
                     : `${pickLang(language, "Kategori:", "Category:")} ${ing ? getCategoryLabel(language, ing.category) : "-"}`}
                 </span>
                 {!printBatchOnly ? (

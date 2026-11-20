@@ -2,6 +2,19 @@ export { buildLpModel } from "./buildModel";
 export { computeCriticalRegionStepping, type CriticalStep } from "./criticalStepping";
 export { computeEnzymeUplift, computeIngredientEnzymeUplift } from "./enzymes";
 export { findMinimalIis } from "./iis";
+export {
+  detectNutrientGaps,
+  getIndonesiaAvailabilityTier,
+  recommendIngredientsForGaps,
+  type IndonesiaAvailabilityTier,
+  type IngredientSuggestion,
+  type NutrientGapInfo,
+} from "./ingredientAdvisor";
+export {
+  isUpperBoundOnlyNutrient,
+  resolveEffectiveConstraintBounds,
+  resolveSingleTargetValue,
+} from "./modelHelpers";
 export { runPrecheck } from "./precheck";
 export { evaluateRumenBiology, isRumenEvaluationRelevant } from "./rumenEvaluator";
 export { solveFormulationWithRunner, type SolveOptions } from "./solveFormulation";

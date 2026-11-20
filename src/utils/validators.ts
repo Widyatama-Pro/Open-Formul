@@ -1,8 +1,10 @@
 import type {
   Basis,
   Bounds,
+  EnzymeConfig,
   FeedClassCode,
   FormulationConfig,
+  FractionalObjective,
   Ingredient,
   IngredientCategory,
   IngredientGroupConstraint,
@@ -14,6 +16,7 @@ import type {
   RatioConstraint,
   Recipe,
   Requirement,
+  TableViewTier,
   ThemeModeSetting,
   ThemePaletteId,
   UserPreferences,
@@ -660,19 +663,98 @@ export function validateFormulationConfig(raw: unknown): ValidationResult<Formul
     return { ok: false, errors };
   }
 
+  let fractionalObjective: FractionalObjective | undefined;
+  if (
+    isPlainObject(raw.fractionalObjective) &&
+    raw.fractionalObjective.mode === "cost_per_nutrient"
+  ) {
+    const nutId = sanitizeText(raw.fractionalObjective.nutrientId, { maxLength: 80 });
+    if (nutId && !FORBIDDEN_KEYS.has(nutId)) {
+      const eps = parseFiniteNumber(raw.fractionalObjective.denominatorEpsilon);
+      fractionalObjective = {
+        mode: "cost_per_nutrient",
+        nutrientId: nutId,
+        ...(eps !== null && eps > 0 ? { denominatorEpsilon: eps } : {}),
+      };
+    }
+  }
+
+  let enzymes: EnzymeConfig[] | undefined;
+  if (Array.isArray(raw.enzymes)) {
+    const parsedEnzymes: EnzymeConfig[] = [];
+    for (const item of raw.enzymes.slice(0, 12)) {
+      if (!isPlainObject(item)) continue;
+      const eid = sanitizeText(item.id, { maxLength: 80 });
+      const etype =
+        item.type === "phytase" || item.type === "xylanase" || item.type === "protease"
+          ? item.type
+          : null;
+      if (!eid || !etype || !isPlainObject(item.matrix)) continue;
+      const matrix: Record<string, number> = {};
+      for (const [mk, mv] of Object.entries(item.matrix)) {
+        if (FORBIDDEN_KEYS.has(mk)) continue;
+        const num = parseFiniteNumber(mv);
+        if (num !== null) matrix[mk] = num;
+      }
+      const retention = parseFiniteNumber(item.thermalRetention);
+      const incl = parseFiniteNumber(item.inclusionFraction);
+      const subId = sanitizeText(item.substrateNutrientId, { maxLength: 80 });
+      parsedEnzymes.push({
+        id: eid,
+        type: etype,
+        matrix,
+        ...(retention !== null ? { thermalRetention: Math.min(1, Math.max(0, retention)) } : {}),
+        ...(incl !== null ? { inclusionFraction: Math.min(1, Math.max(0, incl)) } : {}),
+        ...(subId ? { substrateNutrientId: subId } : {}),
+      });
+    }
+    if (parsedEnzymes.length > 0) {
+      enzymes = parsedEnzymes;
+    }
+  }
+
+  const stochasticMaxIter = parseFiniteNumber(raw.stochasticMaxIter);
+  const stochasticDamping = parseFiniteNumber(raw.stochasticDamping);
+  const stochasticTolerance = parseFiniteNumber(raw.stochasticTolerance);
+  const enzymeSubAdditiveCap = parseFiniteNumber(raw.enzymeSubAdditiveCap);
+
+  const targetInputMode =
+    raw.targetInputMode === "single"
+      ? ("single" as const)
+      : raw.targetInputMode === "range"
+        ? ("range" as const)
+        : undefined;
+
   return {
     ok: true,
     data: {
       optimizationMode,
       activeBasis,
       batchSizeKg,
+      ...(targetInputMode !== undefined ? { targetInputMode } : {}),
       enableAdvanceNutrients: Boolean(raw.enableAdvanceNutrients),
       ...(raw.showNdf !== undefined ? { showNdf: Boolean(raw.showNdf) } : {}),
+      ...(raw.showBetn !== undefined ? { showBetn: Boolean(raw.showBetn) } : {}),
       enableDigestibleBasis: Boolean(raw.enableDigestibleBasis),
       enableElasticFallback: raw.enableElasticFallback !== false,
       globalZeroInclusion: zeroRule,
       ...(manualLocks ? { manualLocks } : {}),
       ...(customNutrients !== undefined ? { customNutrients } : {}),
+      ...(fractionalObjective ? { fractionalObjective } : {}),
+      ...(raw.enableStochasticSlp !== undefined
+        ? { enableStochasticSlp: Boolean(raw.enableStochasticSlp) }
+        : {}),
+      ...(stochasticMaxIter !== null
+        ? { stochasticMaxIter: Math.max(1, Math.min(40, Math.round(stochasticMaxIter))) }
+        : {}),
+      ...(stochasticDamping !== null
+        ? { stochasticDamping: Math.min(1, Math.max(0.1, stochasticDamping)) }
+        : {}),
+      ...(stochasticTolerance !== null && stochasticTolerance > 0 ? { stochasticTolerance } : {}),
+      ...(enzymes ? { enzymes } : {}),
+      ...(enzymeSubAdditiveCap !== null
+        ? { enzymeSubAdditiveCap: Math.min(1, Math.max(0.1, enzymeSubAdditiveCap)) }
+        : {}),
     },
   };
 }
@@ -709,6 +791,15 @@ export function validateUserPreferences(raw: unknown): ValidationResult<UserPref
   const defaultBasis = validateBasis(raw.defaultBasis) ?? "as_fed";
   const batch = parseFiniteNumber(raw.defaultBatchKg);
   const zeroPct = parseFiniteNumber(raw.zeroInclusionDefaultPct);
+  const decRaw = parseFiniteNumber(raw.decimalPlaces);
+  const decimalPlaces: 0 | 1 | 2 | undefined =
+    decRaw === 0 || decRaw === 1 || decRaw === 2 ? decRaw : undefined;
+  const tableViewTier: TableViewTier | undefined =
+    raw.tableViewTier === "basic" ||
+    raw.tableViewTier === "standard" ||
+    raw.tableViewTier === "advanced"
+      ? raw.tableViewTier
+      : undefined;
   return {
     ok: true,
     data: {
@@ -721,6 +812,8 @@ export function validateUserPreferences(raw: unknown): ValidationResult<UserPref
       defaultBatchKg: batch !== null && batch > 0 ? batch : 100,
       zeroInclusionDefaultPct: zeroPct !== null && zeroPct >= 0 && zeroPct <= 50 ? zeroPct : 1,
       ...(raw.simpleMode !== undefined ? { simpleMode: Boolean(raw.simpleMode) } : {}),
+      ...(decimalPlaces !== undefined ? { decimalPlaces } : {}),
+      ...(tableViewTier !== undefined ? { tableViewTier } : {}),
     },
   };
 }

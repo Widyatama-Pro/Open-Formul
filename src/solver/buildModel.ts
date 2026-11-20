@@ -10,12 +10,15 @@ import { computeIngredientEnzymeUplift } from "./enzymes";
 import {
   computeScaleFactor,
   getModeWeights,
+  isUpperBoundOnlyNutrient,
   normalizeActiveIngredients,
   resolveActiveConstraints,
+  resolveEffectiveConstraintBounds,
   resolveEffectiveInclusion,
   resolveIngredientStdDev,
   resolveNutrientGoalTarget,
   resolveRequirementVariance,
+  resolveSingleTargetValue,
 } from "./modelHelpers";
 import { computeKappa, linearizeChanceConstraint } from "./stochastic";
 import type { BuildModelOptions, LpModel, LpRow, LpTerm, LpVariable } from "./types";
@@ -89,9 +92,13 @@ export function buildLpModel(
   const nutValue = (ing: Ingredient, nutrientId: string): number =>
     ingValue(ing, nutrientId) + getUplift(ing, nutrientId);
 
+  const singleTargetMode = config.targetInputMode === "single";
   const activeConstraints = resolveActiveConstraints(requirement, config);
   const goalTargets = activeConstraints
-    .map((c) => ({ constraint: c, target: resolveNutrientGoalTarget(c) }))
+    .map((c) => ({
+      constraint: c,
+      target: singleTargetMode ? resolveSingleTargetValue(c) : resolveNutrientGoalTarget(c),
+    }))
     .filter(
       (
         entry,
@@ -101,11 +108,20 @@ export function buildLpModel(
       } => entry.target !== null,
     );
 
-  const { wCost, wDev } = getModeWeights(config.optimizationMode);
+  const rawWeights = getModeWeights(config.optimizationMode);
+  const { wCost, wDev } = singleTargetMode
+    ? config.optimizationMode === 5
+      ? rawWeights
+      : {
+          wCost: Math.max(0.08, rawWeights.wCost * 0.25),
+          wDev: Math.min(0.92, 0.75 + rawWeights.wDev * 0.2),
+        }
+    : rawWeights;
   const fractional = config.fractionalObjective;
   const fractionalLambda = options.fractionalLambda ?? 0;
   const useChebyshev = !fractional && config.optimizationMode === 5 && goalTargets.length > 0;
-  const useGoals = !fractional && !useChebyshev && wDev > 0 && goalTargets.length > 0;
+  const useGoals =
+    !fractional && !useChebyshev && (wDev > 0 || singleTargetMode) && goalTargets.length > 0;
 
   // Mode 1: koefisien objective murni harga IDR/kg.
   // Mode 2-4: normalisasi harga & deviasi terukur.
@@ -261,42 +277,46 @@ export function buildLpModel(
       return { terms: shifted, rhsDelta: lin.rhsShift };
     };
 
-    if (c.min !== undefined && c.max !== undefined && Math.abs(c.min - c.max) <= EPS) {
+    const eff = resolveEffectiveConstraintBounds(c, singleTargetMode);
+    const isUpperOnly = singleTargetMode && isUpperBoundOnlyNutrient(c.nutrientId, c);
+    const effectiveTier = isUpperOnly ? (c.tier ?? "tier1") : c.tier;
+
+    if (eff.min !== undefined && eff.max !== undefined && Math.abs(eff.min - eff.max) <= EPS) {
       pushConstraintRow(
         "nut",
         baseTerms,
         "=",
-        c.min,
-        { kind: "nutrient_eq", nutrientId: c.nutrientId, boundValue: c.min },
-        c.min,
-        c.tier,
+        eff.min,
+        { kind: "nutrient_eq", nutrientId: c.nutrientId, boundValue: eff.min },
+        eff.min,
+        effectiveTier,
       );
       continue;
     }
 
-    if (c.min !== undefined) {
+    if (eff.min !== undefined) {
       const { terms, rhsDelta } = shiftTerms(baseTerms, ">=");
       pushConstraintRow(
         "nut_min",
         terms,
         ">=",
-        c.min + rhsDelta,
-        { kind: "nutrient_min", nutrientId: c.nutrientId, boundValue: c.min },
-        c.min,
-        c.tier,
+        eff.min + rhsDelta,
+        { kind: "nutrient_min", nutrientId: c.nutrientId, boundValue: eff.min },
+        eff.min,
+        effectiveTier,
       );
     }
 
-    if (c.max !== undefined) {
+    if (eff.max !== undefined) {
       const { terms, rhsDelta } = shiftTerms(baseTerms, "<=");
       pushConstraintRow(
         "nut_max",
         terms,
         "<=",
-        c.max + rhsDelta,
-        { kind: "nutrient_max", nutrientId: c.nutrientId, boundValue: c.max },
-        c.max,
-        c.tier,
+        eff.max + rhsDelta,
+        { kind: "nutrient_max", nutrientId: c.nutrientId, boundValue: eff.max },
+        eff.max,
+        effectiveTier,
       );
     }
   }
@@ -438,27 +458,32 @@ export function buildLpModel(
     }
   }
 
-  // 5a. Goal programming (Mode 2-4): Σ a_kj x_j - dp_k + dn_k = target_k
+  // 5a. Goal programming (Mode 2-4 & Mode Pendekatan 1 Angka): Σ a_kj x_j - dp_k + dn_k = target_k
   if (useGoals) {
     const perGoalWeight = wDev / goalTargets.length;
     goalTargets.forEach(({ constraint, target }, gIdx) => {
       const dpVar = `dp${gIdx}`;
       const dnVar = `dn${gIdx}`;
       const goalScale = computeScaleFactor(target);
-      const devCoeff = perGoalWeight / goalScale;
+      const isUpperOnly =
+        singleTargetMode && isUpperBoundOnlyNutrient(constraint.nutrientId, constraint);
+      // Untuk batas maksimal (SK/cf) pada Mode 1 Angka: usahakan tetap mendekati dari bawah
+      // tanpa mendistorsi pemenuhan nutrien utama, sambil melarang keras kelebihan (<= target).
+      const posCoeff = isUpperOnly ? (perGoalWeight * 2) / goalScale : perGoalWeight / goalScale;
+      const negCoeff = isUpperOnly ? (perGoalWeight * 0.55) / goalScale : perGoalWeight / goalScale;
 
       variables.push(
         {
           varName: dpVar,
           role: "goal_pos",
-          objectiveCoeff: devCoeff,
+          objectiveCoeff: posCoeff,
           lower: 0,
           upper: null,
         },
         {
           varName: dnVar,
           role: "goal_neg",
-          objectiveCoeff: devCoeff,
+          objectiveCoeff: negCoeff,
           lower: 0,
           upper: null,
         },

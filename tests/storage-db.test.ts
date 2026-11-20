@@ -268,4 +268,27 @@ describe("Task 3 — IndexedDB Persistence & Non-Destructive Store Integration (
     expect(cornAfterCsv.pricePerKg).toBe(5750);
     expect(cornAfterCsv.nutrients.lys).toBe(0.26);
   });
+
+  it("melakukan backfill non-destruktif nutrien BETN pada bahan tersimpan lama tanpa menimpa harga pengguna", async () => {
+    const dbName = makeUniqueDbName("openformul-betn-backfill");
+    const seeded = await hydrateOrSeedDatabase(dbName);
+
+    // Simulasikan record lama sebelum kolom betn ada + punya priceOverride pengguna
+    const legacyIngredients = seeded.ingredients.map((ing) => {
+      if (ing.id !== "hartadi-rumput-gajah") return ing;
+      const { betn: _removed, ...restNutrients } = ing.nutrients;
+      return {
+        ...ing,
+        priceOverride: 650,
+        nutrients: restNutrients,
+      };
+    });
+    await saveIngredientsToDb(legacyIngredients, dbName);
+
+    const hydrated = await hydrateOrSeedDatabase(dbName);
+    const napier = hydrated.ingredients.find((i) => i.id === "hartadi-rumput-gajah");
+    expect(napier).toBeDefined();
+    expect(napier?.priceOverride).toBe(650);
+    expect(typeof napier?.nutrients.betn).toBe("number");
+  });
 });

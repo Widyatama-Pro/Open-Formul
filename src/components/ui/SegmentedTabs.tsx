@@ -3,6 +3,8 @@ import { cn } from "../../utils/cn";
 export interface TabOption<T extends string> {
   readonly value: T;
   readonly label: string;
+  /** Label ringkas opsional khusus layar mobile (< sm) agar seluruh tab muat tanpa terpotong. */
+  readonly mobileLabel?: string | undefined;
   readonly badge?: string | number | undefined;
 }
 
@@ -11,15 +13,18 @@ export interface SegmentedTabsProps<T extends string> {
   readonly value: T;
   readonly onChange: (next: T) => void;
   readonly ariaLabel: string;
+  /** Bila aktif, semua tab muat proporsional dalam lebar layar HP tanpa overflow horizontal. */
+  readonly fitMobile?: boolean | undefined;
   readonly className?: string | undefined;
 }
 
-/** Kontrol tab tersegmentasi dengan slide horizontal mulus tanpa scrollbar. */
+/** Kontrol tab tersegmentasi yang adaptif pada desktop maupun layar HP sempit. */
 export function SegmentedTabs<T extends string>({
   options,
   value,
   onChange,
   ariaLabel,
+  fitMobile = false,
   className,
 }: SegmentedTabsProps<T>) {
   return (
@@ -27,7 +32,10 @@ export function SegmentedTabs<T extends string>({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        "no-scrollbar neu-pressed inline-flex w-full overflow-x-auto rounded-xl p-1",
+        "neu-pressed rounded-xl p-1",
+        fitMobile
+          ? "grid w-full grid-flow-col auto-cols-fr gap-0.5 sm:inline-flex sm:w-auto sm:gap-1"
+          : "no-scrollbar inline-flex w-full overflow-x-auto",
         className,
       )}
     >
@@ -41,13 +49,25 @@ export function SegmentedTabs<T extends string>({
             aria-selected={active}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "inline-flex min-h-9 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-[transform,background-color,color,box-shadow] duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] md:min-h-7 motion-reduce:transform-none",
+              "inline-flex cursor-pointer items-center justify-center rounded-lg font-semibold transition-[transform,background-color,color,box-shadow] duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none",
+              fitMobile
+                ? "min-h-10 min-w-0 flex-wrap gap-1 px-1.5 py-1 text-center text-[11px] leading-tight sm:min-h-7 sm:flex-nowrap sm:gap-1.5 sm:px-2.5 sm:text-xs sm:whitespace-nowrap"
+                : "min-h-9 flex-1 shrink-0 gap-1.5 px-2.5 py-1 text-xs whitespace-nowrap md:min-h-7",
               active
                 ? "bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[var(--shadow-neu-flat)]"
                 : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
             )}
           >
-            <span className="truncate">{opt.label}</span>
+            {opt.mobileLabel ? (
+              <>
+                <span className="sm:hidden">{opt.mobileLabel}</span>
+                <span className="hidden truncate sm:inline">{opt.label}</span>
+              </>
+            ) : (
+              <span className={cn(fitMobile ? "break-words sm:truncate" : "truncate")}>
+                {opt.label}
+              </span>
+            )}
             {opt.badge !== undefined && (
               <span
                 className={cn(

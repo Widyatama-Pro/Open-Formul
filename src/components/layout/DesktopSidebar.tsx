@@ -27,22 +27,22 @@ export interface DesktopSidebarProps {
 function renderNavIcon(id: AppRoute) {
   switch (id) {
     case "formulation":
-      return <Calculator className="h-[19px] w-[19px] shrink-0" />;
+      return <Calculator className="h-[23px] w-[23px] shrink-0" />;
     case "ingredients":
-      return <Wheat className="h-[19px] w-[19px] shrink-0" />;
+      return <Wheat className="h-[18px] w-[18px] shrink-0" />;
     case "requirements":
-      return <ClipboardList className="h-[19px] w-[19px] shrink-0" />;
+      return <ClipboardList className="h-[18px] w-[18px] shrink-0" />;
     case "recipes":
-      return <FolderOpen className="h-[19px] w-[19px] shrink-0" />;
+      return <FolderOpen className="h-[18px] w-[18px] shrink-0" />;
     case "advanced":
-      return <Layers className="h-[19px] w-[19px] shrink-0" />;
+      return <Layers className="h-[18px] w-[18px] shrink-0" />;
     case "settings":
-      return <Settings className="h-[19px] w-[19px] shrink-0" />;
+      return <Settings className="h-[18px] w-[18px] shrink-0" />;
   }
 }
 
 /**
- * Sidebar desktop mengikuti token --shell-chrome-bg, logo Open Formulasi,
+ * Sidebar desktop mengikuti token --shell-chrome-bg, logo OpenFormul,
  * indikator aktif Liquid Concave Cutout, serta tombol perbesar/perkecil yang jelas.
  */
 export const DesktopSidebar = memo(function DesktopSidebar({
@@ -57,90 +57,106 @@ export const DesktopSidebar = memo(function DesktopSidebar({
       aria-label="Navigasi utama desktop"
       className={cn(
         "relative z-30 hidden shrink-0 flex-col justify-between bg-[var(--shell-chrome-bg)] pb-3 text-[var(--shell-chrome-fg)] transition-[width] duration-200 lg:flex",
-        expanded ? "w-52 min-w-52 max-w-52" : "w-16 min-w-16 max-w-16",
+        expanded ? "w-56 min-w-56 max-w-56" : "w-[68px] min-w-[68px] max-w-[68px]",
       )}
     >
       <div className="flex flex-col items-center">
         {/* Titik logo jangkar untuk App Intro Reveal */}
         <div
           className={cn(
-            "flex h-[52px] w-full shrink-0 items-center border-b border-[var(--shell-chrome-border)]",
-            expanded ? "justify-between px-3" : "justify-center",
+            "flex h-[60px] w-full shrink-0 items-center border-b border-[var(--shell-chrome-border)]",
+            expanded ? "justify-between px-3.5" : "justify-center",
           )}
         >
           <button
             type="button"
             onClick={() => onNavigate("formulation")}
-            aria-label="Open Formulasi — Beranda Formulasi"
-            title="Open Formulasi"
-            className="inline-flex cursor-pointer items-center gap-2 rounded-xl transition-transform duration-150 hover:opacity-95 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none"
+            aria-label="OpenFormul — Beranda Formulasi"
+            title="OpenFormul"
+            className="inline-flex cursor-pointer items-center gap-2.5 rounded-xl transition-transform duration-150 hover:opacity-95 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none"
           >
             <img
               src={appLogo}
-              alt="Logo Open Formulasi"
-              className="h-9 w-9 shrink-0 rounded-xl object-cover ring-1 ring-white/20"
+              alt="Logo OpenFormul"
+              className="h-11 w-11 shrink-0 rounded-xl object-cover ring-1 ring-white/25"
             />
             {expanded && (
-              <span className="inline-flex items-baseline gap-1 truncate text-sm font-bold tracking-tight">
+              <span className="inline-flex items-baseline gap-0 truncate text-[18px] font-extrabold tracking-tight">
                 <span className="text-[var(--shell-chrome-fg)]">Open</span>
-                <span className="text-[var(--shell-chrome-accent)]">Formulasi</span>
+                <span className="text-[var(--shell-chrome-accent)]">Formul</span>
               </span>
             )}
           </button>
         </div>
 
-        <nav className="mt-2.5 flex w-full flex-col gap-1.5" aria-label="Menu modul">
+        <nav className="mt-2.5 flex w-full flex-col gap-1" aria-label="Menu modul">
           {NAV_ITEMS.map((item) => {
             const active = item.id === route;
+            const isPrimaryHub = item.id === "formulation";
             const fullLabel = getNavLabel(item, language);
 
             return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onNavigate(item.id)}
-                aria-label={fullLabel}
-                aria-current={active ? "page" : undefined}
-                title={expanded ? undefined : fullLabel}
-                className={cn(
-                  "group relative flex h-11 w-full cursor-pointer items-center transition-transform duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none",
-                  expanded ? "justify-start gap-2.5 pl-5 pr-3 text-left" : "justify-center",
-                  active
-                    ? "text-[var(--shell-active-fg)]"
-                    : "text-[var(--shell-chrome-muted)] hover:text-[var(--shell-chrome-fg)]",
-                )}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="active-nav-cutout"
-                    transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.8 }}
-                    className="nav-liquid-cutout"
-                    aria-hidden="true"
-                  />
-                )}
-
-                <span
+              <div key={item.id} className="w-full">
+                <button
+                  type="button"
+                  onClick={() => onNavigate(item.id)}
+                  aria-label={fullLabel}
+                  aria-current={active ? "page" : undefined}
+                  title={expanded ? undefined : fullLabel}
                   className={cn(
-                    "relative z-10 flex items-center justify-center transition-transform duration-150 group-hover:scale-105 motion-reduce:transform-none",
-                    active && !expanded && "translate-x-0.5",
+                    "group relative flex w-full cursor-pointer items-center transition-transform duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none",
+                    isPrimaryHub ? "h-12" : "h-10.5",
+                    expanded ? "justify-start gap-2.5 pl-5 pr-3 text-left" : "justify-center",
+                    active
+                      ? "text-[var(--shell-active-fg)]"
+                      : "text-[var(--shell-chrome-muted)] hover:text-[var(--shell-chrome-fg)]",
                   )}
                 >
-                  {renderNavIcon(item.id)}
-                </span>
+                  {active && (
+                    <motion.span
+                      layoutId="active-nav-cutout"
+                      transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.8 }}
+                      className="nav-liquid-cutout"
+                      aria-hidden="true"
+                    />
+                  )}
 
-                {expanded && (
-                  <span className="relative z-10 truncate text-xs font-semibold">{fullLabel}</span>
-                )}
-
-                {!expanded && (
                   <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute left-full z-50 ml-2.5 translate-x-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap text-[var(--text-primary)] opacity-0 shadow-[var(--shadow-neu-flat)] transition-[opacity,transform] duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100"
+                    className={cn(
+                      "relative z-10 flex items-center justify-center transition-transform duration-150 group-hover:scale-105 motion-reduce:transform-none",
+                      active && !expanded && "translate-x-0.5",
+                    )}
                   >
-                    {fullLabel}
+                    {renderNavIcon(item.id)}
                   </span>
+
+                  {expanded && (
+                    <span
+                      className={cn(
+                        "relative z-10 truncate",
+                        isPrimaryHub ? "text-[13px] font-bold" : "text-xs font-semibold",
+                      )}
+                    >
+                      {fullLabel}
+                    </span>
+                  )}
+
+                  {!expanded && (
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute left-full z-50 ml-2.5 translate-x-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap text-[var(--text-primary)] opacity-0 shadow-[var(--shadow-neu-flat)] transition-[opacity,transform] duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100"
+                    >
+                      {fullLabel}
+                    </span>
+                  )}
+                </button>
+                {isPrimaryHub && (
+                  <div
+                    aria-hidden="true"
+                    className="mx-3.5 my-1.5 border-b border-[var(--shell-chrome-border)] opacity-70"
+                  />
                 )}
-              </button>
+              </div>
             );
           })}
         </nav>

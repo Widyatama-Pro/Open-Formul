@@ -1,6 +1,7 @@
 import { HARTADI_FEEDS } from "./hartadi-feeds";
 import { KEARL_REQUIREMENTS, NRC_1988_DAIRY_REQUIREMENTS } from "./kearl-requirements";
 import { SNI_REQUIREMENTS } from "./sni-requirements";
+import { resolveEffectiveConstraintBounds } from "../solver/modelHelpers";
 import type {
   Basis,
   BoundDualItem,
@@ -103,7 +104,14 @@ export const MOCK_NUTRIENTS: readonly Nutrient[] = [
   // Advance: Fiber & carbohydrate fractions
   { id: "ndf", name: "NDF", nameEn: "Neutral Detergent Fiber", unit: "%", tier: "fiber_carb" },
   { id: "adf", name: "ADF", nameEn: "Acid Detergent Fiber", unit: "%", tier: "fiber_carb" },
-  { id: "starch", name: "Pati / BETN", nameEn: "Starch", unit: "%", tier: "fiber_carb" },
+  { id: "starch", name: "Pati", nameEn: "Starch", unit: "%", tier: "fiber_carb" },
+  {
+    id: "betn",
+    name: "BETN (Ekstrak Tanpa Nitrogen)",
+    nameEn: "NFE (Nitrogen-Free Extract)",
+    unit: "%",
+    tier: "fiber_carb",
+  },
   // Advance: ANF & physical pellet limits (max-only)
   { id: "tannin", name: "Tanin", nameEn: "Tannin", unit: "%", tier: "anf_physical" },
   {
@@ -321,6 +329,7 @@ export const MOCK_INGREDIENTS: readonly Ingredient[] = [
       ndf: 0,
       adf: 0,
       starch: 0,
+      betn: 0,
       tannin: 0,
       liquid_fat: 100,
     },
@@ -355,6 +364,7 @@ export const MOCK_INGREDIENTS: readonly Ingredient[] = [
       ndf: 0,
       adf: 0,
       starch: 0,
+      betn: 0,
       tannin: 0,
       liquid_fat: 0,
     },
@@ -389,6 +399,7 @@ export const MOCK_INGREDIENTS: readonly Ingredient[] = [
       ndf: 0,
       adf: 0,
       starch: 0,
+      betn: 0,
       tannin: 0,
       liquid_fat: 0,
     },
@@ -423,6 +434,7 @@ export const MOCK_INGREDIENTS: readonly Ingredient[] = [
       ndf: 0,
       adf: 0,
       starch: 0,
+      betn: 0,
       tannin: 0,
       liquid_fat: 0,
     },
@@ -457,6 +469,7 @@ export const MOCK_INGREDIENTS: readonly Ingredient[] = [
       ndf: 0,
       adf: 0,
       starch: 0,
+      betn: 0,
       tannin: 0,
       liquid_fat: 0,
     },
@@ -610,6 +623,7 @@ export const DEFAULT_CONFIG: FormulationConfig = {
   batchSizeKg: 100,
   enableAdvanceNutrients: false,
   showNdf: false,
+  showBetn: false,
   enableDigestibleBasis: false,
   enableElasticFallback: true,
   globalZeroInclusion: { enforceNonZero: true, minIfSelected: 1 },
@@ -624,6 +638,8 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   defaultBatchKg: 100,
   zeroInclusionDefaultPct: 1,
   simpleMode: true,
+  decimalPlaces: 0,
+  tableViewTier: "basic",
 };
 
 export const MOCK_SAVED_RECIPES: readonly Recipe[] = [
@@ -823,17 +839,35 @@ export function evaluateMockFormulation(
   const customIds = new Set((config.customNutrients ?? []).map((n) => n.id));
   const visibleConstraints = requirement.constraints.filter((c) => {
     const isCustom = customIds.has(c.nutrientId);
+    const isNdfVisible =
+      config.showNdf === true && (c.nutrientId === "ndf" || c.nutrientId === "adf");
+    const isBetnVisible = config.showBetn === true && c.nutrientId === "betn";
     return (
-      (isCustom || c.isAdvance !== true || config.enableAdvanceNutrients) && c.enabled !== false
+      (isCustom ||
+        c.isAdvance !== true ||
+        config.enableAdvanceNutrients ||
+        isNdfVisible ||
+        isBetnVisible) &&
+      c.enabled !== false
     );
   });
 
-  // Pastikan setiap nutrien kustom selalu dievaluasi meskipun belum punya target Min/Max
+  // Pastikan setiap nutrien kustom, NDF/ADF aktif, maupun BETN aktif selalu dievaluasi meskipun belum punya target Min/Max
   const evalConstraints: typeof visibleConstraints = [...visibleConstraints];
   for (const custom of config.customNutrients ?? []) {
     if (!evalConstraints.some((c) => c.nutrientId === custom.id)) {
       evalConstraints.push({ nutrientId: custom.id, enabled: true });
     }
+  }
+  if (config.showNdf === true) {
+    for (const ndfId of ["ndf", "adf"]) {
+      if (!evalConstraints.some((c) => c.nutrientId === ndfId)) {
+        evalConstraints.push({ nutrientId: ndfId, enabled: true });
+      }
+    }
+  }
+  if (config.showBetn === true && !evalConstraints.some((c) => c.nutrientId === "betn")) {
+    evalConstraints.push({ nutrientId: "betn", enabled: true });
   }
 
   for (const c of visibleConstraints) {
@@ -985,6 +1019,7 @@ export function evaluateMockFormulation(
     .sort((a, b) => b.fraction - a.fraction);
 
   // Evaluasi capaian nutrien & cek deviasi
+  const singleMode = config.targetInputMode === "single";
   const nutrientResults: NutrientResult[] = [];
   let hasViolation = false;
 
@@ -1000,28 +1035,29 @@ export function evaluateMockFormulation(
       val += item.fraction * (converted ?? 0);
     }
 
+    const eff = resolveEffectiveConstraintBounds(c, singleMode);
     let status: NutrientResult["status"] = "met";
     let deviation = 0;
-    if (c.min !== undefined && val < c.min - 1e-6) {
+    if (eff.min !== undefined && val < eff.min - 1e-6) {
       status = "below_min";
-      deviation = val - c.min;
+      deviation = val - eff.min;
       hasViolation = true;
-    } else if (c.max !== undefined && val > c.max + 1e-6) {
+    } else if (eff.max !== undefined && val > eff.max + 1e-6) {
       status = "above_max";
-      deviation = val - c.max;
+      deviation = val - eff.max;
       hasViolation = true;
-    } else if (c.min === undefined && c.max === undefined) {
+    } else if (eff.min === undefined && eff.max === undefined) {
       status = "unconstrained";
     }
 
     nutrientResults.push({
       nutrientId: c.nutrientId,
       value: val,
-      ...(c.min !== undefined ? { min: c.min } : {}),
-      ...(c.max !== undefined ? { max: c.max } : {}),
+      ...(eff.min !== undefined ? { min: eff.min } : {}),
+      ...(eff.max !== undefined ? { max: eff.max } : {}),
       status,
       deviation,
-      shadowPrice: status === "met" && c.min !== undefined ? Math.round((c.min * 18) % 240) : 0,
+      shadowPrice: status === "met" && eff.min !== undefined ? Math.round((eff.min * 18) % 240) : 0,
     });
   }
 

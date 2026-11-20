@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Activity } from "lucide-react";
 import { MOCK_NUTRIENTS } from "../../data/mock-state";
 import { getFormulationStatusLabel, getNutrientDisplayName, pickLang } from "../../i18n";
@@ -10,7 +10,12 @@ import type {
   Nutrient,
   Requirement,
 } from "../../types";
-import { formatCurrencyIdr, formatNumberLocale } from "../../utils/locale-number";
+import { cn } from "../../utils/cn";
+import {
+  formatCurrencyIdr,
+  formatNumberLocale,
+  resolveDisplayDigits,
+} from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { SegmentedTabs } from "../ui/SegmentedTabs";
@@ -22,6 +27,7 @@ import { ShadowPriceTab } from "./ShadowPriceTab";
 import { WhatIfManualLock } from "./WhatIfManualLock";
 
 export type ResultSubTab = "batch" | "charts" | "dual" | "whatif";
+export type ResultSpotlightTarget = "dual" | "whatif" | "rumen" | null;
 
 export interface ResultsPanelProps {
   readonly result: FormulationResult;
@@ -29,10 +35,13 @@ export interface ResultsPanelProps {
   readonly allNutrients?: readonly Nutrient[];
   readonly requirement?: Requirement;
   readonly config: FormulationConfig;
+  readonly decimalPlaces?: 0 | 1 | 2;
   readonly simpleMode?: boolean;
   readonly language?: AppLanguage;
   readonly hideKpiStrip?: boolean;
   readonly activeSubTab?: ResultSubTab;
+  readonly spotlightTarget?: ResultSpotlightTarget;
+  readonly onClearSpotlight?: () => void;
   readonly onSubTabChange?: (tab: ResultSubTab) => void;
   readonly onSetBatchSize: (kg: number) => void;
   readonly onToggleElastic: (enabled: boolean) => void;
@@ -46,10 +55,13 @@ export const ResultsPanel = memo(function ResultsPanel({
   allNutrients,
   requirement,
   config,
+  decimalPlaces = 0,
   simpleMode = !config.enableAdvanceNutrients,
   language = "id",
   hideKpiStrip = false,
   activeSubTab,
+  spotlightTarget = null,
+  onClearSpotlight,
   onSubTabChange,
   onSetBatchSize,
   onToggleElastic,
@@ -61,7 +73,29 @@ export const ResultsPanel = memo(function ResultsPanel({
   const setSubTab = (next: ResultSubTab) => {
     setInternalSubTab(next);
     onSubTabChange?.(next);
+    onClearSpotlight?.();
   };
+
+  const dualRef = useRef<HTMLDivElement | null>(null);
+  const whatIfRef = useRef<HTMLDivElement | null>(null);
+  const rumenRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!spotlightTarget) return;
+    const targetEl =
+      spotlightTarget === "dual" && subTab === "dual"
+        ? dualRef.current
+        : spotlightTarget === "whatif" && subTab === "whatif"
+          ? whatIfRef.current
+          : spotlightTarget === "rumen" && subTab === "batch"
+            ? rumenRef.current
+            : null;
+    if (!targetEl || typeof targetEl.scrollIntoView !== "function") return;
+    const id = requestAnimationFrame(() => {
+      targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [spotlightTarget, subTab]);
 
   const nutrientsCatalog = allNutrients ?? [...MOCK_NUTRIENTS, ...(config.customNutrients ?? [])];
 
@@ -82,7 +116,7 @@ export const ResultsPanel = memo(function ResultsPanel({
     <Card
       interactive={false}
       highlight={result.status === "infeasible" ? "coral" : "none"}
-      className="flex h-full flex-col overflow-hidden"
+      className="flex flex-col lg:h-full lg:overflow-hidden"
     >
       {!hideKpiStrip && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-subtle)] px-4 py-2.5">
@@ -116,11 +150,11 @@ export const ResultsPanel = memo(function ResultsPanel({
                 onCheckedChange={onToggleElastic}
                 label={pickLang(
                   language,
-                  "Aktifkan mode toleransi elastik saat target mustahil",
-                  "Enable elastic relaxation mode when target is infeasible",
+                  "Aktifkan toleransi batas saat target terlalu ketat",
+                  "Enable flexible bounds when targets are too tight",
                 )}
               />
-              <span>{pickLang(language, "Relaksasi Elastik", "Elastic Relaxation")}</span>
+              <span>{pickLang(language, "Toleransi Target", "Flexible Bounds")}</span>
             </label>
             {statusBadge}
           </div>
@@ -128,8 +162,9 @@ export const ResultsPanel = memo(function ResultsPanel({
       )}
 
       {result.status !== "infeasible" && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-2.5 py-2 sm:px-3">
           <SegmentedTabs
+            fitMobile
             ariaLabel={pickLang(
               language,
               "Sub-tampilan hasil formulasi",
@@ -141,6 +176,7 @@ export const ResultsPanel = memo(function ResultsPanel({
               {
                 value: "batch",
                 label: pickLang(language, "Komposisi & Batch", "Composition & Batch"),
+                mobileLabel: pickLang(language, "Komposisi", "Mix"),
                 badge: result.composition.length,
               },
               { value: "charts", label: pickLang(language, "Grafik", "Charts") },
@@ -171,7 +207,7 @@ export const ResultsPanel = memo(function ResultsPanel({
         </div>
       )}
 
-      <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto p-3">
+      <div className="custom-scrollbar space-y-3 p-3 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
         <ConflictDiagnosticsBanner
           status={result.status}
           conflicts={result.conflicts ?? []}
@@ -191,11 +227,20 @@ export const ResultsPanel = memo(function ResultsPanel({
                   composition={result.composition}
                   ingredients={ingredients}
                   activeBasis={result.basis}
+                  decimalPlaces={decimalPlaces}
                   language={language}
                 />
 
                 {result.rumenEvaluation && (
-                  <div className="glass-card rounded-xl p-3 text-xs">
+                  <div
+                    ref={rumenRef}
+                    onPointerDown={onClearSpotlight}
+                    onClick={onClearSpotlight}
+                    className={cn(
+                      "glass-card rounded-xl p-3 text-xs transition-shadow",
+                      spotlightTarget === "rumen" && "feature-spotlight-glow",
+                    )}
+                  >
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                       <h3 className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]">
                         <Activity className="h-3.5 w-3.5 text-[var(--status-success)]" />
@@ -230,8 +275,26 @@ export const ResultsPanel = memo(function ResultsPanel({
                           {pickLang(language, "Hijauan / NDF", "Forage / NDF")}
                         </span>
                         <span className="font-bold text-[var(--text-primary)]">
-                          {formatNumberLocale(result.rumenEvaluation.forageFractionPct, 1)}% /{" "}
-                          {formatNumberLocale(result.rumenEvaluation.ndfPct, 1)}%
+                          {formatNumberLocale(
+                            result.rumenEvaluation.forageFractionPct,
+                            resolveDisplayDigits(
+                              "%",
+                              "inclusion",
+                              decimalPlaces,
+                              result.rumenEvaluation.forageFractionPct,
+                            ),
+                          )}
+                          % /{" "}
+                          {formatNumberLocale(
+                            result.rumenEvaluation.ndfPct,
+                            resolveDisplayDigits(
+                              "%",
+                              "ndf",
+                              decimalPlaces,
+                              result.rumenEvaluation.ndfPct,
+                            ),
+                          )}
+                          %
                         </span>
                       </div>
                       <div>
@@ -239,8 +302,16 @@ export const ResultsPanel = memo(function ResultsPanel({
                           peuNDF240 / Est. DMI
                         </span>
                         <span className="font-bold text-[var(--text-primary)]">
-                          {formatNumberLocale(result.rumenEvaluation.peuNdf240Pct, 1)}% /{" "}
-                          {formatNumberLocale(result.rumenEvaluation.estimatedDmiPctBw, 2)}% BW
+                          {formatNumberLocale(
+                            result.rumenEvaluation.peuNdf240Pct,
+                            resolveDisplayDigits(
+                              "%",
+                              "ndf",
+                              decimalPlaces,
+                              result.rumenEvaluation.peuNdf240Pct,
+                            ),
+                          )}
+                          % / {formatNumberLocale(result.rumenEvaluation.estimatedDmiPctBw, 2)}% BW
                         </span>
                       </div>
                       <div>
@@ -275,35 +346,58 @@ export const ResultsPanel = memo(function ResultsPanel({
                 allNutrients={nutrientsCatalog}
                 ingredients={ingredients}
                 batchTotalCost={result.batchTotalCost ?? null}
+                decimalPlaces={decimalPlaces}
                 simpleMode={simpleMode}
                 language={language}
               />
             )}
 
             {subTab === "dual" && (
-              <ShadowPriceTab
-                nutrients={result.nutrients}
-                allNutrients={nutrientsCatalog}
-                composition={result.composition}
-                opportunityCosts={result.opportunityCosts ?? []}
-                boundDuals={result.boundDuals ?? []}
-                ingredients={ingredients}
-                {...(requirement ? { requirement } : {})}
-                config={config}
-                simpleMode={simpleMode}
-                language={language}
-              />
+              <div
+                ref={dualRef}
+                onPointerDown={onClearSpotlight}
+                onClick={onClearSpotlight}
+                className={cn(
+                  "rounded-xl transition-shadow",
+                  spotlightTarget === "dual" && "feature-spotlight-glow p-1.5",
+                )}
+              >
+                <ShadowPriceTab
+                  nutrients={result.nutrients}
+                  allNutrients={nutrientsCatalog}
+                  composition={result.composition}
+                  opportunityCosts={result.opportunityCosts ?? []}
+                  boundDuals={result.boundDuals ?? []}
+                  ingredients={ingredients}
+                  {...(requirement ? { requirement } : {})}
+                  config={config}
+                  decimalPlaces={decimalPlaces}
+                  simpleMode={simpleMode}
+                  language={language}
+                />
+              </div>
             )}
 
             {subTab === "whatif" && (
-              <WhatIfManualLock
-                ingredients={ingredients}
-                composition={result.composition}
-                manualLocks={config.manualLocks ?? {}}
-                onSetManualLock={onSetManualLock}
-                onClearLocks={onClearManualLocks}
-                language={language}
-              />
+              <div
+                ref={whatIfRef}
+                onPointerDown={onClearSpotlight}
+                onClick={onClearSpotlight}
+                className={cn(
+                  "rounded-xl transition-shadow",
+                  spotlightTarget === "whatif" && "feature-spotlight-glow p-1.5",
+                )}
+              >
+                <WhatIfManualLock
+                  ingredients={ingredients}
+                  composition={result.composition}
+                  manualLocks={config.manualLocks ?? {}}
+                  decimalPlaces={decimalPlaces}
+                  onSetManualLock={onSetManualLock}
+                  onClearLocks={onClearManualLocks}
+                  language={language}
+                />
+              </div>
             )}
           </>
         )}

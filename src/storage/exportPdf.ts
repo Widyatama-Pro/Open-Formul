@@ -1,5 +1,6 @@
 import { FEED_CLASSES, resolveFeedClass } from "../data/feed-classes";
 import type { FormulationResult, Ingredient, Nutrient, Recipe, Requirement } from "../types";
+import { resolveDisplayDigits } from "../utils/locale-number";
 import { assertExportableResult } from "./exportCsvXlsx";
 
 export type PdfExportMode = "full" | "batch_only";
@@ -11,16 +12,19 @@ export interface PdfExportInput {
   readonly nutrientsCatalog: readonly Nutrient[];
   readonly requirement: Requirement;
   readonly result: FormulationResult;
+  readonly decimalPlaces?: 0 | 1 | 2 | undefined;
 }
 
 export interface IngredientDatabasePdfInput {
   readonly ingredients: readonly Ingredient[];
   readonly title?: string;
+  readonly decimalPlaces?: 0 | 1 | 2 | undefined;
 }
 
 export interface RecipePdfInput {
   readonly recipe: Recipe;
   readonly nutrientsCatalog: readonly Nutrient[];
+  readonly decimalPlaces?: 0 | 1 | 2 | undefined;
 }
 
 const PAGE_W = 595.28;
@@ -292,7 +296,7 @@ function renderStructuredPageStream(
   out.push(`0.85 0.88 0.92 RG 0.5 w ${MARGIN_L} 38 m ${(MARGIN_L + CONTENT_W).toFixed(1)} 38 l S`);
   out.push(
     `0.42 0.48 0.56 rg BT /F1 7.5 Tf ${MARGIN_L} 26 Td (${escapePdfString(
-      "Open Formulasi — Formulasi Pakan Ternak Presisi",
+      "OpenFormul — Formulasi Pakan Ternak Presisi",
     )}) Tj ET`,
   );
   const pageTag = `Halaman ${pageNum} / ${totalPages}`;
@@ -373,7 +377,15 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
     requireStrictOptimal: input.mode === "batch_only",
   });
 
-  const { recipeName, mode, ingredients, nutrientsCatalog, requirement, result } = input;
+  const {
+    recipeName,
+    mode,
+    ingredients,
+    nutrientsCatalog,
+    requirement,
+    result,
+    decimalPlaces = 0,
+  } = input;
   const ingMap = new Map(ingredients.map((i) => [i.id, i]));
   const nutMap = new Map(nutrientsCatalog.map((n) => [n.id, n]));
   const batchKg = result.batchSizeKg ?? 100;
@@ -385,8 +397,8 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
     kind: "banner",
     title:
       mode === "batch_only"
-        ? "OPEN FORMULASI - LEMBAR TIMBANG BATCH PRODUKSI"
-        : "OPEN FORMULASI - LAPORAN FORMULASI PAKAN LENGKAP",
+        ? "OPENFORMUL - LEMBAR TIMBANG BATCH PRODUKSI"
+        : "OPENFORMUL - LAPORAN FORMULASI PAKAN LENGKAP",
     subtitle:
       mode === "batch_only"
         ? `Instruksi Penimbangan Operator Gudang (Tanpa Harga & Target Nutrisi) | Dicetak: ${dateStr}`
@@ -473,6 +485,11 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
     totalWeight += weight;
     totalAsFed += asFedPct;
 
+    const modelPct = item.fraction * 100;
+    const modelDigits = resolveDisplayDigits("%", "inclusion", decimalPlaces, modelPct);
+    const asFedDigits = resolveDisplayDigits("%", "inclusion", decimalPlaces, asFedPct);
+    const weightDigits = Math.max(1, decimalPlaces);
+
     if (mode === "batch_only") {
       ops.push({
         kind: "table_row",
@@ -488,14 +505,19 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
             maxChars: 44,
           },
           {
-            text: `${formatNum(item.fraction * 100, 2)}%`,
+            text: `${formatNum(modelPct, modelDigits)}%`,
             x: MARGIN_L + 278,
             width: 58,
             align: "right",
           },
-          { text: `${formatNum(asFedPct, 2)}%`, x: MARGIN_L + 340, width: 62, align: "right" },
           {
-            text: `${formatNum(weight, 2)} kg`,
+            text: `${formatNum(asFedPct, asFedDigits)}%`,
+            x: MARGIN_L + 340,
+            width: 62,
+            align: "right",
+          },
+          {
+            text: `${formatNum(weight, weightDigits)} kg`,
             x: MARGIN_L + 406,
             width: 68,
             align: "right",
@@ -519,14 +541,19 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
             maxChars: 36,
           },
           {
-            text: `${formatNum(item.fraction * 100, 2)}%`,
+            text: `${formatNum(modelPct, modelDigits)}%`,
             x: MARGIN_L + 224,
             width: 48,
             align: "right",
           },
-          { text: `${formatNum(asFedPct, 2)}%`, x: MARGIN_L + 276, width: 50, align: "right" },
           {
-            text: `${formatNum(weight, 2)}`,
+            text: `${formatNum(asFedPct, asFedDigits)}%`,
+            x: MARGIN_L + 276,
+            width: 50,
+            align: "right",
+          },
+          {
+            text: `${formatNum(weight, weightDigits)}`,
             x: MARGIN_L + 330,
             width: 58,
             align: "right",
@@ -544,6 +571,10 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
     }
   });
 
+  const totalPctDigits = resolveDisplayDigits("%", "inclusion", decimalPlaces, 100);
+  const totalAsFedDigits = resolveDisplayDigits("%", "inclusion", decimalPlaces, totalAsFed);
+  const totalWeightDigits = Math.max(1, decimalPlaces);
+
   ops.push({
     kind: "table_row",
     bold: true,
@@ -553,10 +584,20 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
       mode === "batch_only"
         ? [
             { text: "TOTAL KOMPOSISI", x: MARGIN_L + 28, width: 245, align: "left" },
-            { text: "100.00%", x: MARGIN_L + 278, width: 58, align: "right" },
-            { text: `${formatNum(totalAsFed, 2)}%`, x: MARGIN_L + 340, width: 62, align: "right" },
             {
-              text: `${formatNum(totalWeight, 2)} kg`,
+              text: `${formatNum(100, totalPctDigits)}%`,
+              x: MARGIN_L + 278,
+              width: 58,
+              align: "right",
+            },
+            {
+              text: `${formatNum(totalAsFed, totalAsFedDigits)}%`,
+              x: MARGIN_L + 340,
+              width: 62,
+              align: "right",
+            },
+            {
+              text: `${formatNum(totalWeight, totalWeightDigits)} kg`,
               x: MARGIN_L + 406,
               width: 68,
               align: "right",
@@ -564,10 +605,20 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
           ]
         : [
             { text: "TOTAL KOMPOSISI", x: MARGIN_L + 26, width: 196, align: "left" },
-            { text: "100.00%", x: MARGIN_L + 224, width: 48, align: "right" },
-            { text: `${formatNum(totalAsFed, 2)}%`, x: MARGIN_L + 276, width: 50, align: "right" },
             {
-              text: `${formatNum(totalWeight, 2)} kg`,
+              text: `${formatNum(100, totalPctDigits)}%`,
+              x: MARGIN_L + 224,
+              width: 48,
+              align: "right",
+            },
+            {
+              text: `${formatNum(totalAsFed, totalAsFedDigits)}%`,
+              x: MARGIN_L + 276,
+              width: 50,
+              align: "right",
+            },
+            {
+              text: `${formatNum(totalWeight, totalWeightDigits)} kg`,
               x: MARGIN_L + 330,
               width: 58,
               align: "right",
@@ -599,7 +650,9 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
 
     result.nutrients.forEach((nr, idx) => {
       const meta = nutMap.get(nr.nutrientId);
-      const digits = meta?.unit === "kcal/kg" || meta?.unit === "mg/kg" ? 0 : 2;
+      const digits = resolveDisplayDigits(meta?.unit, nr.nutrientId, decimalPlaces, nr.value);
+      const minDigits = resolveDisplayDigits(meta?.unit, nr.nutrientId, decimalPlaces, nr.min);
+      const maxDigits = resolveDisplayDigits(meta?.unit, nr.nutrientId, decimalPlaces, nr.max);
       const statusLabel =
         nr.status === "met"
           ? "TERPENUHI"
@@ -628,8 +681,8 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
             align: "right",
             bold: true,
           },
-          { text: formatNum(nr.min, digits), x: MARGIN_L + 322, width: 56, align: "right" },
-          { text: formatNum(nr.max, digits), x: MARGIN_L + 382, width: 56, align: "right" },
+          { text: formatNum(nr.min, minDigits), x: MARGIN_L + 322, width: 56, align: "right" },
+          { text: formatNum(nr.max, maxDigits), x: MARGIN_L + 382, width: 56, align: "right" },
           { text: statusLabel, x: MARGIN_L + 444, width: 68, align: "right" },
         ],
       });
@@ -692,13 +745,17 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
  * 8 klasifikasi bahan pakan standar internasional (IFN / NRC / Hartadi 1980).
  */
 export function generateIngredientDatabasePdf(input: IngredientDatabasePdfInput): Uint8Array {
-  const { ingredients, title = "DATABASE KANDUNGAN BAHAN PAKAN (8 KLASIFIKASI STANDAR)" } = input;
+  const {
+    ingredients,
+    title = "DATABASE KANDUNGAN BAHAN PAKAN (8 KLASIFIKASI STANDAR)",
+    decimalPlaces = 0,
+  } = input;
   const dateStr = new Date().toLocaleDateString("id-ID");
 
   const ops: PdfRowOp[] = [
     {
       kind: "banner",
-      title: `OPEN FORMULASI - ${title}`,
+      title: `OPENFORMUL - ${title}`,
       subtitle: `Total ${ingredients.length} bahan pakan dikelompokkan berdasarkan 8 kelas standar internasional | Dicetak: ${dateStr}`,
       height: 46,
     },
@@ -745,11 +802,12 @@ export function generateIngredientDatabasePdf(input: IngredientDatabasePdfInput)
     items.forEach((ing, idx) => {
       const me = ing.nutrients.me_poultry;
       const tdn = ing.nutrients.tdn;
+      const tdnDigits = resolveDisplayDigits("%", "tdn", decimalPlaces, tdn);
       const energyStr =
         me !== null && me !== undefined
           ? `${Math.round(me)}`
           : tdn !== null && tdn !== undefined
-            ? `${tdn.toFixed(1)}%`
+            ? `${tdn.toFixed(tdnDigits)}%`
             : "-";
 
       ops.push({
@@ -771,12 +829,52 @@ export function generateIngredientDatabasePdf(input: IngredientDatabasePdfInput)
             width: 56,
             align: "right",
           },
-          { text: formatNum(ing.dryMatter, 1), x: MARGIN_L + 290, width: 34, align: "right" },
-          { text: formatNum(ing.nutrients.cp, 1), x: MARGIN_L + 328, width: 34, align: "right" },
+          {
+            text: formatNum(
+              ing.dryMatter,
+              resolveDisplayDigits("%", "dm", decimalPlaces, ing.dryMatter),
+            ),
+            x: MARGIN_L + 290,
+            width: 34,
+            align: "right",
+          },
+          {
+            text: formatNum(
+              ing.nutrients.cp,
+              resolveDisplayDigits("%", "cp", decimalPlaces, ing.nutrients.cp),
+            ),
+            x: MARGIN_L + 328,
+            width: 34,
+            align: "right",
+          },
           { text: energyStr, x: MARGIN_L + 366, width: 50, align: "right" },
-          { text: formatNum(ing.nutrients.cf, 1), x: MARGIN_L + 420, width: 30, align: "right" },
-          { text: formatNum(ing.nutrients.ca, 2), x: MARGIN_L + 454, width: 28, align: "right" },
-          { text: formatNum(ing.nutrients.p, 2), x: MARGIN_L + 484, width: 28, align: "right" },
+          {
+            text: formatNum(
+              ing.nutrients.cf,
+              resolveDisplayDigits("%", "cf", decimalPlaces, ing.nutrients.cf),
+            ),
+            x: MARGIN_L + 420,
+            width: 30,
+            align: "right",
+          },
+          {
+            text: formatNum(
+              ing.nutrients.ca,
+              resolveDisplayDigits("%", "ca", decimalPlaces, ing.nutrients.ca),
+            ),
+            x: MARGIN_L + 454,
+            width: 28,
+            align: "right",
+          },
+          {
+            text: formatNum(
+              ing.nutrients.p,
+              resolveDisplayDigits("%", "p", decimalPlaces, ing.nutrients.p),
+            ),
+            x: MARGIN_L + 484,
+            width: 28,
+            align: "right",
+          },
         ],
       });
     });
@@ -793,7 +891,7 @@ export function generateIngredientDatabasePdf(input: IngredientDatabasePdfInput)
  * jika belum dihitung, buat dokumen spesifikasi resep (daftar bahan aktif & target nutrien).
  */
 export function generateRecipePdf(input: RecipePdfInput): Uint8Array {
-  const { recipe, nutrientsCatalog } = input;
+  const { recipe, nutrientsCatalog, decimalPlaces = 0 } = input;
   if (
     recipe.result &&
     (recipe.result.status === "optimal" || recipe.result.status === "near_feasible") &&
@@ -806,6 +904,7 @@ export function generateRecipePdf(input: RecipePdfInput): Uint8Array {
       nutrientsCatalog,
       requirement: recipe.requirement,
       result: recipe.result,
+      decimalPlaces,
     });
   }
 
@@ -816,7 +915,7 @@ export function generateRecipePdf(input: RecipePdfInput): Uint8Array {
   const ops: PdfRowOp[] = [
     {
       kind: "banner",
-      title: "OPEN FORMULASI - RINGKASAN PROJECT RESEP",
+      title: "OPENFORMUL - RINGKASAN PROJECT RESEP",
       subtitle: `Dokumen Spesifikasi Bahan & Target Nutrien | Dicetak: ${dateStr}`,
       height: 46,
     },
@@ -865,20 +964,42 @@ export function generateRecipePdf(input: RecipePdfInput): Uint8Array {
           width: 64,
           align: "right",
         },
-        { text: formatNum(ing.dryMatter, 1), x: MARGIN_L + 318, width: 42, align: "right" },
         {
-          text: formatNum(ing.inclusion?.min ?? 0, 1),
+          text: formatNum(
+            ing.dryMatter,
+            resolveDisplayDigits("%", "dm", decimalPlaces, ing.dryMatter),
+          ),
+          x: MARGIN_L + 318,
+          width: 42,
+          align: "right",
+        },
+        {
+          text: formatNum(
+            ing.inclusion?.min ?? 0,
+            resolveDisplayDigits("%", "inclusion", decimalPlaces, ing.inclusion?.min ?? 0),
+          ),
           x: MARGIN_L + 366,
           width: 44,
           align: "right",
         },
         {
-          text: formatNum(ing.inclusion?.max ?? 100, 1),
+          text: formatNum(
+            ing.inclusion?.max ?? 100,
+            resolveDisplayDigits("%", "inclusion", decimalPlaces, ing.inclusion?.max ?? 100),
+          ),
           x: MARGIN_L + 416,
           width: 44,
           align: "right",
         },
-        { text: formatNum(ing.nutrients.cp, 1), x: MARGIN_L + 466, width: 44, align: "right" },
+        {
+          text: formatNum(
+            ing.nutrients.cp,
+            resolveDisplayDigits("%", "cp", decimalPlaces, ing.nutrients.cp),
+          ),
+          x: MARGIN_L + 466,
+          width: 44,
+          align: "right",
+        },
       ],
     });
   });
@@ -900,7 +1021,8 @@ export function generateRecipePdf(input: RecipePdfInput): Uint8Array {
     .filter((c) => c.enabled !== false && (c.min !== undefined || c.max !== undefined))
     .forEach((c, idx) => {
       const meta = nutMap.get(c.nutrientId);
-      const digits = meta?.unit === "kcal/kg" ? 0 : 2;
+      const minDigits = resolveDisplayDigits(meta?.unit, c.nutrientId, decimalPlaces, c.min);
+      const maxDigits = resolveDisplayDigits(meta?.unit, c.nutrientId, decimalPlaces, c.max);
       ops.push({
         kind: "table_row",
         shaded: idx % 2 === 1,
@@ -908,8 +1030,8 @@ export function generateRecipePdf(input: RecipePdfInput): Uint8Array {
         cells: [
           { text: meta?.name ?? c.nutrientId, x: MARGIN_L + 4, width: 230, align: "left" },
           { text: meta?.unit ?? "%", x: MARGIN_L + 240, width: 60, align: "left" },
-          { text: formatNum(c.min, digits), x: MARGIN_L + 310, width: 90, align: "right" },
-          { text: formatNum(c.max, digits), x: MARGIN_L + 410, width: 95, align: "right" },
+          { text: formatNum(c.min, minDigits), x: MARGIN_L + 310, width: 90, align: "right" },
+          { text: formatNum(c.max, maxDigits), x: MARGIN_L + 410, width: 95, align: "right" },
         ],
       });
     });

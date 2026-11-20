@@ -33,29 +33,46 @@
   body,
   #root {
     height: 100%;
+    width: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    background-color: var(--bg-canvas);
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--text-muted) 32%, transparent) transparent;
+    scrollbar-color: color-mix(in srgb, var(--text-muted) 46%, transparent)
+      color-mix(in srgb, var(--bg-sunken) 48%, transparent);
   }
 
   *::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 9px;
+    height: 9px;
   }
 
   *::-webkit-scrollbar-track {
-    background: transparent;
+    background: color-mix(in srgb, var(--bg-sunken) 52%, transparent);
+    border-radius: 9999px;
   }
 
   *::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--text-muted) 32%, transparent);
+    background: color-mix(in srgb, var(--text-muted) 48%, transparent);
+    border: 2px solid transparent;
+    background-clip: content-box;
     border-radius: 9999px;
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in srgb, var(--text-muted) 56%, transparent);
+    background: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+    border: 1.5px solid transparent;
+    background-clip: content-box;
+  }
+
+  @media (pointer: coarse) {
+    *::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
   }
 
   body {
@@ -77,7 +94,54 @@
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-gutter: stable;
-    scrollbar-color: color-mix(in srgb, var(--text-muted) 32%, transparent) transparent;
+    scrollbar-color: color-mix(in srgb, var(--text-muted) 50%, transparent)
+      color-mix(in srgb, var(--bg-sunken) 55%, transparent);
+  }
+
+  /* Scrollbar utama area kerja (lebih lebar, jalur kontras & jelas dibedakan dari scroll tabel internal) */
+  .workspace-main-scrollbar {
+    scrollbar-width: auto;
+    scrollbar-gutter: stable;
+    scrollbar-color: color-mix(in srgb, var(--color-primary) 54%, var(--text-muted))
+      color-mix(in srgb, var(--bg-sunken) 88%, var(--border-subtle));
+  }
+
+  .workspace-main-scrollbar::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+
+  .workspace-main-scrollbar::-webkit-scrollbar-track {
+    background: color-mix(in srgb, var(--bg-sunken) 88%, var(--border-subtle));
+    border-left: 1px solid var(--border-subtle);
+    border-radius: 9999px;
+  }
+
+  .workspace-main-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--color-primary) 48%, var(--text-muted));
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 9999px;
+    min-height: 44px;
+  }
+
+  .workspace-main-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--color-primary) 78%, var(--text-primary));
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  .workspace-main-scrollbar::-webkit-scrollbar-thumb:active {
+    background: var(--color-primary);
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  @media (pointer: coarse) {
+    .workspace-main-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
   }
 
   .no-scrollbar {
@@ -91,12 +155,68 @@
   }
 
   .shell-frame {
+    position: relative;
     background-color: var(--shell-chrome-bg);
+    background-image: radial-gradient(
+      120% 80% at 0% 0%,
+      color-mix(in srgb, var(--shell-chrome-accent) 9%, transparent) 0%,
+      transparent 60%
+    );
+  }
+
+  /* Fine tactile surface grain (100% offline inline SVG noise — subtle luxury editorial depth) */
+  .shell-frame::after,
+  .workspace-canvas::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    background-repeat: repeat;
+  }
+
+  .shell-frame::after {
+    z-index: 1;
+    opacity: 0.045;
+    mix-blend-mode: soft-light;
   }
 
   .workspace-canvas {
+    position: relative;
     background-color: var(--bg-canvas);
+    background-image:
+      radial-gradient(
+        90% 55% at 100% 0%,
+        color-mix(in srgb, var(--color-accent) 6%, transparent) 0%,
+        transparent 62%
+      ),
+      radial-gradient(
+        80% 60% at 0% 100%,
+        color-mix(in srgb, var(--color-primary) 5%, transparent) 0%,
+        transparent 65%
+      );
     color: var(--text-primary);
+  }
+
+  .workspace-canvas::before {
+    z-index: 0;
+    opacity: 0.036;
+    mix-blend-mode: overlay;
+  }
+
+  [data-mode="dark"] .workspace-canvas::before {
+    opacity: 0.048;
+  }
+
+  [data-mode="dark"][data-amoled="true"] .workspace-canvas::before,
+  [data-mode="dark"][data-amoled="true"] .shell-frame::after {
+    opacity: 0.022;
+  }
+
+  .workspace-canvas > * {
+    position: relative;
+    z-index: 1;
   }
 
   /* Liquid Concave Cutout Sidebar Indicator (menyatu dengan --bg-canvas) */
@@ -176,6 +296,32 @@
     box-shadow:
       0 0 0 1px color-mix(in srgb, var(--status-warning) 24%, transparent),
       var(--shadow-neu-flat);
+  }
+
+  .modal-section-card {
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    box-shadow:
+      0 2px 10px -2px var(--shadow-dark),
+      inset 0 1px 0 color-mix(in srgb, var(--shadow-light) 28%, transparent);
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease;
+  }
+
+  [role="dialog"] .glass-card {
+    box-shadow:
+      0 2px 10px -2px var(--shadow-dark),
+      inset 0 1px 0 color-mix(in srgb, var(--shadow-light) 28%, transparent);
+  }
+
+  .feature-spotlight-glow {
+    position: relative;
+    border-color: var(--color-accent) !important;
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--color-accent) 70%, transparent),
+      0 0 24px 2px color-mix(in srgb, var(--color-accent) 34%, transparent) !important;
+    animation: openformul-spotlight-pulse 1.8s ease-in-out infinite;
   }
 
   .neu-well {
@@ -265,6 +411,20 @@
   }
 }
 
+@keyframes openformul-spotlight-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--color-accent) 72%, transparent),
+      0 0 18px 2px color-mix(in srgb, var(--color-accent) 28%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--color-accent) 92%, transparent),
+      0 0 28px 6px color-mix(in srgb, var(--color-accent) 44%, transparent);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .glass-card,
   .neu-pill-btn,
@@ -284,6 +444,10 @@
   }
 
   .skeleton-shimmer::after {
+    animation: none;
+  }
+
+  .feature-spotlight-glow {
     animation: none;
   }
 }
@@ -349,6 +513,11 @@
     border: none !important;
     margin: 0 !important;
     padding: 0 !important;
+  }
+
+  .shell-frame::after,
+  .workspace-canvas::before {
+    display: none !important;
   }
 
   .glass-card,

@@ -17,6 +17,11 @@ import { NAV_ITEMS, getNavLabel } from "./navigation-config";
 
 export interface MobileNavDrawerProps {
   readonly open: boolean;
+  /**
+   * Saat dibuka dari tombol "Menu" di Mobile Bottom Navigation, tampilkan HANYA menu sekunder
+   * (Profil Kebutuhan Ternak, Modul Lanjutan, Pengaturan) tanpa menduplikasi menu bar bawah.
+   */
+  readonly secondaryOnly?: boolean;
   readonly onClose: () => void;
   readonly route: AppRoute;
   readonly onNavigate: (route: AppRoute) => void;
@@ -25,6 +30,8 @@ export interface MobileNavDrawerProps {
   readonly onToggleTheme: () => void;
   readonly onToggleLanguage: () => void;
 }
+
+const PRIMARY_BOTTOM_NAV_ROUTES = new Set<AppRoute>(["formulation", "ingredients", "recipes"]);
 
 function renderIcon(id: AppRoute) {
   switch (id) {
@@ -45,6 +52,7 @@ function renderIcon(id: AppRoute) {
 
 export const MobileNavDrawer = memo(function MobileNavDrawer({
   open,
+  secondaryOnly = true,
   onClose,
   route,
   onNavigate,
@@ -53,19 +61,25 @@ export const MobileNavDrawer = memo(function MobileNavDrawer({
   onToggleTheme,
   onToggleLanguage,
 }: MobileNavDrawerProps) {
+  const visibleItems = secondaryOnly
+    ? NAV_ITEMS.filter((item) => !PRIMARY_BOTTOM_NAV_ROUTES.has(item.id))
+    : NAV_ITEMS;
+
   return (
     <SheetDialog
       open={open}
       onClose={onClose}
-      title="Open Formulasi"
+      title={language === "id" ? "Menu & Pengaturan" : "Menu & Settings"}
       subtitle={
-        language === "id" ? "Navigasi Modul & Preferensi" : "Module Navigation & Preferences"
+        language === "id"
+          ? "Profil ternak, modul lanjutan, dan preferensi tampilan"
+          : "Livestock profiles, advanced modules, and display preferences"
       }
       variant="responsive"
     >
       <div className="space-y-4">
         <div className="space-y-1.5 rounded-xl border border-[var(--shell-chrome-border)] bg-[var(--shell-chrome-bg)] p-2.5">
-          {NAV_ITEMS.map((item) => {
+          {visibleItems.map((item) => {
             const active = item.id === route;
             return (
               <button
@@ -96,7 +110,15 @@ export const MobileNavDrawer = memo(function MobileNavDrawer({
             className="neu-pill-btn flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-semibold text-[var(--text-primary)]"
           >
             {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            <span>{theme === "light" ? "Mode Gelap" : "Mode Terang"}</span>
+            <span>
+              {theme === "light"
+                ? language === "id"
+                  ? "Mode Gelap"
+                  : "Dark Mode"
+                : language === "id"
+                  ? "Mode Terang"
+                  : "Light Mode"}
+            </span>
           </button>
           <button
             type="button"

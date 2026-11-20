@@ -6,16 +6,22 @@ import { generateIngredientDatabasePdf } from "../../storage";
 import type { AppLanguage, FeedClassCode, Ingredient, Nutrient } from "../../types";
 import { cn } from "../../utils/cn";
 import { downloadBinaryFile } from "../../utils/download";
-import { formatCurrencyIdr, formatNumberLocale } from "../../utils/locale-number";
+import {
+  formatCurrencyIdr,
+  formatNumberLocale,
+  resolveDisplayDigits,
+} from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
+import { FeedClassIcon } from "../ui/FeedClassIcon";
 import { Input } from "../ui/Input";
 
 export interface IngredientLibraryPageProps {
   readonly ingredients: readonly Ingredient[];
   readonly customNutrients?: readonly Nutrient[];
   readonly language: AppLanguage;
+  readonly decimalPlaces?: 0 | 1 | 2 | undefined;
   readonly onToggleActive: (id: string, active: boolean) => void;
   readonly onOpenAdd: () => void;
   readonly onImportIngredients?: (nextIngredients: readonly Ingredient[]) => void;
@@ -28,6 +34,7 @@ export interface IngredientLibraryPageProps {
 export const IngredientLibraryPage = memo(function IngredientLibraryPage({
   ingredients,
   language,
+  decimalPlaces = 0,
   onToggleActive,
   onOpenAdd,
 }: IngredientLibraryPageProps) {
@@ -65,7 +72,8 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
     return counts;
   }, [ingredients]);
 
-  // Kelompokkan hasil filter ke dalam 8 kelas standar
+  // Kelompokkan hasil filter ke dalam 8 kelas standar:
+  // Saat filter "Semua 8 Kelas" aktif, sembunyikan otomatis kelas yang jumlah bahannya 0.
   const groupedByClass = useMemo(() => {
     const groups = new Map<FeedClassCode, Ingredient[]>();
     for (const fc of FEED_CLASSES) groups.set(fc.code, []);
@@ -76,7 +84,7 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
     return FEED_CLASSES.map((fc) => ({
       meta: fc,
       items: groups.get(fc.code) ?? [],
-    })).filter((g) => classFilter === "all" || g.meta.code === classFilter);
+    })).filter((g) => (classFilter === "all" ? g.items.length > 0 : g.meta.code === classFilter));
   }, [filtered, classFilter]);
 
   const toggleGroupCollapse = (code: FeedClassCode) => {
@@ -95,11 +103,12 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
         classFilter === "all"
           ? "DATABASE BAHAN PAKAN (8 KLASIFIKASI STANDAR)"
           : `DATABASE BAHAN PAKAN - ${getFeedClassLabel("id", classFilter).toUpperCase()}`,
+      decimalPlaces,
     });
     const filename =
       classFilter === "all"
-        ? "open-formulasi-database-pakan.pdf"
-        : `open-formulasi-kelas-${classFilter}.pdf`;
+        ? "openformul-database-pakan.pdf"
+        : `openformul-kelas-${classFilter}.pdf`;
     downloadBinaryFile(bytes, filename, "application/pdf");
     setExportNotice(
       pickLang(
@@ -243,6 +252,22 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
 
       {/* Daftar Kelompok 8 Klasifikasi Bahan Pakan */}
       <div className="space-y-3">
+        {groupedByClass.length === 0 && (
+          <Card interactive={false} className="p-6 text-center">
+            <p className="text-xs font-medium text-[var(--text-secondary)]">
+              {pickLang(
+                language,
+                `Tidak ada bahan pakan yang cocok dengan pencarian “${query}”.`,
+                `No feed ingredients match “${query}”.`,
+              )}
+            </p>
+            {query.trim() !== "" && (
+              <Button variant="secondary" size="sm" onClick={() => setQuery("")} className="mt-3">
+                {pickLang(language, "Reset Pencarian", "Reset Search")}
+              </Button>
+            )}
+          </Card>
+        )}
         {groupedByClass.map(({ meta, items }) => {
           const isCollapsed = collapsedClasses.has(meta.code);
           return (
@@ -285,7 +310,7 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
                     )}
                   </p>
                 ) : (
-                  <div className="custom-scrollbar max-h-[340px] overflow-auto">
+                  <div className="custom-scrollbar max-h-[340px] overflow-auto overscroll-contain">
                     <table className="w-full border-collapse text-left text-xs">
                       <thead className="sticky top-0 z-10 bg-[var(--bg-sunken)] text-[11px] font-bold text-[var(--text-secondary)]">
                         <tr>
@@ -351,11 +376,16 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
                                 />
                               </td>
                               <td className="max-w-72 px-3 py-1.5">
-                                <div className="truncate font-semibold text-[var(--text-primary)]">
-                                  {displayName}
-                                </div>
-                                <div className="truncate text-[10px] text-[var(--text-muted)]">
-                                  {ing.source}
+                                <div className="flex items-center gap-2">
+                                  <FeedClassIcon code={meta.code} language={language} />
+                                  <div className="min-w-0">
+                                    <div className="truncate font-semibold text-[var(--text-primary)]">
+                                      {displayName}
+                                    </div>
+                                    <div className="truncate text-[10px] text-[var(--text-muted)]">
+                                      {ing.source}
+                                    </div>
+                                  </div>
                                 </div>
                               </td>
                               <td className="px-2 py-1.5 text-center">
@@ -367,32 +397,49 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
                                 {formatCurrencyIdr(ing.priceOverride ?? ing.pricePerKg)}
                               </td>
                               <td className="px-2 py-1.5 text-right tabular-nums text-[var(--text-secondary)]">
-                                {formatNumberLocale(ing.dryMatter, 1)}
+                                {formatNumberLocale(
+                                  ing.dryMatter,
+                                  resolveDisplayDigits("%", "dm", decimalPlaces, ing.dryMatter),
+                                )}
                               </td>
                               <td className="px-2 py-1.5 text-right tabular-nums text-[var(--text-primary)]">
                                 {cp !== null && cp !== undefined
-                                  ? formatNumberLocale(cp, 1)
+                                  ? formatNumberLocale(
+                                      cp,
+                                      resolveDisplayDigits("%", "cp", decimalPlaces, cp),
+                                    )
                                   : "N/A"}
                               </td>
                               <td className="px-2 py-1.5 text-right tabular-nums text-[var(--text-secondary)]">
                                 {me !== null && me !== undefined
                                   ? `${formatNumberLocale(me, 0)} kcal`
                                   : tdn !== null && tdn !== undefined
-                                    ? `${formatNumberLocale(tdn, 1)}% TDN`
+                                    ? `${formatNumberLocale(tdn, resolveDisplayDigits("%", "tdn", decimalPlaces, tdn))}% TDN`
                                     : "N/A"}
                               </td>
                               <td className="px-2 py-1.5 text-right tabular-nums text-[var(--text-secondary)]">
                                 {cf !== null && cf !== undefined
-                                  ? formatNumberLocale(cf, 1)
+                                  ? formatNumberLocale(
+                                      cf,
+                                      resolveDisplayDigits("%", "cf", decimalPlaces, cf),
+                                    )
                                   : "N/A"}
                               </td>
                               <td className="px-2 py-1.5 text-right tabular-nums text-[var(--text-secondary)]">
                                 {ca !== null && ca !== undefined
-                                  ? formatNumberLocale(ca, 2)
+                                  ? formatNumberLocale(
+                                      ca,
+                                      resolveDisplayDigits("%", "ca", decimalPlaces, ca),
+                                    )
                                   : "N/A"}
                               </td>
                               <td className="px-2 py-1.5 text-right tabular-nums text-[var(--text-secondary)]">
-                                {p !== null && p !== undefined ? formatNumberLocale(p, 2) : "N/A"}
+                                {p !== null && p !== undefined
+                                  ? formatNumberLocale(
+                                      p,
+                                      resolveDisplayDigits("%", "p", decimalPlaces, p),
+                                    )
+                                  : "N/A"}
                               </td>
                             </tr>
                           );

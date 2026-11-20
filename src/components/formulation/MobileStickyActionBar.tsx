@@ -26,7 +26,7 @@ export const MobileStickyActionBar = memo(function MobileStickyActionBar({
     status === "optimal" ? (
       <Badge tone="emerald">Optimal</Badge>
     ) : status === "near_feasible" ? (
-      <Badge tone="amber">{pickLang(language, "Elastik", "Elastic")}</Badge>
+      <Badge tone="amber">{pickLang(language, "Terdekat", "Closest")}</Badge>
     ) : (
       <Badge tone="rose">Infeasible</Badge>
     );

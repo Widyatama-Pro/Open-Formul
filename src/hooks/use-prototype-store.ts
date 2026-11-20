@@ -35,9 +35,12 @@ import type {
   OptimizationMode,
   Recipe,
   Requirement,
+  TableViewTier,
+  TargetInputMode,
   ThemeMode,
   UserPreferences,
 } from "../types";
+import { isPoultrySpecies, isRuminantSpecies } from "../utils/species";
 import type { ValidationResult } from "../utils/validators";
 
 export type AppRoute =
@@ -46,6 +49,7 @@ export type AppRoute =
 export interface ConstraintPatch {
   readonly min?: number | null;
   readonly max?: number | null;
+  readonly idealTarget?: number | null;
   readonly enabled?: boolean;
   readonly tier?: ConstraintTier;
   readonly requirementStdDev?: number | null;
@@ -125,6 +129,7 @@ export interface PrototypeStore {
   readonly demoScenario: "auto" | "optimal" | "near_feasible" | "infeasible";
   readonly setDemoScenario: (scenario: "auto" | "optimal" | "near_feasible" | "infeasible") => void;
   readonly selectPreset: (requirementId: string) => void;
+  readonly applyDynamicRequirement: (requirement: Requirement) => void;
   readonly updateIngredient: (id: string, patch: Partial<Ingredient>) => void;
   readonly importIngredients: (nextIngredients: readonly Ingredient[]) => void;
   readonly addIngredient: (ingredient: Ingredient) => void;
@@ -142,9 +147,13 @@ export interface PrototypeStore {
   readonly addRequirement: (requirement: Requirement) => void;
   readonly setActiveBasis: (basis: Basis) => void;
   readonly setOptimizationMode: (mode: OptimizationMode) => void;
+  readonly setTargetInputMode: (mode: TargetInputMode) => void;
   readonly setBatchSizeKg: (kg: number) => void;
   readonly toggleAdvanceNutrients: (enabled: boolean) => void;
   readonly toggleShowNdf: (enabled: boolean) => void;
+  readonly toggleShowBetn: (enabled: boolean) => void;
+  readonly setDecimalPlaces: (decimalPlaces: 0 | 1 | 2) => void;
+  readonly setTableViewTier: (tier: TableViewTier) => void;
   readonly toggleDigestibleBasis: (enabled: boolean) => void;
   readonly toggleElasticFallback: (enabled: boolean) => void;
   readonly updatePrecisionConfig: (patch: {
@@ -336,6 +345,44 @@ export function usePrototypeStore(): PrototypeStore {
     [requirements],
   );
 
+  const applyDynamicRequirement = useCallback((requirement: Requirement) => {
+    setActiveRequirementOverride(requirement);
+    setActiveReqId(requirement.id);
+    setConfig((prev) => ({
+      ...prev,
+      activeBasis: requirement.basis,
+      manualLocks: {},
+    }));
+    setSessionDirty(true);
+
+    if (isRuminantSpecies(requirement.species)) {
+      setIngredients((prev) => {
+        const hasRuminantForage = prev.some(
+          (i) =>
+            i.isActive !== false &&
+            (i.category === "forage" || (i.nutrients.tdn ?? 0) > 0) &&
+            i.basis === "dry_matter",
+        );
+        if (hasRuminantForage) return prev;
+        return prev.map((ing) => ({
+          ...ing,
+          isActive: KEARL_HARTADI_STARTER_IDS.has(ing.id),
+        }));
+      });
+    } else if (isPoultrySpecies(requirement.species)) {
+      setIngredients((prev) => {
+        const hasPoultryEnergy = prev.some(
+          (i) => i.isActive !== false && (i.nutrients.me_poultry ?? 0) > 0,
+        );
+        if (hasPoultryEnergy) return prev;
+        return prev.map((ing) => ({
+          ...ing,
+          isActive: POULTRY_STARTER_IDS.has(ing.id),
+        }));
+      });
+    }
+  }, []);
+
   const updateIngredient = useCallback((id: string, patch: Partial<Ingredient>) => {
     setSessionDirty(true);
     setIngredients((prev) => prev.map((ing) => (ing.id === id ? { ...ing, ...patch } : ing)));
@@ -369,6 +416,8 @@ export function usePrototypeStore(): PrototypeStore {
       const mergeConstraint = (existing?: NutrientConstraint): NutrientConstraint => {
         const nextMin = patch.min === null ? undefined : (patch.min ?? existing?.min);
         const nextMax = patch.max === null ? undefined : (patch.max ?? existing?.max);
+        const nextIdeal =
+          patch.idealTarget === null ? undefined : (patch.idealTarget ?? existing?.idealTarget);
         const nextEnabled = patch.enabled ?? existing?.enabled ?? true;
         const nextTier = patch.tier ?? existing?.tier;
         const nextReqStd =
@@ -386,7 +435,7 @@ export function usePrototypeStore(): PrototypeStore {
           ...(nextMin !== undefined ? { min: nextMin } : {}),
           ...(nextMax !== undefined ? { max: nextMax } : {}),
           ...(existing?.isAdvance !== undefined ? { isAdvance: existing.isAdvance } : {}),
-          ...(existing?.idealTarget !== undefined ? { idealTarget: existing.idealTarget } : {}),
+          ...(nextIdeal !== undefined ? { idealTarget: nextIdeal } : {}),
           ...(nextTier !== undefined ? { tier: nextTier } : {}),
           ...(nextReqStd !== undefined ? { requirementStdDev: nextReqStd } : {}),
           ...(nextTargetProb !== undefined ? { targetProbability: nextTargetProb } : {}),
@@ -547,6 +596,11 @@ export function usePrototypeStore(): PrototypeStore {
     setConfig((prev) => ({ ...prev, optimizationMode }));
   }, []);
 
+  const setTargetInputMode = useCallback((targetInputMode: TargetInputMode) => {
+    setSessionDirty(true);
+    setConfig((prev) => ({ ...prev, targetInputMode }));
+  }, []);
+
   const setBatchSizeKg = useCallback((batchSizeKg: number) => {
     setSessionDirty(true);
     setConfig((prev) => ({ ...prev, batchSizeKg: Math.max(1, batchSizeKg) }));
@@ -555,12 +609,40 @@ export function usePrototypeStore(): PrototypeStore {
   const toggleAdvanceNutrients = useCallback((enableAdvanceNutrients: boolean) => {
     setSessionDirty(true);
     setConfig((prev) => ({ ...prev, enableAdvanceNutrients }));
-    setPreferences((prev) => ({ ...prev, simpleMode: !enableAdvanceNutrients }));
+    setPreferences((prev) => ({
+      ...prev,
+      simpleMode: !enableAdvanceNutrients,
+      tableViewTier: enableAdvanceNutrients
+        ? "advanced"
+        : prev.tableViewTier === "advanced"
+          ? "basic"
+          : (prev.tableViewTier ?? "basic"),
+    }));
   }, []);
 
   const toggleShowNdf = useCallback((showNdf: boolean) => {
     setSessionDirty(true);
     setConfig((prev) => ({ ...prev, showNdf }));
+  }, []);
+
+  const toggleShowBetn = useCallback((showBetn: boolean) => {
+    setSessionDirty(true);
+    setConfig((prev) => ({ ...prev, showBetn }));
+  }, []);
+
+  const setDecimalPlaces = useCallback((decimalPlaces: 0 | 1 | 2) => {
+    setPreferences((prev) => ({ ...prev, decimalPlaces }));
+  }, []);
+
+  const setTableViewTier = useCallback((tableViewTier: TableViewTier) => {
+    const enableAdvance = tableViewTier === "advanced";
+    setSessionDirty(true);
+    setConfig((prev) => ({ ...prev, enableAdvanceNutrients: enableAdvance }));
+    setPreferences((prev) => ({
+      ...prev,
+      tableViewTier,
+      simpleMode: !enableAdvance,
+    }));
   }, []);
 
   const toggleDigestibleBasis = useCallback((enableDigestibleBasis: boolean) => {
@@ -918,8 +1000,29 @@ export function usePrototypeStore(): PrototypeStore {
   }, []);
 
   const updatePreferences = useCallback((patch: Partial<UserPreferences>) => {
-    setPreferences((prev) => ({ ...prev, ...patch }));
-    if (patch.simpleMode !== undefined) {
+    setPreferences((prev) => {
+      const nextTableTier =
+        patch.tableViewTier ??
+        (patch.simpleMode !== undefined
+          ? patch.simpleMode
+            ? prev.tableViewTier === "advanced"
+              ? "basic"
+              : (prev.tableViewTier ?? "basic")
+            : "advanced"
+          : prev.tableViewTier);
+      return {
+        ...prev,
+        ...patch,
+        ...(nextTableTier !== undefined ? { tableViewTier: nextTableTier } : {}),
+      };
+    });
+    if (patch.tableViewTier !== undefined) {
+      setSessionDirty(true);
+      setConfig((prev) => ({
+        ...prev,
+        enableAdvanceNutrients: patch.tableViewTier === "advanced",
+      }));
+    } else if (patch.simpleMode !== undefined) {
       setSessionDirty(true);
       setConfig((prev) => ({ ...prev, enableAdvanceNutrients: !patch.simpleMode }));
     }
@@ -986,6 +1089,7 @@ export function usePrototypeStore(): PrototypeStore {
     demoScenario,
     setDemoScenario,
     selectPreset,
+    applyDynamicRequirement,
     updateIngredient,
     importIngredients,
     addIngredient,
@@ -997,9 +1101,13 @@ export function usePrototypeStore(): PrototypeStore {
     addRequirement,
     setActiveBasis,
     setOptimizationMode,
+    setTargetInputMode,
     setBatchSizeKg,
     toggleAdvanceNutrients,
     toggleShowNdf,
+    toggleShowBetn,
+    setDecimalPlaces,
+    setTableViewTier,
     toggleDigestibleBasis,
     toggleElasticFallback,
     updatePrecisionConfig,

@@ -66,6 +66,7 @@ const NUTRIENT_SHORT_LABELS: Record<string, { readonly id: string; readonly en: 
   ndf: { id: "NDF", en: "NDF" },
   adf: { id: "ADF", en: "ADF" },
   starch: { id: "Pati", en: "Starch" },
+  betn: { id: "BETN", en: "NFE" },
   tannin: { id: "Tanin", en: "Tannin" },
   liquid_fat: { id: "Lmk Cair", en: "Liq Fat" },
 };
@@ -109,7 +110,7 @@ export function getFormulationStatusLabel(
     case "optimal":
       return "Optimal";
     case "near_feasible":
-      return language === "id" ? "Near-Feasible (Elastik)" : "Near-Feasible (Elastic)";
+      return language === "id" ? "Mendekati Target" : "Closest Fit";
     case "infeasible":
       return "Infeasible";
     case "error":

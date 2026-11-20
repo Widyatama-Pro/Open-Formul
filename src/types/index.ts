@@ -121,6 +121,9 @@ export interface Requirement {
 /** 1=Hemat, 2=Agak Hemat, 3=Seimbang, 4=Presisi, 5=Presisi Tinggi */
 export type OptimizationMode = 1 | 2 | 3 | 4 | 5;
 
+/** Mode input & pendekatan Target Nutrien: rentang Min–Max standar vs pendekatan presisi 1 angka. */
+export type TargetInputMode = "range" | "single";
+
 /** Mode objektif fraksional PR-03: minimasi biaya per satuan nutrien. */
 export interface FractionalObjective {
   readonly mode: "cost_per_nutrient";
@@ -146,9 +149,13 @@ export interface FormulationConfig {
   readonly optimizationMode: OptimizationMode;
   readonly activeBasis: Basis;
   readonly batchSizeKg: number;
+  /** Mode target nutrien: "range" (Min–Max) atau "single" (pendekatan 1 angka presisi). */
+  readonly targetInputMode?: TargetInputMode;
   readonly enableAdvanceNutrients: boolean;
   /** Tampilkan dan aktifkan parameter NDF/ADF meskipun di luar Mode Lanjutan penuh. */
   readonly showNdf?: boolean;
+  /** Tampilkan dan evaluasi parameter BETN (Bahan Ekstrak Tanpa Nitrogen / NFE). */
+  readonly showBetn?: boolean;
   readonly enableDigestibleBasis: boolean;
   readonly enableElasticFallback: boolean;
   readonly globalZeroInclusion: ZeroInclusionRule;
@@ -309,6 +316,7 @@ export type ThemePaletteId =
 
 export type ThemeModeSetting = "light" | "dark" | "system";
 export type ResolvedThemeMode = "light" | "dark";
+export type TableViewTier = "basic" | "standard" | "advanced";
 
 export interface UserPreferences {
   readonly language: AppLanguage;
@@ -321,4 +329,8 @@ export interface UserPreferences {
   readonly zeroInclusionDefaultPct: number;
   /** Mode Simpel menyingkat istilah nutrisi (PK, EM, TDN, LK, SK) dan menyederhanakan tampilan. */
   readonly simpleMode?: boolean;
+  /** Jumlah angka desimal tampilan nutrien makro & komposisi (0 = bulat default, 1 = xx,0, 2 = xx,00). */
+  readonly decimalPlaces?: 0 | 1 | 2;
+  /** Tingkat kolom default tabel formulasi: Dasar, Standar (BK/Min/Max), atau Lanjutan. */
+  readonly tableViewTier?: TableViewTier;
 }

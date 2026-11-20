@@ -19,7 +19,7 @@ import { Card } from "../ui/Card";
 import { GlossySquircleIcon, type SquircleTone } from "../ui/GlossySquircleIcon";
 
 export type AdvancedShortcutTarget =
-  "shadow_price" | "what_if" | "precision_lp" | "workbench_advance";
+  "shadow_price" | "what_if" | "fractional_objective" | "stochastic_slp" | "enzyme_rumen";
 
 export interface AdvancedModulesPreviewProps {
   readonly language?: AppLanguage;
@@ -77,41 +77,41 @@ const ACTIVE_TOOLS: readonly ActiveToolItem[] = [
   },
   {
     id: "tool-cost-per-nutrient",
-    target: "precision_lp",
+    target: "fractional_objective",
     titleId: "Optimasi Biaya per Energi / Nutrien",
     titleEn: "Cost-per-Energy / Nutrient Optimization",
     summaryId:
       "Cari racikan termurah per satuan energi (kkal) atau protein, bukan sekadar harga per kilogram pakan.",
     summaryEn:
       "Optimize lowest cost per energy unit or amino acid rather than lowest price per kg of feed alone.",
-    actionId: "Atur di Presisi LP",
-    actionEn: "Configure in Precision LP",
+    actionId: "Buka Sasaran Fraksional",
+    actionEn: "Open Fractional Target",
     tone: "petrol",
   },
   {
     id: "tool-stochastic",
-    target: "precision_lp",
+    target: "stochastic_slp",
     titleId: "Margin Keamanan Variasi Bahan (Stokastik)",
     titleEn: "Ingredient Variability Safety Margin (Stochastic)",
     summaryId:
       "Menjaga kecukupan gizi tetap aman 90–99% meski kadar protein atau energi bahan baku berubah antar kiriman.",
     summaryEn:
       "Maintain 90–99% nutrient confidence despite batch-to-batch variation in raw ingredient quality.",
-    actionId: "Atur di Presisi LP",
-    actionEn: "Configure in Precision LP",
+    actionId: "Buka Margin Stokastik",
+    actionEn: "Open Stochastic Margin",
     tone: "coral",
   },
   {
     id: "tool-enzyme-rumen",
-    target: "precision_lp",
+    target: "enzyme_rumen",
     titleId: "Matriks Multi-Enzim & Evaluasi Rumen",
     titleEn: "Multi-Enzyme Matrix & Rumen Evaluation",
     summaryId:
       "Menghitung tambahan fosfor, energi, dan asam amino dari fitase/xilanase/protease serta memantau risiko asidosis rumen.",
     summaryEn:
       "Model phytase/xylanase/protease nutrient release alongside fast rumen acidosis risk evaluation.",
-    actionId: "Atur di Presisi LP",
-    actionEn: "Configure in Precision LP",
+    actionId: "Buka Multi-Enzim & Rumen",
+    actionEn: "Open Enzyme & Rumen",
     tone: "mint",
   },
 ];

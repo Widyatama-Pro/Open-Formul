@@ -1,4 +1,5 @@
 import type { FormulationResult, Ingredient, Nutrient, Requirement } from "../types";
+import { resolveDisplayDigits } from "../utils/locale-number";
 
 export interface FormulationExportInput {
   readonly recipeName: string;
@@ -6,6 +7,7 @@ export interface FormulationExportInput {
   readonly nutrientsCatalog: readonly Nutrient[];
   readonly requirement: Requirement;
   readonly result: FormulationResult;
+  readonly decimalPlaces?: 0 | 1 | 2 | undefined;
 }
 
 export function assertExportableResult(
@@ -76,7 +78,7 @@ function buildLookupMaps(input: FormulationExportInput): {
 export function generateFormulationCsv(input: FormulationExportInput): string {
   assertExportableResult(input.result);
   const { ingMap, nutMap } = buildLookupMaps(input);
-  const { result, requirement, recipeName } = input;
+  const { result, requirement, recipeName, decimalPlaces = 0 } = input;
   const batchKg = result.batchSizeKg ?? 100;
 
   const lines: CellValue[][] = [
@@ -114,18 +116,22 @@ export function generateFormulationCsv(input: FormulationExportInput): string {
   result.composition.forEach((item, idx) => {
     const ing = ingMap.get(item.ingredientId);
     const activePrice = ing ? (ing.priceOverride ?? ing.pricePerKg) : 0;
+    const modelPct = item.fraction * 100;
     const asFedPct = (item.asFedFraction ?? item.fraction) * 100;
     const weight = item.weightKg ?? (item.asFedFraction ?? item.fraction) * batchKg;
+    const modelDigits = resolveDisplayDigits("%", "inclusion", decimalPlaces, modelPct);
+    const asFedDigits = resolveDisplayDigits("%", "inclusion", decimalPlaces, asFedPct);
+    const weightDigits = Math.max(1, decimalPlaces);
     lines.push([
       idx + 1,
       item.ingredientId,
       ing?.name ?? item.ingredientId,
       ing?.category ?? "-",
-      Number((item.fraction * 100).toFixed(4)),
-      Number(asFedPct.toFixed(4)),
-      Number(weight.toFixed(3)),
+      Number(modelPct.toFixed(modelDigits)),
+      Number(asFedPct.toFixed(asFedDigits)),
+      Number(weight.toFixed(weightDigits)),
       activePrice,
-      Number((item.costContribution ?? item.fraction * activePrice).toFixed(2)),
+      Number((item.costContribution ?? item.fraction * activePrice).toFixed(0)),
       item.priceRange?.minPrice !== null && item.priceRange?.minPrice !== undefined
         ? Math.round(item.priceRange.minPrice)
         : "-",
@@ -150,16 +156,19 @@ export function generateFormulationCsv(input: FormulationExportInput): string {
 
   for (const nr of result.nutrients) {
     const meta = nutMap.get(nr.nutrientId);
+    const valDigits = resolveDisplayDigits(meta?.unit, nr.nutrientId, decimalPlaces, nr.value);
+    const minDigits = resolveDisplayDigits(meta?.unit, nr.nutrientId, decimalPlaces, nr.min);
+    const maxDigits = resolveDisplayDigits(meta?.unit, nr.nutrientId, decimalPlaces, nr.max);
     lines.push([
       nr.nutrientId,
       meta?.name ?? nr.nutrientId,
       meta?.unit ?? "%",
-      Number(nr.value.toFixed(4)),
-      nr.min !== undefined ? Number(nr.min.toFixed(4)) : "-",
-      nr.max !== undefined ? Number(nr.max.toFixed(4)) : "-",
+      Number(nr.value.toFixed(valDigits)),
+      nr.min !== undefined ? Number(nr.min.toFixed(minDigits)) : "-",
+      nr.max !== undefined ? Number(nr.max.toFixed(maxDigits)) : "-",
       nr.status,
       nr.shadowPrice !== null && nr.shadowPrice !== undefined
-        ? Number(nr.shadowPrice.toFixed(2))
+        ? Number(nr.shadowPrice.toFixed(0))
         : "-",
     ]);
   }
@@ -352,7 +361,7 @@ function buildWorksheetXml(
 export function generateFormulationXlsx(input: FormulationExportInput): Uint8Array {
   assertExportableResult(input.result);
   const { ingMap, nutMap } = buildLookupMaps(input);
-  const { result, requirement, recipeName } = input;
+  const { result, requirement, recipeName, decimalPlaces = 0 } = input;
   const batchKg = result.batchSizeKg ?? 100;
 
   // Sheet 1: Komposisi & Timbang Batch
@@ -388,18 +397,22 @@ export function generateFormulationXlsx(input: FormulationExportInput): Uint8Arr
   result.composition.forEach((item, idx) => {
     const ing = ingMap.get(item.ingredientId);
     const activePrice = ing ? (ing.priceOverride ?? ing.pricePerKg) : 0;
+    const modelPct = item.fraction * 100;
     const asFedPct = (item.asFedFraction ?? item.fraction) * 100;
     const weight = item.weightKg ?? (item.asFedFraction ?? item.fraction) * batchKg;
+    const modelDigits = resolveDisplayDigits("%", "inclusion", decimalPlaces, modelPct);
+    const asFedDigits = resolveDisplayDigits("%", "inclusion", decimalPlaces, asFedPct);
+    const weightDigits = Math.max(1, decimalPlaces);
     sheet1Rows.push([
       idx + 1,
       item.ingredientId,
       ing?.name ?? item.ingredientId,
       ing?.category ?? "-",
-      Number((item.fraction * 100).toFixed(3)),
-      Number(asFedPct.toFixed(3)),
-      Number(weight.toFixed(3)),
+      Number(modelPct.toFixed(modelDigits)),
+      Number(asFedPct.toFixed(asFedDigits)),
+      Number(weight.toFixed(weightDigits)),
       activePrice,
-      Number((item.costContribution ?? item.fraction * activePrice).toFixed(2)),
+      Number((item.costContribution ?? item.fraction * activePrice).toFixed(0)),
     ]);
   });
 
@@ -410,13 +423,16 @@ export function generateFormulationXlsx(input: FormulationExportInput): Uint8Arr
   ];
   for (const nr of result.nutrients) {
     const meta = nutMap.get(nr.nutrientId);
+    const valDigits = resolveDisplayDigits(meta?.unit, nr.nutrientId, decimalPlaces, nr.value);
+    const minDigits = resolveDisplayDigits(meta?.unit, nr.nutrientId, decimalPlaces, nr.min);
+    const maxDigits = resolveDisplayDigits(meta?.unit, nr.nutrientId, decimalPlaces, nr.max);
     sheet2Rows.push([
       nr.nutrientId,
       meta?.name ?? nr.nutrientId,
       meta?.unit ?? "%",
-      Number(nr.value.toFixed(4)),
-      nr.min !== undefined ? Number(nr.min.toFixed(4)) : "-",
-      nr.max !== undefined ? Number(nr.max.toFixed(4)) : "-",
+      Number(nr.value.toFixed(valDigits)),
+      nr.min !== undefined ? Number(nr.min.toFixed(minDigits)) : "-",
+      nr.max !== undefined ? Number(nr.max.toFixed(maxDigits)) : "-",
       nr.status,
     ]);
   }

@@ -26,6 +26,7 @@ export interface ExportDialogProps {
   readonly config: FormulationConfig;
   readonly result: FormulationResult;
   readonly recipeName?: string;
+  readonly decimalPlaces?: 0 | 1 | 2;
   readonly language?: AppLanguage;
 }
 
@@ -41,6 +42,7 @@ export function ExportDialog({
   config,
   result,
   recipeName,
+  decimalPlaces = 0,
   language = "id",
 }: ExportDialogProps) {
   const [notice, setNotice] = useState<{
@@ -68,6 +70,7 @@ export function ExportDialog({
         nutrientsCatalog,
         requirement,
         result,
+        decimalPlaces,
       });
       downloadBinaryFile(bytes, `${slug}-lengkap.pdf`, "application/pdf");
       setNotice({
@@ -95,6 +98,7 @@ export function ExportDialog({
         nutrientsCatalog,
         requirement,
         result,
+        decimalPlaces,
       });
       downloadBinaryFile(bytes, `${slug}-batch.pdf`, "application/pdf");
       setNotice({
@@ -163,15 +167,15 @@ export function ExportDialog({
               <p className="font-bold">
                 {pickLang(
                   language,
-                  "Mode Relaksasi Elastik — dokumen bertanda kompromi nutrisi",
-                  "Elastic Relaxation Mode — documents carry nutrient compromise notice",
+                  "Mode Toleransi Target — Formula Mendekati Standar",
+                  "Flexible Bounds Mode — Closest-Fit Ration",
                 )}
               </p>
               <p className="mt-0.5 text-[11px] opacity-90">
                 {pickLang(
                   language,
-                  "PDF Lengkap menyertakan penanda kompromi nutrisi. PDF Lembar Timbang Gudang dikunci hingga formula mencapai status Optimal penuh.",
-                  "Full PDF includes compromise warnings. Batch-Only PDF is locked until status is fully Optimal.",
+                  "Mode Relaksasi Elastik — dokumen bertanda kompromi nutrisi. PDF Lengkap menyertakan penanda kompromi nutrisi, sedangkan PDF Lembar Timbang Gudang dikunci hingga formula mencapai status Optimal penuh.",
+                  "Elastic Relaxation Mode — documents carry nutrient compromise notice. Full PDF includes compromise warnings, while Batch-Only PDF is locked until status is fully Optimal.",
                 )}
               </p>
             </div>

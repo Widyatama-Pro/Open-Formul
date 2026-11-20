@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ResultSubTab } from "./components/analytics/ResultsPanel";
+import type { ResultSpotlightTarget, ResultSubTab } from "./components/analytics/ResultsPanel";
 import { AddEditIngredientModal } from "./components/database/AddEditIngredientModal";
 import { IngredientLibraryPage } from "./components/database/IngredientLibraryPage";
 import { RequirementLibraryPage } from "./components/database/RequirementLibraryPage";
@@ -7,8 +7,14 @@ import {
   AdvancedModulesPreview,
   type AdvancedShortcutTarget,
 } from "./components/formulation/AdvancedModulesPreview";
-import { FormulationWorkbench } from "./components/formulation/FormulationWorkbench";
-import { PrecisionEngineDialog } from "./components/formulation/PrecisionEngineDialog";
+import {
+  FormulationWorkbench,
+  type MobileStep,
+} from "./components/formulation/FormulationWorkbench";
+import {
+  PrecisionEngineDialog,
+  type PrecisionFocusSection,
+} from "./components/formulation/PrecisionEngineDialog";
 import { AppShell } from "./components/layout/AppShell";
 import { ExportDialog } from "./components/recipes/ExportDialog";
 import { SaveRecipeDialog } from "./components/recipes/SaveRecipeDialog";
@@ -19,6 +25,7 @@ import { usePwaStatus } from "./hooks/use-pwa-status";
 import { FEED_JSON_MIME } from "./storage";
 import { ThemeProvider, useTheme } from "./theme";
 import { downloadTextFile } from "./utils/download";
+import { isRuminantSpecies } from "./utils/species";
 
 function AppContent() {
   const store = usePrototypeStore();
@@ -28,28 +35,55 @@ function AppContent() {
   const [exportOpen, setExportOpen] = useState(false);
   const [addIngredientOpen, setAddIngredientOpen] = useState(false);
   const [precisionOpen, setPrecisionOpen] = useState(false);
+  const [precisionFocusSection, setPrecisionFocusSection] = useState<PrecisionFocusSection | null>(
+    null,
+  );
   const [resultSubTab, setResultSubTab] = useState<ResultSubTab>("batch");
+  const [resultSpotlight, setResultSpotlight] = useState<ResultSpotlightTarget>(null);
+  const [mobileStep, setMobileStep] = useState<MobileStep>("ingredients");
+
+  const decimalPlaces = store.preferences.decimalPlaces ?? 0;
+  const hasRumenEvaluation = isRuminantSpecies(store.activeRequirement.species);
 
   const handleExportAllBackup = () => {
     const json = store.exportAllBackupJson();
     const dateStamp = new Date().toISOString().slice(0, 10);
-    downloadTextFile(json, `open-formulasi-backup-${dateStamp}.json`, FEED_JSON_MIME);
+    downloadTextFile(json, `openformul-backup-${dateStamp}.json`, FEED_JSON_MIME);
   };
 
   const handleAdvancedShortcut = (target: AdvancedShortcutTarget) => {
     if (target === "shadow_price") {
       setResultSubTab("dual");
+      setResultSpotlight("dual");
+      setMobileStep("results");
       store.setRoute("formulation");
     } else if (target === "what_if") {
       setResultSubTab("whatif");
+      setResultSpotlight("whatif");
+      setMobileStep("results");
       store.setRoute("formulation");
-    } else if (target === "precision_lp") {
-      store.setRoute("formulation");
+    } else if (target === "fractional_objective") {
+      setPrecisionFocusSection("fractional");
       setPrecisionOpen(true);
-    } else {
-      store.toggleAdvanceNutrients(true);
+      store.setRoute("formulation");
+    } else if (target === "stochastic_slp") {
+      setPrecisionFocusSection("stochastic");
+      setPrecisionOpen(true);
+      store.setRoute("formulation");
+    } else if (target === "enzyme_rumen") {
+      setPrecisionFocusSection("enzyme");
+      setPrecisionOpen(true);
       store.setRoute("formulation");
     }
+  };
+
+  const handleJumpToRumenEvaluator = () => {
+    setPrecisionOpen(false);
+    setPrecisionFocusSection(null);
+    setResultSubTab("batch");
+    setResultSpotlight("rumen");
+    setMobileStep("results");
+    store.setRoute("formulation");
   };
 
   const handleToggleLightDark = () => {
@@ -86,6 +120,10 @@ function AppContent() {
           store={store}
           resultSubTab={resultSubTab}
           onResultSubTabChange={setResultSubTab}
+          mobileStep={mobileStep}
+          onMobileStepChange={setMobileStep}
+          spotlightTarget={resultSpotlight}
+          onClearSpotlight={() => setResultSpotlight(null)}
           onOpenSaveDialog={() => setSaveOpen(true)}
           onOpenExportDialog={() => setExportOpen(true)}
           onOpenAddIngredient={() => setAddIngredientOpen(true)}
@@ -97,6 +135,7 @@ function AppContent() {
           ingredients={store.ingredients}
           customNutrients={store.config.customNutrients ?? []}
           language={store.preferences.language}
+          decimalPlaces={decimalPlaces}
           onToggleActive={(id, active) => store.updateIngredient(id, { isActive: active })}
           onOpenAdd={() => setAddIngredientOpen(true)}
           onImportIngredients={store.importIngredients}
@@ -108,6 +147,7 @@ function AppContent() {
           requirements={store.requirements}
           activeRequirementId={store.activeRequirement.id}
           language={store.preferences.language}
+          decimalPlaces={decimalPlaces}
           onSelectAndUse={(id) => {
             store.selectPreset(id);
             store.setRoute("formulation");
@@ -124,6 +164,7 @@ function AppContent() {
           recipes={store.recipes}
           nutrientsCatalog={store.allNutrients}
           language={store.preferences.language}
+          decimalPlaces={decimalPlaces}
           onLoadRecipe={store.loadRecipe}
           onOpenSaveCurrent={() => setSaveOpen(true)}
           onOpenExport={() => setExportOpen(true)}
@@ -147,8 +188,14 @@ function AppContent() {
           config={store.config}
           onToggleAdvance={store.toggleAdvanceNutrients}
           onToggleShowNdf={store.toggleShowNdf}
+          onToggleShowBetn={store.toggleShowBetn}
+          onSetDecimalPlaces={store.setDecimalPlaces}
+          onSetTableViewTier={store.setTableViewTier}
           onSetGlobalZeroInclusion={store.setGlobalZeroInclusion}
-          onOpenPrecisionDialog={() => setPrecisionOpen(true)}
+          onOpenPrecisionDialog={() => {
+            setPrecisionFocusSection(null);
+            setPrecisionOpen(true);
+          }}
           storageStats={store.storageStats}
           storageWarnings={store.storageWarnings}
           pwaStatus={pwa}
@@ -178,6 +225,7 @@ function AppContent() {
         config={store.config}
         result={store.result}
         nutrientsCatalog={store.allNutrients}
+        decimalPlaces={decimalPlaces}
         language={store.preferences.language}
       />
 
@@ -190,11 +238,18 @@ function AppContent() {
 
       <PrecisionEngineDialog
         open={precisionOpen}
-        onClose={() => setPrecisionOpen(false)}
+        onClose={() => {
+          setPrecisionOpen(false);
+          setPrecisionFocusSection(null);
+        }}
         config={store.config}
         allNutrients={store.allNutrients}
         stochasticIterations={store.result.stochasticIterations}
         language={store.preferences.language}
+        focusSection={precisionFocusSection}
+        onClearFocus={() => setPrecisionFocusSection(null)}
+        hasRumenEvaluation={hasRumenEvaluation}
+        onJumpToRumenEvaluator={handleJumpToRumenEvaluator}
         onUpdatePrecision={store.updatePrecisionConfig}
       />
     </AppShell>

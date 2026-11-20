@@ -21,6 +21,84 @@ export const BASIC_NUTRIENT_IDS: ReadonlySet<string> = new Set([
 
 export const DIGESTIBLE_NUTRIENT_IDS: ReadonlySet<string> = new Set(["sid_lys", "avp"]);
 export const NDF_NUTRIENT_IDS: ReadonlySet<string> = new Set(["ndf", "adf"]);
+export const BETN_NUTRIENT_IDS: ReadonlySet<string> = new Set(["betn"]);
+/** Nutrien yang secara alami merupakan batas maksimal (tidak boleh melebihi standar). */
+export const UPPER_BOUND_ONLY_NUTRIENTS: ReadonlySet<string> = new Set([
+  "cf",
+  "tannin",
+  "liquid_fat",
+  "ash",
+]);
+
+/**
+ * Menentukan apakah nutrien diperlakukan sebagai batas maksimal (<= target) pada Mode 1 Angka.
+ * Khusus Serat Kasar (cf/SK) dan parameter ANF/fisik selalu batas maksimal; nutrien lain
+ * mengikuti definisi max-only jika hanya punya `max` tanpa `min`.
+ */
+export function isUpperBoundOnlyNutrient(
+  nutrientId: string,
+  constraint?: Pick<NutrientConstraint, "min" | "max">,
+): boolean {
+  if (UPPER_BOUND_ONLY_NUTRIENTS.has(nutrientId)) return true;
+  if (constraint && constraint.max !== undefined && constraint.min === undefined) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Mengambil 1 angka target utama pada Mode Pendekatan 1 Angka:
+ * - Untuk batas maksimal (SK/cf, dll.): `max ?? idealTarget`
+ * - Untuk nutrien minimal standar: jika hanya `min` -> `min`; jika rentang min–max -> `idealTarget ?? rata-rata`
+ */
+export function resolveSingleTargetValue(constraint: NutrientConstraint): number | null {
+  if (isUpperBoundOnlyNutrient(constraint.nutrientId, constraint)) {
+    if (constraint.max !== undefined && Number.isFinite(constraint.max)) {
+      return constraint.max;
+    }
+    if (constraint.idealTarget !== undefined && Number.isFinite(constraint.idealTarget)) {
+      return constraint.idealTarget;
+    }
+    return null;
+  }
+
+  if (constraint.min !== undefined && Number.isFinite(constraint.min)) {
+    if (constraint.max !== undefined && Number.isFinite(constraint.max)) {
+      if (constraint.idealTarget !== undefined && Number.isFinite(constraint.idealTarget)) {
+        return Math.min(constraint.max, Math.max(constraint.min, constraint.idealTarget));
+      }
+      return Number(((constraint.min + constraint.max) / 2).toFixed(4));
+    }
+    return constraint.min;
+  }
+
+  if (constraint.idealTarget !== undefined && Number.isFinite(constraint.idealTarget)) {
+    return constraint.idealTarget;
+  }
+  return null;
+}
+
+/**
+ * Mengembalikan batas efektif (min/max) untuk LP, precheck, dan verifikasi pasca-solve
+ * sesuai mode input aktif ("range" vs "single").
+ */
+export function resolveEffectiveConstraintBounds(
+  constraint: NutrientConstraint,
+  singleTargetMode: boolean,
+): { readonly min?: number; readonly max?: number } {
+  if (!singleTargetMode) {
+    return {
+      ...(constraint.min !== undefined ? { min: constraint.min } : {}),
+      ...(constraint.max !== undefined ? { max: constraint.max } : {}),
+    };
+  }
+  const target = resolveSingleTargetValue(constraint);
+  if (target === null) return {};
+  if (isUpperBoundOnlyNutrient(constraint.nutrientId, constraint)) {
+    return { max: target };
+  }
+  return { min: target };
+}
 
 export interface EffectiveInclusionBounds {
   readonly minPct: number;
@@ -103,7 +181,8 @@ export function resolveActiveConstraints(
       customIds.has(c.nutrientId) || (!isBasic && !isDerived && c.isAdvance === false);
     const isAdvance = !isBasic && !isDerived && !isCustom;
     const isNdfAllowed = config.showNdf === true && NDF_NUTRIENT_IDS.has(c.nutrientId);
-    if (isAdvance && !config.enableAdvanceNutrients && !isNdfAllowed) {
+    const isBetnAllowed = config.showBetn === true && BETN_NUTRIENT_IDS.has(c.nutrientId);
+    if (isAdvance && !config.enableAdvanceNutrients && !isNdfAllowed && !isBetnAllowed) {
       return false;
     }
     if (DIGESTIBLE_NUTRIENT_IDS.has(c.nutrientId) && !config.enableDigestibleBasis) {
@@ -112,6 +191,9 @@ export function resolveActiveConstraints(
     const enabled = c.enabled ?? (isBasic || isCustom || isDerived);
     if (!enabled) {
       return false;
+    }
+    if (config.targetInputMode === "single") {
+      return resolveSingleTargetValue(c) !== null;
     }
     return c.min !== undefined || c.max !== undefined;
   });

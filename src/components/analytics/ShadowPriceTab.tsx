@@ -14,7 +14,11 @@ import type {
   OpportunityCostItem,
   Requirement,
 } from "../../types";
-import { formatCurrencyIdr, formatNumberLocale } from "../../utils/locale-number";
+import {
+  formatCurrencyIdr,
+  formatNumberLocale,
+  resolveDisplayDigits,
+} from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Select } from "../ui/Select";
@@ -28,6 +32,7 @@ export interface ShadowPriceTabProps {
   readonly ingredients: readonly Ingredient[];
   readonly requirement?: Requirement;
   readonly config?: FormulationConfig;
+  readonly decimalPlaces?: 0 | 1 | 2;
   readonly simpleMode?: boolean;
   readonly language?: AppLanguage;
 }
@@ -41,6 +46,7 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
   ingredients,
   requirement,
   config,
+  decimalPlaces = 0,
   simpleMode = true,
   language = "id",
 }: ShadowPriceTabProps) {
@@ -160,8 +166,30 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
                     </td>
                     <td className="py-1.5 text-right font-medium tabular-nums text-[var(--text-secondary)]">
                       {n.rhsRange && (n.rhsRange.min !== null || n.rhsRange.max !== null)
-                        ? `${n.rhsRange.min !== null ? formatNumberLocale(n.rhsRange.min, 2) : "0"} – ${
-                            n.rhsRange.max !== null ? formatNumberLocale(n.rhsRange.max, 2) : "∞"
+                        ? `${
+                            n.rhsRange.min !== null
+                              ? formatNumberLocale(
+                                  n.rhsRange.min,
+                                  resolveDisplayDigits(
+                                    meta?.unit,
+                                    n.nutrientId,
+                                    decimalPlaces,
+                                    n.rhsRange.min,
+                                  ),
+                                )
+                              : "0"
+                          } – ${
+                            n.rhsRange.max !== null
+                              ? formatNumberLocale(
+                                  n.rhsRange.max,
+                                  resolveDisplayDigits(
+                                    meta?.unit,
+                                    n.nutrientId,
+                                    decimalPlaces,
+                                    n.rhsRange.max,
+                                  ),
+                                )
+                              : "∞"
                           }`
                         : "—"}
                     </td>
@@ -281,7 +309,11 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
                           {formatCurrencyIdr(step.price)}
                         </td>
                         <td className="py-1.5 text-right font-semibold tabular-nums text-[var(--status-success)]">
-                          {formatNumberLocale(frac * 100, 2)}%
+                          {formatNumberLocale(
+                            frac * 100,
+                            resolveDisplayDigits("%", "inclusion", decimalPlaces, frac * 100),
+                          )}
+                          %
                         </td>
                         <td className="py-1.5 text-right tabular-nums text-[var(--text-secondary)]">
                           {step.costPerKg !== null ? formatCurrencyIdr(step.costPerKg) : "—"}

@@ -173,66 +173,66 @@ function ThemeSwitcherMenuView({
         </div>
       </div>
 
-      {/* 7-Palette Responsive Swatch Grid */}
-      <div
-        role="radiogroup"
-        aria-label={pickLang(language, "Pilihan palet warna", "Color Palette")}
-        className={cn(
-          "grid gap-2.5",
-          compact ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-        )}
-      >
-        {palettes.map((palette) => {
-          const isSelected = palette.id === paletteId;
-          const activeSwatches = resolvedMode === "dark" ? palette.darkSwatches : palette.swatches;
+      {/* Compact 7-Palette Swatch Pills */}
+      <div className="space-y-2.5">
+        <div
+          role="radiogroup"
+          aria-label={pickLang(language, "Pilihan palet warna", "Color Palette")}
+          className="flex flex-wrap gap-2"
+        >
+          {palettes.map((palette) => {
+            const isSelected = palette.id === paletteId;
+            const activeSwatches =
+              resolvedMode === "dark" ? palette.darkSwatches : palette.swatches;
 
-          return (
-            <button
-              key={palette.id}
-              type="button"
-              role="radio"
-              aria-checked={isSelected}
-              data-theme-control="palette"
-              data-palette-id={palette.id}
-              onClick={() => handleSelectPalette(palette.id)}
-              className={cn(
-                "flex cursor-pointer flex-col items-start gap-2.5 rounded-xl p-3 text-left transition-[transform,background-color,border-color,box-shadow] duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none",
-                isSelected
-                  ? "border-[1.5px] border-[var(--color-accent)] bg-[var(--bg-surface-elevated)] shadow-[var(--shadow-neu-pressed)]"
-                  : "neu-button",
-              )}
-            >
-              <div className="flex w-full items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5" aria-hidden="true">
-                  {activeSwatches.map((hex, idx) => (
+            return (
+              <button
+                key={palette.id}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                data-theme-control="palette"
+                data-palette-id={palette.id}
+                onClick={() => handleSelectPalette(palette.id)}
+                className={cn(
+                  "inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 text-left transition-[transform,background-color,border-color,box-shadow] duration-150 hover:-translate-y-0.5 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none",
+                  isSelected
+                    ? "border-[1.5px] border-[var(--color-accent)] bg-[var(--bg-surface-elevated)] shadow-[var(--shadow-neu-pressed)]"
+                    : "neu-button border border-transparent",
+                )}
+              >
+                <span className="flex -space-x-1.5" aria-hidden="true">
+                  {activeSwatches.slice(0, 4).map((hex, idx) => (
                     <span
                       key={`${palette.id}-sw-${idx}`}
                       title={hex}
-                      className="inline-block h-4 w-4 rounded-full border border-[var(--border-subtle)]"
+                      className="inline-block h-4 w-4 rounded-full ring-2 ring-[var(--bg-surface-elevated)]"
                       style={{ backgroundColor: hex }}
                     />
                   ))}
-                </div>
-
-                {isSelected && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-accent-contrast)]">
-                    <Check className="h-2.5 w-2.5" />
-                    <span>{pickLang(language, "Aktif", "Active")}</span>
-                  </span>
-                )}
-              </div>
-
-              <div className="min-w-0">
-                <div className="truncate text-[13px] font-bold text-[var(--text-primary)]">
+                </span>
+                <span className="text-xs font-semibold whitespace-nowrap text-[var(--text-primary)]">
                   {getPaletteLabel(palette, language)}
-                </div>
-                <div className="mt-0.5 text-[11px] leading-snug text-[var(--text-muted)]">
-                  {getPaletteSubtitle(palette, language)}
-                </div>
-              </div>
-            </button>
-          );
-        })}
+                </span>
+                {isSelected && (
+                  <Check
+                    className="h-3 w-3 shrink-0 text-[var(--color-accent)]"
+                    aria-hidden="true"
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="neu-well flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-[11px]">
+          <span className="font-semibold text-[var(--text-primary)]">
+            {getPaletteLabel(activePaletteMeta, language)}
+          </span>
+          <span className="text-[var(--text-muted)]">
+            {getPaletteSubtitle(activePaletteMeta, language)}
+          </span>
+        </div>
       </div>
 
       {/* Optional AMOLED Pure-Black Dark Mode Toggle */}

@@ -1,4 +1,5 @@
-import { FlaskConical, Gauge, RotateCcw, Sliders } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { ArrowRight, FlaskConical, Gauge, RotateCcw, Sliders } from "lucide-react";
 import { pickLang } from "../../i18n";
 import type {
   AppLanguage,
@@ -7,12 +8,15 @@ import type {
   Nutrient,
   NutrientId,
 } from "../../types";
+import { cn } from "../../utils/cn";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
 import { SheetDialog } from "../ui/SheetDialog";
 import { Switch } from "../ui/Switch";
+
+export type PrecisionFocusSection = "fractional" | "stochastic" | "enzyme";
 
 export interface PrecisionEngineDialogProps {
   readonly open: boolean;
@@ -21,6 +25,10 @@ export interface PrecisionEngineDialogProps {
   readonly allNutrients: readonly Nutrient[];
   readonly stochasticIterations?: number | undefined;
   readonly language: AppLanguage;
+  readonly focusSection?: PrecisionFocusSection | null | undefined;
+  readonly onClearFocus?: (() => void) | undefined;
+  readonly hasRumenEvaluation?: boolean | undefined;
+  readonly onJumpToRumenEvaluator?: (() => void) | undefined;
   readonly onUpdatePrecision: (patch: {
     readonly fractionalObjective?: FormulationConfig["fractionalObjective"] | null;
     readonly enableStochasticSlp?: boolean;
@@ -71,10 +79,39 @@ export function PrecisionEngineDialog({
   allNutrients,
   stochasticIterations,
   language,
+  focusSection = null,
+  onClearFocus,
+  hasRumenEvaluation = false,
+  onJumpToRumenEvaluator,
   onUpdatePrecision,
 }: PrecisionEngineDialogProps) {
   const activeEnzymes = config.enzymes ?? [];
   const capPsi = config.enzymeSubAdditiveCap ?? 1;
+  const fractionalRef = useRef<HTMLDivElement | null>(null);
+  const stochasticRef = useRef<HTMLDivElement | null>(null);
+  const enzymeRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open || !focusSection) return;
+    const targetRef =
+      focusSection === "fractional"
+        ? fractionalRef
+        : focusSection === "stochastic"
+          ? stochasticRef
+          : enzymeRef;
+    const node = targetRef.current;
+    if (!node) return;
+    const timer = window.setTimeout(() => {
+      node.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [open, focusSection]);
+
+  const dismissSpotlightIfMatched = (section: PrecisionFocusSection) => {
+    if (focusSection === section) {
+      onClearFocus?.();
+    }
+  };
 
   const toggleEnzymePreset = (preset: (typeof ENZYME_PRESETS)[number]) => {
     const exists = activeEnzymes.some((e) => e.id === preset.id);
@@ -142,7 +179,17 @@ export function PrecisionEngineDialog({
     >
       <div className="space-y-4 text-xs">
         {/* PR-03: Fractional LP Objective */}
-        <div className="glass-card rounded-2xl p-3.5">
+        <div
+          ref={fractionalRef}
+          data-precision-section="fractional"
+          onPointerDown={() => dismissSpotlightIfMatched("fractional")}
+          onKeyDown={() => dismissSpotlightIfMatched("fractional")}
+          className={cn(
+            "modal-section-card rounded-2xl p-3.5 transition-shadow duration-200",
+            focusSection === "fractional" &&
+              "feature-spotlight-glow ring-2 ring-[var(--color-accent)]",
+          )}
+        >
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Gauge className="h-4 w-4 text-[var(--status-info)]" />
@@ -198,7 +245,17 @@ export function PrecisionEngineDialog({
         </div>
 
         {/* PR-04: Stochastic SLP */}
-        <div className="glass-card rounded-2xl p-3.5">
+        <div
+          ref={stochasticRef}
+          data-precision-section="stochastic"
+          onPointerDown={() => dismissSpotlightIfMatched("stochastic")}
+          onKeyDown={() => dismissSpotlightIfMatched("stochastic")}
+          className={cn(
+            "modal-section-card rounded-2xl p-3.5 transition-shadow duration-200",
+            focusSection === "stochastic" &&
+              "feature-spotlight-glow ring-2 ring-[var(--color-accent)]",
+          )}
+        >
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Sliders className="h-4 w-4 text-[var(--status-warning)]" />
@@ -284,7 +341,16 @@ export function PrecisionEngineDialog({
         </div>
 
         {/* PR-05: Multi-Enzyme Matrix */}
-        <div className="glass-card rounded-2xl p-3.5">
+        <div
+          ref={enzymeRef}
+          data-precision-section="enzyme"
+          onPointerDown={() => dismissSpotlightIfMatched("enzyme")}
+          onKeyDown={() => dismissSpotlightIfMatched("enzyme")}
+          className={cn(
+            "modal-section-card rounded-2xl p-3.5 transition-shadow duration-200",
+            focusSection === "enzyme" && "feature-spotlight-glow ring-2 ring-[var(--color-accent)]",
+          )}
+        >
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <FlaskConical className="h-4 w-4 text-[var(--status-success)]" />
@@ -369,6 +435,21 @@ export function PrecisionEngineDialog({
               <option value="0.5">0.50 (50% Cap)</option>
             </Select>
           </div>
+          {hasRumenEvaluation && onJumpToRumenEvaluator && (
+            <div className="mt-3 flex justify-end border-t border-[var(--border-subtle)] pt-2.5">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  onClose();
+                  onJumpToRumenEvaluator();
+                }}
+              >
+                <span>{pickLang(language, "Lihat Evaluator Rumen", "View Rumen Evaluator")}</span>
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </SheetDialog>

@@ -93,8 +93,8 @@ export function ConflictDiagnosticsBanner({
                 {status === "near_feasible"
                   ? pickLang(
                       language,
-                      "Terpenuhi Sebagian (Near-Feasible / Mode Relaksasi Elastik)",
-                      "Partially Satisfied (Near-Feasible / Elastic Relaxation)",
+                      "Mendekati Target (Toleransi Batas Aktif)",
+                      "Closest Fit (Flexible Bounds Active)",
                     )
                   : pickLang(language, "Peringatan Batasan Formulasi", "Formulation Warnings")}
                 {status === "near_feasible" &&

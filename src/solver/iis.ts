@@ -30,8 +30,8 @@ function rowToCandidate(row: LpRow): IisCandidate | null {
           if (c.nutrientId !== m.nutrientId) return true;
           if (bound === "eq")
             return !(c.min !== undefined && c.max !== undefined && c.min === c.max);
-          if (bound === "min") return c.min === undefined;
-          return c.max === undefined;
+          if (bound === "min") return c.min === undefined && c.idealTarget === undefined;
+          return c.max === undefined && c.idealTarget === undefined;
         }),
       }),
     };

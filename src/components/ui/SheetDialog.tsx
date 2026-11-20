@@ -58,12 +58,12 @@ export function SheetDialog({
     >
       <div
         className={cn(
-          "flex w-full flex-col overflow-hidden overscroll-contain border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[var(--shadow-neu-elevated)]",
+          "flex w-full flex-col overflow-hidden overscroll-contain border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[0_24px_54px_-14px_rgba(0,0,0,0.34),0_4px_16px_-4px_rgba(0,0,0,0.14)]",
           panelRadius,
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-[var(--border-subtle)] px-5 py-3.5">
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-5 py-3.5">
           <div className="min-w-0">
             <h2 className="truncate text-base font-bold tracking-tight text-[var(--text-primary)]">
               {title}
@@ -82,7 +82,7 @@ export function SheetDialog({
           </button>
         </div>
 
-        <div className="custom-scrollbar mobile-drawer-scroll flex-1 overflow-y-auto p-5">
+        <div className="custom-scrollbar mobile-drawer-scroll flex-1 overflow-y-auto overscroll-contain bg-[var(--bg-canvas)] p-5">
           {children}
         </div>
 

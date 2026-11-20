@@ -229,7 +229,8 @@ describe("OpenFormul Desktop UI Flow", () => {
     expect(screen.getByRole("button", { name: /Atur Presisi LP/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: /Pengaturan Dasar/i }));
-    await user.selectOptions(screen.getByLabelText("Pilih bahasa"), "en");
+    await user.click(screen.getByRole("combobox", { name: "Pilih bahasa" }));
+    await user.click(screen.getByRole("option", { name: "English" }));
     expect(screen.getByRole("heading", { name: "Application Settings" })).toBeInTheDocument();
 
     await user.click(screen.getAllByRole("button", { name: /Ration Formulation/i })[0]!);
@@ -244,8 +245,10 @@ describe("OpenFormul Desktop UI Flow", () => {
     fireEvent.change(screen.getAllByLabelText("Nama Nutrien Kustom")[0]!, {
       target: { value: "Beta-Glukan" },
     });
-    await user.selectOptions(screen.getAllByLabelText("Satuan Nutrien Kustom")[0]!, "mg/kg");
-    await user.selectOptions(screen.getAllByLabelText("Basis Nutrien Kustom")[0]!, "dry_matter");
+    await user.click(screen.getAllByRole("combobox", { name: "Satuan Nutrien Kustom" })[0]!);
+    await user.click(screen.getByRole("option", { name: "mg/kg" }));
+    await user.click(screen.getAllByRole("combobox", { name: "Basis Nutrien Kustom" })[0]!);
+    await user.click(screen.getByRole("option", { name: /Basis BK/i }));
     await user.click(screen.getAllByRole("button", { name: /Simpan Nutrien/i })[0]!);
 
     expect(screen.getAllByText(/Beta-Glukan/i).length).toBeGreaterThan(0);

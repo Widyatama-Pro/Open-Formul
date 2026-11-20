@@ -1110,8 +1110,8 @@ export function evaluateMockFormulation(
           code: "SOLVER_INFEASIBLE",
           severity: "error",
           message:
-            "Kombinasi bahan aktif belum memenuhi seluruh batas target nutrien (Mode Toleransi Elastik nonaktif).",
-          suggestion: "Aktifkan Mode Toleransi / Relaksasi atau longgarkan batas nutrien/inklusi.",
+            "Kombinasi bahan aktif belum memenuhi seluruh batas target nutrien (Mode Toleransi Target nonaktif).",
+          suggestion: "Aktifkan Mode Toleransi Target atau longgarkan batas nutrien/inklusi.",
         },
       ],
       messages: [
@@ -1134,7 +1134,7 @@ export function evaluateMockFormulation(
     conflicts,
     messages: hasViolation
       ? [
-          "Mode Relaksasi Elastik aktif (Prototype Mock): sebagian nutrien belum tercapai penuh dan ditandai merah.",
+          "Mode Toleransi Target aktif (Prototype Mock): sebagian nutrien belum tercapai penuh dan ditandai merah.",
         ]
       : [],
     solvedAt: new Date().toISOString(),

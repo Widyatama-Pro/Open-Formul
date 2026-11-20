@@ -6,6 +6,8 @@ import {
   MOCK_REQUIREMENTS,
 } from "../src/data/mock-state";
 import {
+  buildLpModel,
+  detectNutrientGaps,
   getIndonesiaAvailabilityTier,
   isUpperBoundOnlyNutrient,
   recommendIngredientsForGaps,
@@ -15,6 +17,7 @@ import {
 } from "../src/solver";
 import { solveLpInNode } from "../src/solver/highsNodeRunner";
 import type { FormulationConfig, Ingredient, Requirement } from "../src/types";
+import { computeDynamicBeefRequirement } from "../src/utils/cattle-requirements";
 import { validateFormulationConfig } from "../src/utils/validators";
 
 describe("Mode Pendekatan 1 Angka (Single-Target Precision) & Saran Bahan Indonesia", () => {
@@ -188,5 +191,128 @@ describe("Mode Pendekatan 1 Angka (Single-Target Precision) & Saran Bahan Indone
     if (validRange.ok) {
       expect(validRange.data.targetInputMode).toBe("range");
     }
+  });
+
+  it("Advisor Infeasible: memakai knapsack extrema batas inklusi dan mencegah duplikat keluarga bahan yang sudah aktif", async () => {
+    // Tepung ikan aktif namun dibatasi Max 5%, sehingga PK max achievable jauh di bawah 21% meski cp bahan 55%
+    const cappedPool: readonly Ingredient[] = MOCK_INGREDIENTS.map((ing) => {
+      if (ing.id === "corn-ground") {
+        return { ...ing, isActive: true, inclusion: { min: 0, max: 100 } };
+      }
+      if (ing.id === "rice-bran") {
+        return { ...ing, isActive: true, inclusion: { min: 0, max: 100 } };
+      }
+      if (ing.id === "fish-meal-local") {
+        return { ...ing, isActive: true, inclusion: { min: 0, max: 5 } };
+      }
+      if (ing.id === "limestone") {
+        return { ...ing, isActive: true, inclusion: { min: 0, max: 3 } };
+      }
+      return { ...ing, isActive: false };
+    });
+
+    const req = MOCK_REQUIREMENTS[0]!;
+    const cfg: FormulationConfig = {
+      ...DEFAULT_CONFIG,
+      targetInputMode: "single",
+      enableElasticFallback: false,
+    };
+
+    const res = await solveFormulationWithRunner(cappedPool, req, cfg, solveLpInNode);
+    expect(res.status).toBe("infeasible");
+
+    const gaps = detectNutrientGaps(cappedPool, req, cfg, res);
+    expect(gaps.some((g) => g.nutrientId === "cp" && g.direction === "increase")).toBe(true);
+
+    const suggestions = recommendIngredientsForGaps(cappedPool, req, cfg, res, MOCK_NUTRIENTS, {
+      maxSuggestions: 5,
+    });
+    expect(suggestions.length).toBeGreaterThan(0);
+    // Wajib menyarankan sumber protein (mis. SBM), tidak menduplikasi jagung kuning / tepung ikan / kapur aktif
+    expect(suggestions.some((s) => s.ingredient.id === "sbm-44")).toBe(true);
+    expect(
+      suggestions.some(
+        (s) =>
+          s.ingredient.id === "hartadi-jagung-kuning-bk" ||
+          s.ingredient.id === "hartadi-t12-0491" ||
+          s.ingredient.id === "hartadi-t15-009" ||
+          s.ingredient.name.toLowerCase().includes("tepung ikan"),
+      ),
+    ).toBe(false);
+  });
+
+  it("Ruminansia (Sapi Potong BK) Mode 1 Angka: saran bahan sesuai spesies, bebas tepung ikan/daging hewani & bebas duplikat rumput gajah", async () => {
+    const dynamicBeef = computeDynamicBeefRequirement({
+      bodyWeightKg: 300,
+      adgKgPerDay: 0.9,
+      physiologicalState: "growth",
+    }).requirement;
+
+    // Hanya aktifkan Rumput Gajah + Jerami Padi -> defisit TDN & PK untuk PBBH 0.9 kg/hr
+    const forageOnly: readonly Ingredient[] = MOCK_INGREDIENTS.map((ing) => ({
+      ...ing,
+      isActive: ing.id === "napier-grass" || ing.id === "hartadi-jerami-padi",
+    }));
+
+    const cfg: FormulationConfig = {
+      ...DEFAULT_CONFIG,
+      activeBasis: "dry_matter",
+      targetInputMode: "single",
+      enableElasticFallback: true,
+    };
+
+    const res = await solveFormulationWithRunner(forageOnly, dynamicBeef, cfg, solveLpInNode);
+    const suggestions = recommendIngredientsForGaps(
+      forageOnly,
+      dynamicBeef,
+      cfg,
+      res,
+      MOCK_NUTRIENTS,
+      { maxSuggestions: 5 },
+    );
+
+    expect(suggestions.length).toBeGreaterThan(0);
+    // Tidak boleh menduplikasi Rumput Gajah Hartadi saat napier-grass sudah aktif
+    expect(suggestions.some((s) => s.ingredient.id === "hartadi-rumput-gajah")).toBe(false);
+    // Tidak boleh menyarankan tepung ikan (termasuk varian koma), daging hewan, darah, kepiting, atau baris tanpa nama
+    expect(
+      suggestions.some((s) =>
+        /tepung[\s,]+ikan|darah hewan|tepung daging,\s*sisa|kepiting|^\(\d+\)$/i.test(
+          s.ingredient.name,
+        ),
+      ),
+    ).toBe(false);
+    // Bahan teratas tetap prioritas mudah didapat di Indonesia
+    expect(suggestions[0]!.availabilityTier).toBe("high");
+  });
+
+  it("Mode 1 Angka mempromosikan batas maksimal SK (cf) minimal ke tier1 walau preset menandainya tier2", () => {
+    const reqWithTier2Cf: Requirement = {
+      ...MOCK_REQUIREMENTS[0]!,
+      constraints: [
+        { nutrientId: "cp", min: 21, tier: "tier2", enabled: true },
+        { nutrientId: "cf", max: 5, tier: "tier2", enabled: true },
+      ],
+      ratios: [],
+    };
+    const model = buildLpModel(
+      MOCK_INGREDIENTS,
+      reqWithTier2Cf,
+      { ...DEFAULT_CONFIG, targetInputMode: "single", enableElasticFallback: true },
+      { elastic: true },
+    );
+    const cfRow = model.rows.find(
+      (r) => r.meta.kind === "nutrient_max" && r.meta.nutrientId === "cf",
+    );
+    const cpRow = model.rows.find(
+      (r) => r.meta.kind === "nutrient_min" && r.meta.nutrientId === "cp",
+    );
+    const cfSlack = model.variables.find((v) => v.varName === cfRow?.slackPosVar);
+    const cpSlack = model.variables.find((v) => v.varName === cpRow?.slackNegVar);
+
+    expect(cfSlack).toBeDefined();
+    expect(cpSlack).toBeDefined();
+    // Penalti tier1 (1e8 / 5) jauh lebih tinggi dibanding tier2 (1e6 / 21)
+    expect(cfSlack!.objectiveCoeff).toBeGreaterThan(cpSlack!.objectiveCoeff * 50);
   });
 });

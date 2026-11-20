@@ -190,7 +190,7 @@ export function translateConflict(
     case "NUTRIENT_UNREACHABLE":
       return {
         message: `Nutrient constraint${target} cannot be satisfied by active ingredients.`,
-        suggestion: "Enable Elastic Relaxation, adjust target bounds, or add richer ingredients.",
+        suggestion: "Enable Flexible Bounds, adjust target bounds, or add richer ingredients.",
       };
     case "ANTI_NOL_CONFLICT":
       return {
@@ -216,7 +216,7 @@ export function translateConflict(
     case "SOLVER_INFEASIBLE":
       return {
         message: "No feasible solution found under current hard constraints.",
-        suggestion: "Enable Elastic Relaxation or relax conflicting bounds listed in IIS.",
+        suggestion: "Enable Flexible Bounds or relax conflicting bounds listed in IIS.",
       };
   }
 }

@@ -86,7 +86,7 @@ export function generateFormulationCsv(input: FormulationExportInput): string {
     ["Nama Formula", recipeName],
     ["Standar Kebutuhan", requirement.name],
     ["Basis Model", result.basis === "dry_matter" ? "BK (Dry Matter)" : "As-Fed"],
-    ["Status Solver", result.status === "optimal" ? "OPTIMAL" : "NEAR-FEASIBLE (ELASTIK)"],
+    ["Status Solver", result.status === "optimal" ? "OPTIMAL" : "NEAR-FEASIBLE (TOLERANSI TARGET)"],
     ["Ukuran Batch (kg)", Number(batchKg.toFixed(2))],
     ["Biaya per kg (Rp)", result.costPerKg !== null ? Math.round(result.costPerKg) : "-"],
     [

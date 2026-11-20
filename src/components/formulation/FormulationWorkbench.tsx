@@ -74,7 +74,6 @@ export function FormulationWorkbench({
 }: FormulationWorkbenchProps) {
   const [localMobileStep, setLocalMobileStep] = useState<MobileStep>("ingredients");
   const activeMobileStep = controlledMobileStep ?? localMobileStep;
-  const handleMobileStepChange = onMobileStepChange ?? setLocalMobileStep;
   const [catalogSearch, setCatalogSearch] = useState("");
   const [catalogClassFilter, setCatalogClassFilter] = useState<"all" | FeedClassCode>("all");
   const [catalogExpanded, setCatalogExpanded] = useState(true);
@@ -100,6 +99,25 @@ export function FormulationWorkbench({
       return prev;
     });
   }, []);
+
+  const handleMobileStepChange = useCallback(
+    (nextStep: MobileStep) => {
+      if (onMobileStepChange) {
+        onMobileStepChange(nextStep);
+      } else {
+        setLocalMobileStep(nextStep);
+      }
+      const scroller = mobileScrollRef.current;
+      if (scroller) {
+        const toolbarHeight = toolbarWrapRef.current?.offsetHeight ?? 0;
+        if (scroller.scrollTop > toolbarHeight) {
+          scroller.scrollTop = toolbarHeight;
+        }
+        requestAnimationFrame(() => handleMobileScroll());
+      }
+    },
+    [onMobileStepChange, handleMobileScroll],
+  );
 
   const handleOpenMobileControls = useCallback(() => {
     setMobileControlsCollapsed(false);

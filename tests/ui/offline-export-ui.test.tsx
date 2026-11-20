@@ -106,8 +106,9 @@ describe("UI Export PDF-Only, 8 Kelas Database, TSV Paste & Settings Formulasi",
       />,
     );
     expect(
-      screen.getByText(/Mode Relaksasi Elastik — dokumen bertanda kompromi nutrisi/i),
+      screen.getByText(/Mode Toleransi Target — Formula Mendekati Standar/i),
     ).toBeInTheDocument();
+    expect(screen.getByText(/Dokumen bertanda kompromi nutrisi/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /PDF Lembar Timbang Gudang/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /PDF Lembar Formula Lengkap/i })).toBeEnabled();
 

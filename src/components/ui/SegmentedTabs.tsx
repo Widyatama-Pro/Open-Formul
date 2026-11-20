@@ -60,8 +60,10 @@ export function SegmentedTabs<T extends string>({
           >
             {opt.mobileLabel ? (
               <>
-                <span className="sm:hidden">{opt.mobileLabel}</span>
-                <span className="hidden truncate sm:inline">{opt.label}</span>
+                <span aria-hidden="true" className="sm:hidden">
+                  {opt.mobileLabel}
+                </span>
+                <span className="sr-only truncate sm:not-sr-only">{opt.label}</span>
               </>
             ) : (
               <span className={cn(fitMobile ? "break-words sm:truncate" : "truncate")}>

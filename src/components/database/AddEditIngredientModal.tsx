@@ -5,8 +5,8 @@ import type { AppLanguage, Basis, FeedClassCode, Ingredient } from "../../types"
 import { parseLocaleDecimal } from "../../utils/locale-number";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
-import { Select } from "../ui/Select";
 import { SheetDialog } from "../ui/SheetDialog";
+import { ThemedSelect } from "../ui/ThemedSelect";
 
 export interface AddEditIngredientModalProps {
   readonly open: boolean;
@@ -151,27 +151,42 @@ export function AddEditIngredientModal({
                 "Feed Class (8 Standard Classes)",
               )}
             </label>
-            <Select
+            <ThemedSelect
+              ariaLabel={pickLang(
+                language,
+                "Klasifikasi (8 Kelas Standar)",
+                "Feed Class (8 Standard Classes)",
+              )}
+              modalTitle={pickLang(language, "Pilih Klasifikasi Bahan Pakan", "Select Feed Class")}
               value={String(feedClass)}
-              onChange={(e) => setFeedClass(Number(e.target.value) as FeedClassCode)}
-            >
-              {FEED_CLASSES.map((fc) => (
-                <option key={fc.code} value={fc.code}>
-                  {getFeedClassLabel(language, fc.code)}
-                </option>
-              ))}
-            </Select>
+              language={language}
+              popoverMinWidthPx={260}
+              onChange={(val) => setFeedClass(Number(val) as FeedClassCode)}
+              options={FEED_CLASSES.map((fc) => ({
+                value: String(fc.code),
+                label: getFeedClassLabel(language, fc.code),
+              }))}
+            />
           </div>
           <div>
             <label className="mb-1 block font-medium text-[var(--text-primary)]">
               {pickLang(language, "Basis Data Lab", "Lab Data Basis")}
             </label>
-            <Select value={basis} onChange={(e) => setBasis(e.target.value as Basis)}>
-              <option value="as_fed">As-Fed</option>
-              <option value="dry_matter">
-                {pickLang(language, "Bahan Kering (BK)", "Dry Matter (DM)")}
-              </option>
-            </Select>
+            <ThemedSelect
+              ariaLabel={pickLang(language, "Basis Data Lab", "Lab Data Basis")}
+              modalTitle={pickLang(language, "Pilih Basis Data Lab", "Select Lab Data Basis")}
+              value={basis}
+              language={language}
+              popoverMinWidthPx={190}
+              onChange={(val) => setBasis(val as Basis)}
+              options={[
+                { value: "as_fed", label: "As-Fed" },
+                {
+                  value: "dry_matter",
+                  label: pickLang(language, "Bahan Kering (BK)", "Dry Matter (DM)"),
+                },
+              ]}
+            />
           </div>
         </div>
 

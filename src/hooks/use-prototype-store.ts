@@ -761,7 +761,7 @@ export function usePrototypeStore(): PrototypeStore {
             message:
               "Simulasi Infeasible: Target Protein Kasar (Min 26%) melampaui kapasitas campuran bahan aktif (batas Max SBM 40%).",
             suggestion:
-              "Naikkan batas Max Bungkil Kedelai, aktifkan Tepung Ikan, atau nyalakan Mode Relaksasi Elastik.",
+              "Naikkan batas Max Bungkil Kedelai, aktifkan Tepung Ikan, atau nyalakan Mode Toleransi Target.",
           },
         ],
         messages: ["Target nutrisi terlalu tinggi untuk kombinasi bahan aktif saat ini."],
@@ -792,11 +792,11 @@ export function usePrototypeStore(): PrototypeStore {
             code: "SOLVER_INFEASIBLE" as const,
             severity: "warning" as const,
             message:
-              "Mode Relaksasi Elastik aktif: Protein Kasar meleset -0,85% di bawah batas minimal.",
+              "Mode Toleransi Target aktif: Protein Kasar meleset -0,85% di bawah batas minimal.",
             suggestion: "Tambahkan sumber protein konsentrat atau longgarkan target PK.",
           },
         ],
-        messages: ["Formula terdekat ditemukan via relaksasi elastik (periksa penanda merah)."],
+        messages: ["Formula terdekat ditemukan via Mode Toleransi Target (periksa penanda merah)."],
       };
     }
 

@@ -209,8 +209,8 @@ describe("Revisi 2 — Mode 1 Angka, Saran Bahan, ThemedSelect, & Audit Responsi
 
   it("Toolbar memakai istilah ramah peternak 'Toleransi Target' (bukan Elastik) dan FeedClassIcon merender 8 kelas kontekstual", () => {
     render(<App />);
-    expect(screen.getByText(/Toleransi Target/i)).toBeInTheDocument();
-    expect(screen.queryByText(/^Elastik$/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Toleransi Target/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Elastik/i)).not.toBeInTheDocument();
 
     const codes: readonly FeedClassCode[] = [1, 2, 3, 4, 5, 6, 7, 8];
     const { container } = render(
@@ -221,5 +221,39 @@ describe("Revisi 2 — Mode 1 Angka, Saran Bahan, ThemedSelect, & Audit Responsi
       </div>,
     );
     expect(container.querySelectorAll("[data-feed-class]").length).toBe(8);
+  });
+
+  it("ThemedSelect: hover opsi tidak mencuri fokus ke kolom cari dan ArrowDown+Enter memilih opsi dengan benar", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <ThemedSelect
+        ariaLabel="Pilih Standar Uji"
+        searchable
+        value="opt1"
+        onChange={onChange}
+        options={[
+          { value: "opt1", label: "Opsi Pertama" },
+          { value: "opt2", label: "Opsi Kedua" },
+          { value: "opt3", label: "Opsi Ketiga" },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("combobox", { name: "Pilih Standar Uji" }));
+    const firstOpt = screen.getByRole("option", { name: "Opsi Pertama" });
+    const secondOpt = screen.getByRole("option", { name: "Opsi Kedua" });
+    firstOpt.focus();
+    expect(document.activeElement).toBe(firstOpt);
+
+    // Hover ke opsi lain tidak boleh mengembalikan fokus ke input search
+    await user.hover(secondOpt);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(document.activeElement).toBe(firstOpt);
+
+    // Navigasi keyboard ArrowDown dari opsi ke-2 + Enter memilih opsi ke-3
+    await user.keyboard("{ArrowDown}{Enter}");
+    expect(onChange).toHaveBeenCalledWith("opt3");
   });
 });

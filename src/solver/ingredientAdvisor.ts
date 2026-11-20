@@ -125,24 +125,44 @@ function availabilityWeight(tier: IndonesiaAvailabilityTier): number {
 function resolveFamilyKey(ingredient: Ingredient): string {
   const n = ingredient.name.toLowerCase();
   if (n.includes("jagung") && n.includes("kuning")) return "jagung-kuning";
-  if (n.includes("dedak padi") || n.includes("bekatul")) return "dedak-padi";
-  if (n.includes("bungkil kedelai") || n.includes("sbm")) return "sbm";
-  if (n.includes("bungkil inti sawit") || n.includes("bis")) return "bis";
-  if (n.includes("bungkil kelapa")) return "bungkil-kelapa";
-  if (n.includes("tepung ikan")) return "tepung-ikan";
+  if ((n.includes("dedak") && n.includes("padi")) || n.includes("bekatul")) return "dedak-padi";
+  if (n.includes("bungkil kedelai") || n.includes("biji kedelai") || n.includes("sbm"))
+    return "sbm";
+  if (n.includes("inti sawit") || /\bbis\b/.test(n)) return "bis";
+  if (n.includes("bungkil kelapa") || (n.includes("daging buah kelapa") && n.includes("ekstraksi")))
+    return "bungkil-kelapa";
+  if (/tepung[\s,]+ikan|konsentrat\s+protein\s+ikan|ikan\s+(kecil|putih|merah|tuna)/.test(n))
+    return "tepung-ikan";
   if (n.includes("kapur") || n.includes("caco3") || n.includes("kalsium karbonat")) return "kapur";
-  if (n.includes("dikalsium fosfat") || n.includes("dcp") || n.includes("cahpo4")) return "dcp";
+  if (
+    n.includes("dikalsium fosfat") ||
+    /\bdcp\b/.test(n) ||
+    n.includes("cahpo4") ||
+    (n.includes("kalsium fosfat") && n.includes("dibasik"))
+  ) {
+    return "dcp";
+  }
   if (n.includes("tepung tulang")) return "tepung-tulang";
   if (n.includes("rumput gajah")) return "rumput-gajah";
-  if (n.includes("pollard") || n.includes("wheat bran")) return "pollard";
+  if (n.includes("pollard") || n.includes("wheat bran") || n.includes("pecahan gandum"))
+    return "pollard";
   return ingredient.id;
 }
 
+const NAMELESS_OCR_RE = /^\(\d+\)$/;
+const RUMINANT_BLOCKED_ANIMAL_RE =
+  /\b(tepung[\s,]+ikan|ikan\s+(kecil|putih|merah|tuna)|konsentrat\s+protein\s+ikan|calran\s+ikan|darah\s+hewan|tepung\s+darah|kepiting|bekicot|keong|mbm)\b/i;
+
 function isSpeciesCompatible(ingredient: Ingredient, species: string): boolean {
+  const trimmedName = ingredient.name.trim();
+  if (trimmedName.length === 0 || NAMELESS_OCR_RE.test(trimmedName)) {
+    return false;
+  }
+
   const isPoultry = isPoultrySpecies(species);
   const isRuminant = isRuminantSpecies(species);
   const feedClass = resolveFeedClass(ingredient);
-  const nameLower = ingredient.name.toLowerCase();
+  const nameLower = trimmedName.toLowerCase();
 
   if (isPoultry) {
     // Unggas tidak cocok memakai hijauan segar, jerami, atau silase berserat tinggi
@@ -154,18 +174,67 @@ function isSpeciesCompatible(ingredient: Ingredient, species: string): boolean {
   }
 
   if (isRuminant) {
-    // Hindari menyarankan protein hewani (tepung darah/daging/ikan) untuk ruminansia
+    // Hindari menyarankan protein hewani (tepung darah/daging/ikan/kepiting) untuk ruminansia,
+    // namun tetap izinkan bungkil/tepung daging buah kelapa (kopra).
+    if (RUMINANT_BLOCKED_ANIMAL_RE.test(nameLower)) {
+      return false;
+    }
     if (
-      nameLower.includes("tepung daging") ||
-      nameLower.includes("darah hewan") ||
-      nameLower.includes("tepung ikan") ||
-      nameLower.includes("bekicot")
+      nameLower.includes("tepung daging") &&
+      !nameLower.includes("kelapa") &&
+      !nameLower.includes("buah")
     ) {
       return false;
     }
   }
 
   return true;
+}
+
+/** Menghitung batas min/maks tercapai Σ a_j x_j pada simpleks [l_j, u_j], Σ x_j = 1. */
+function computeAchievableExtrema(
+  items: readonly {
+    readonly ing: Ingredient;
+    readonly bounds: ReturnType<typeof resolveEffectiveInclusion>;
+  }[],
+  nutrientId: string,
+): { readonly minAchievable: number; readonly maxAchievable: number } {
+  const entries = items.map(({ ing, bounds }) => ({
+    val: resolveNutrientValue(ing, nutrientId) ?? 0,
+    minFrac: Math.max(0, Math.min(1, bounds.minPct / 100)),
+    maxFrac: Math.max(0, Math.min(1, bounds.maxPct / 100)),
+  }));
+
+  const minSum = entries.reduce((acc, e) => acc + e.minFrac, 0);
+  const maxSum = entries.reduce((acc, e) => acc + e.maxFrac, 0);
+  const rem = Math.max(0, 1 - minSum);
+
+  // Jika ruang batas inklusi sendiri mustahil (minSum > 1 atau maxSum < 1), jatuhkan ke ekstrem kasar berkapasitas > 0
+  if (minSum > 1 + 1e-4 || maxSum < 1 - 1e-4) {
+    const usable = entries.filter((e) => e.maxFrac > 1e-6);
+    const vals = (usable.length > 0 ? usable : entries).map((e) => e.val);
+    return {
+      minAchievable: Math.min(...vals),
+      maxAchievable: Math.max(...vals),
+    };
+  }
+
+  const solveGreedy = (descending: boolean): number => {
+    const sorted = [...entries].sort((a, b) => (descending ? b.val - a.val : a.val - b.val));
+    let total = 0;
+    let slackLeft = rem;
+    for (const item of sorted) {
+      const add = Math.min(slackLeft, Math.max(0, item.maxFrac - item.minFrac));
+      total += (item.minFrac + add) * item.val;
+      slackLeft -= add;
+    }
+    return total;
+  };
+
+  return {
+    minAchievable: solveGreedy(false),
+    maxAchievable: solveGreedy(true),
+  };
 }
 
 /** Mendeteksi kesenjangan nutrien yang jauh dari standar atau belum terpenuhi. */
@@ -206,28 +275,26 @@ export function detectNutrientGaps(
 
     for (const c of activeConstraints) {
       const eff = resolveEffectiveConstraintBounds(c, singleMode);
-      const vals = activeNorm.map(({ ing }) => resolveNutrientValue(ing, c.nutrientId) ?? 0);
-      const maxPoss = Math.max(...vals);
-      const minPoss = Math.min(...vals);
+      const { minAchievable, maxAchievable } = computeAchievableExtrema(activeNorm, c.nutrientId);
 
-      if (eff.min !== undefined && maxPoss + 1e-4 < eff.min) {
+      if (eff.min !== undefined && maxAchievable + 1e-4 < eff.min) {
         const scale = Math.max(Math.abs(eff.min), 1e-3);
         gaps.push({
           nutrientId: c.nutrientId,
           direction: "increase",
-          currentValue: maxPoss,
+          currentValue: maxAchievable,
           targetValue: eff.min,
-          relativeGap: (eff.min - maxPoss) / scale,
+          relativeGap: (eff.min - maxAchievable) / scale,
           isViolation: true,
         });
-      } else if (eff.max !== undefined && minPoss - 1e-4 > eff.max) {
+      } else if (eff.max !== undefined && minAchievable - 1e-4 > eff.max) {
         const scale = Math.max(Math.abs(eff.max), 1e-3);
         gaps.push({
           nutrientId: c.nutrientId,
           direction: "decrease",
-          currentValue: minPoss,
+          currentValue: minAchievable,
           targetValue: eff.max,
-          relativeGap: (minPoss - eff.max) / scale,
+          relativeGap: (minAchievable - eff.max) / scale,
           isViolation: true,
         });
       }
@@ -383,13 +450,25 @@ export function recommendIngredientsForGaps(
   const gaps = detectNutrientGaps(allIngredients, requirement, config, result);
   if (gaps.length === 0) return [];
 
+  const singleMode = config.targetInputMode === "single";
   const cfConstraint = requirement.constraints.find((c) => c.nutrientId === "cf");
-  const cfMaxLimit = cfConstraint?.max;
+  const cfMaxLimit = cfConstraint
+    ? resolveEffectiveConstraintBounds(cfConstraint, singleMode).max
+    : undefined;
+
+  // Catat keluarga bahan yang SUDAH aktif (kapasitas > 0) agar tidak menyarankan duplikat bahan identik
+  const activeFamilies = new Set<string>();
+  for (const ing of allIngredients) {
+    if (ing.isActive !== false && (ing.inclusion?.max ?? 100) > 0) {
+      activeFamilies.add(resolveFamilyKey(ing));
+    }
+  }
 
   const inactiveCandidates = allIngredients.filter((ing) => {
     if (ing.isActive !== false) return false;
     if (dismissedIds.has(ing.id)) return false;
     if ((ing.inclusion?.max ?? 100) <= 0) return false;
+    if (activeFamilies.has(resolveFamilyKey(ing))) return false;
     return isSpeciesCompatible(ing, requirement.species);
   });
 

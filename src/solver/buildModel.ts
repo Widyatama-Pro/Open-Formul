@@ -39,7 +39,7 @@ function filterNonZeroTerms(terms: readonly LpTerm[]): readonly LpTerm[] {
 function tierPenalty(tier: ConstraintTier | undefined, baseM: number): number {
   switch (tier) {
     case "tier1":
-      return Math.max(1e8, baseM);
+      return Math.max(1e8, baseM * 25);
     case "tier2":
       return Math.max(1e6, baseM);
     case "tier3":
@@ -279,7 +279,7 @@ export function buildLpModel(
 
     const eff = resolveEffectiveConstraintBounds(c, singleTargetMode);
     const isUpperOnly = singleTargetMode && isUpperBoundOnlyNutrient(c.nutrientId, c);
-    const effectiveTier = isUpperOnly ? (c.tier ?? "tier1") : c.tier;
+    const effectiveTier = isUpperOnly ? (c.tier === "tier0" ? "tier0" : "tier1") : c.tier;
 
     if (eff.min !== undefined && eff.max !== undefined && Math.abs(eff.min - eff.max) <= EPS) {
       pushConstraintRow(

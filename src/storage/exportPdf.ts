@@ -409,7 +409,7 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
   if (result.status === "near_feasible") {
     ops.push({
       kind: "alert",
-      text: "PERINGATAN: STATUS NEAR-FEASIBLE (ELASTIK) - SEBAGIAN TARGET NUTRIEN BELUM TERCAPAI PENUH",
+      text: "PERINGATAN: STATUS NEAR-FEASIBLE (TOLERANSI TARGET) - SEBAGIAN TARGET NUTRIEN BELUM TERCAPAI PENUH",
       height: 24,
     });
   }

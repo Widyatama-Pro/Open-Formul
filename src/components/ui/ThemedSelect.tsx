@@ -22,6 +22,7 @@ export interface ThemedSelectProps {
   readonly searchPlaceholder?: string | undefined;
   readonly modalTitle?: string | undefined;
   readonly searchable?: boolean | undefined;
+  readonly disabled?: boolean | undefined;
   readonly className?: string | undefined;
   readonly popoverMinWidthPx?: number | undefined;
   readonly language?: AppLanguage | undefined;
@@ -65,6 +66,7 @@ export function ThemedSelect({
   searchPlaceholder,
   modalTitle,
   searchable = false,
+  disabled = false,
   className,
   popoverMinWidthPx = 260,
   language = "id",
@@ -83,6 +85,7 @@ export function ThemedSelect({
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
+  const listboxRef = useRef<HTMLDivElement | null>(null);
   const listboxId = useId();
 
   const selectedOption = useMemo(
@@ -103,6 +106,12 @@ export function ThemedSelect({
 
   const grouped = useMemo(() => groupOptions(filteredOptions), [filteredOptions]);
 
+  const openMenu = useCallback(() => {
+    const selectedIdx = options.findIndex((opt) => opt.value === value);
+    setHighlightIdx(selectedIdx >= 0 ? selectedIdx : 0);
+    setOpen(true);
+  }, [options, value]);
+
   const closeMenu = useCallback(() => {
     setOpen(false);
     setQuery("");
@@ -121,6 +130,17 @@ export function ThemedSelect({
     [onChange],
   );
 
+  const scrollOptionIntoView = useCallback((index: number) => {
+    if (index < 0) return;
+    const container = listboxRef.current;
+    if (!container) return;
+    const target = container.querySelector<HTMLElement>(`[data-option-index="${index}"]`);
+    if (target && typeof target.scrollIntoView === "function") {
+      target.scrollIntoView({ block: "nearest" });
+    }
+  }, []);
+
+  // Efek 1: Penentuan posisi popover & tutup saat klik di luar (tidak terpicu ulang saat hover/arrow)
   useEffect(() => {
     if (!open) return;
 
@@ -152,37 +172,12 @@ export function ThemedSelect({
       });
     };
 
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-
-    const frame = requestAnimationFrame(() => {
-      if (searchable) {
-        searchInputRef.current?.focus();
+    const handleScrollCapture = (e: Event) => {
+      const target = e.target;
+      if (target instanceof Node && popoverRef.current?.contains(target)) {
+        return;
       }
-    });
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        closeMenu();
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setHighlightIdx((prev) =>
-          filteredOptions.length === 0 ? -1 : (prev + 1) % filteredOptions.length,
-        );
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setHighlightIdx((prev) =>
-          filteredOptions.length === 0 ? -1 : prev <= 0 ? filteredOptions.length - 1 : prev - 1,
-        );
-      } else if (e.key === "Enter") {
-        if (highlightIdx >= 0 && highlightIdx < filteredOptions.length) {
-          e.preventDefault();
-          const chosen = filteredOptions[highlightIdx];
-          if (chosen) selectValue(chosen.value);
-        }
-      }
+      updatePosition();
     };
 
     const handlePointerOutside = (e: MouseEvent) => {
@@ -195,17 +190,103 @@ export function ThemedSelect({
       setHighlightIdx(-1);
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", handleScrollCapture, true);
     document.addEventListener("mousedown", handlePointerOutside);
 
     return () => {
-      cancelAnimationFrame(frame);
       window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", handleScrollCapture, true);
       document.removeEventListener("mousedown", handlePointerOutside);
     };
-  }, [open, searchable, filteredOptions, highlightIdx, popoverMinWidthPx, closeMenu, selectValue]);
+  }, [open, popoverMinWidthPx]);
+
+  // Efek 2: Fokus awal & gulir ke opsi aktif tepat sekali saat menu dibuka
+  useEffect(() => {
+    if (!open) return;
+    const selectedIdx = options.findIndex((opt) => opt.value === value);
+
+    const frame = requestAnimationFrame(() => {
+      const isDesktop = window.innerWidth >= 768;
+      const focusAlreadyInside = popoverRef.current?.contains(document.activeElement) ?? false;
+      if (!focusAlreadyInside) {
+        if (searchable && isDesktop) {
+          searchInputRef.current?.focus();
+        } else if (!isDesktop) {
+          popoverRef.current?.focus();
+        }
+      }
+      if (selectedIdx >= 0) {
+        scrollOptionIntoView(selectedIdx);
+      }
+    });
+
+    return () => cancelAnimationFrame(frame);
+    // Hanya jalankan sekali saat popover/modal dibuka
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Efek 3: Navigasi keyboard (Escape, ArrowUp/Down + auto-scroll, Enter, Tab focus-trap modal)
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeMenu();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setHighlightIdx((prev) => {
+          const next = filteredOptions.length === 0 ? -1 : (prev + 1) % filteredOptions.length;
+          scrollOptionIntoView(next);
+          return next;
+        });
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setHighlightIdx((prev) => {
+          const next =
+            filteredOptions.length === 0 ? -1 : prev <= 0 ? filteredOptions.length - 1 : prev - 1;
+          scrollOptionIntoView(next);
+          return next;
+        });
+      } else if (e.key === "Enter") {
+        if (highlightIdx >= 0 && highlightIdx < filteredOptions.length) {
+          e.preventDefault();
+          const chosen = filteredOptions[highlightIdx];
+          if (chosen) selectValue(chosen.value);
+        }
+      } else if (e.key === "Tab" && isMobileViewport && popoverRef.current) {
+        const focusables = popoverRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0]!;
+        const last = focusables[focusables.length - 1]!;
+        const activeEl = document.activeElement as HTMLElement | null;
+        if (e.shiftKey) {
+          if (!activeEl || activeEl === first || !popoverRef.current.contains(activeEl)) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else if (!activeEl || activeEl === last || !popoverRef.current.contains(activeEl)) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    open,
+    filteredOptions,
+    highlightIdx,
+    isMobileViewport,
+    closeMenu,
+    selectValue,
+    scrollOptionIntoView,
+  ]);
 
   const renderOptionsBody = () => (
     <>
@@ -249,6 +330,7 @@ export function ThemedSelect({
       )}
 
       <div
+        ref={listboxRef}
         id={listboxId}
         role="listbox"
         aria-label={ariaLabel}
@@ -287,6 +369,7 @@ export function ThemedSelect({
                       key={opt.value}
                       type="button"
                       role="option"
+                      data-option-index={flatIndex}
                       aria-selected={isSelected}
                       onClick={() => selectValue(opt.value)}
                       onMouseEnter={() => setHighlightIdx(flatIndex)}
@@ -342,8 +425,9 @@ export function ThemedSelect({
             >
               <div
                 ref={popoverRef}
+                tabIndex={-1}
                 onClick={(e) => e.stopPropagation()}
-                className="flex max-h-[82dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[0_-18px_48px_-12px_rgba(0,0,0,0.45)]"
+                className="flex max-h-[82dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[0_-18px_48px_-12px_rgba(0,0,0,0.45)] focus:outline-none"
               >
                 <div className="flex items-center justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-4 py-3">
                   <h2 className="min-w-0 truncate text-sm font-bold text-[var(--text-primary)]">
@@ -394,15 +478,20 @@ export function ThemedSelect({
         ref={triggerRef}
         id={id}
         type="button"
+        disabled={disabled}
         role="combobox"
         aria-label={ariaLabel}
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls={open ? listboxId : undefined}
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => {
+          if (disabled) return;
+          if (open) closeMenu();
+          else openMenu();
+        }}
         title={selectedOption?.label ?? placeholder ?? ariaLabel}
         className={cn(
-          "inline-flex min-h-9 w-full min-w-0 max-w-full cursor-pointer items-center justify-between gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-sunken)] px-2.5 py-1.5 text-left text-xs font-semibold text-[var(--text-primary)] shadow-[var(--shadow-neu-pressed)] transition-[transform,border-color,background-color] duration-150 hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface-elevated)] active:scale-[0.985] focus-visible:border-[var(--color-primary)] focus-visible:bg-[var(--bg-surface-elevated)] focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[var(--focus-ring)] md:min-h-7 md:py-1 motion-reduce:transform-none",
+          "inline-flex min-h-9 w-full min-w-0 max-w-full cursor-pointer items-center justify-between gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-sunken)] px-2.5 py-1.5 text-left text-xs font-semibold text-[var(--text-primary)] shadow-[var(--shadow-neu-pressed)] transition-[transform,border-color,background-color] duration-150 hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface-elevated)] active:scale-[0.985] focus-visible:border-[var(--color-primary)] focus-visible:bg-[var(--bg-surface-elevated)] focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-50 md:min-h-7 md:py-1 motion-reduce:transform-none",
           open && "border-[var(--color-primary)] bg-[var(--bg-surface-elevated)]",
           className,
         )}

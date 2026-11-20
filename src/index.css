@@ -39,15 +39,17 @@
     background-color: var(--bg-canvas);
   }
 
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--text-muted) 46%, transparent)
-      color-mix(in srgb, var(--bg-sunken) 48%, transparent);
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in srgb, var(--text-muted) 46%, transparent)
+        color-mix(in srgb, var(--bg-sunken) 48%, transparent);
+    }
   }
 
   *::-webkit-scrollbar {
-    width: 9px;
-    height: 9px;
+    width: 8px;
+    height: 8px;
   }
 
   *::-webkit-scrollbar-track {
@@ -56,7 +58,7 @@
   }
 
   *::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--text-muted) 48%, transparent);
+    background: color-mix(in srgb, var(--text-muted) 44%, transparent);
     border: 2px solid transparent;
     background-clip: content-box;
     border-radius: 9999px;
@@ -70,8 +72,8 @@
 
   @media (pointer: coarse) {
     *::-webkit-scrollbar {
-      width: 5px;
-      height: 5px;
+      width: 4px;
+      height: 4px;
     }
   }
 
@@ -92,41 +94,51 @@
 
 @layer components {
   .custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-gutter: stable;
-    scrollbar-color: color-mix(in srgb, var(--text-muted) 50%, transparent)
-      color-mix(in srgb, var(--bg-sunken) 55%, transparent);
+    scrollbar-gutter: auto;
   }
 
-  /* Scrollbar utama area kerja (lebih lebar, jalur kontras & jelas dibedakan dari scroll tabel internal) */
-  .workspace-main-scrollbar {
-    scrollbar-width: auto;
-    scrollbar-gutter: stable;
-    scrollbar-color: color-mix(in srgb, var(--color-primary) 54%, var(--text-muted))
-      color-mix(in srgb, var(--bg-sunken) 88%, var(--border-subtle));
+  @supports not selector(::-webkit-scrollbar) {
+    .custom-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in srgb, var(--text-muted) 50%, transparent)
+        color-mix(in srgb, var(--bg-sunken) 55%, transparent);
+    }
+
+    .workspace-main-scrollbar {
+      scrollbar-width: auto;
+      scrollbar-color: color-mix(in srgb, var(--color-primary) 64%, var(--text-muted))
+        color-mix(in srgb, var(--bg-sunken) 92%, var(--border-strong));
+    }
+  }
+
+  /* Scrollbar utama area kerja (16px lebar, jalur kontras & jelas dibedakan dari scroll tabel internal 8px) */
+  @media (min-width: 1024px) {
+    .workspace-main-scrollbar {
+      scrollbar-gutter: stable;
+    }
   }
 
   .workspace-main-scrollbar::-webkit-scrollbar {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
   }
 
   .workspace-main-scrollbar::-webkit-scrollbar-track {
-    background: color-mix(in srgb, var(--bg-sunken) 88%, var(--border-subtle));
-    border-left: 1px solid var(--border-subtle);
+    background: color-mix(in srgb, var(--bg-sunken) 90%, var(--border-subtle));
+    border: 1px solid var(--border-subtle);
     border-radius: 9999px;
   }
 
   .workspace-main-scrollbar::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--color-primary) 48%, var(--text-muted));
+    background: color-mix(in srgb, var(--color-primary) 62%, var(--text-muted));
     border: 3px solid transparent;
     background-clip: content-box;
     border-radius: 9999px;
-    min-height: 44px;
+    min-height: 48px;
   }
 
   .workspace-main-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in srgb, var(--color-primary) 78%, var(--text-primary));
+    background: color-mix(in srgb, var(--color-primary) 86%, var(--text-primary));
     border: 2px solid transparent;
     background-clip: content-box;
   }
@@ -139,8 +151,8 @@
 
   @media (pointer: coarse) {
     .workspace-main-scrollbar::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
     }
   }
 
@@ -157,28 +169,34 @@
   .shell-frame {
     position: relative;
     background-color: var(--shell-chrome-bg);
-    background-image: radial-gradient(
-      120% 80% at 0% 0%,
-      color-mix(in srgb, var(--shell-chrome-accent) 9%, transparent) 0%,
-      transparent 60%
-    );
+    background-image:
+      radial-gradient(
+        120% 80% at 0% 0%,
+        color-mix(in srgb, var(--shell-chrome-accent) 12%, transparent) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        80% 70% at 100% 100%,
+        color-mix(in srgb, var(--color-primary) 14%, transparent) 0%,
+        transparent 62%
+      );
   }
 
-  /* Fine tactile surface grain (100% offline inline SVG noise — subtle luxury editorial depth) */
+  /* Fine tactile luxury color grain (100% offline inline SVG noise — subtle editorial matte depth) */
   .shell-frame::after,
-  .workspace-canvas::before {
+  .workspace-canvas::after {
     content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-    background-size: 180px 180px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0.28'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
     background-repeat: repeat;
   }
 
   .shell-frame::after {
     z-index: 1;
-    opacity: 0.045;
+    opacity: 0.075;
     mix-blend-mode: soft-light;
   }
 
@@ -188,30 +206,31 @@
     background-image:
       radial-gradient(
         90% 55% at 100% 0%,
-        color-mix(in srgb, var(--color-accent) 6%, transparent) 0%,
+        color-mix(in srgb, var(--color-accent) 8%, transparent) 0%,
         transparent 62%
       ),
       radial-gradient(
         80% 60% at 0% 100%,
-        color-mix(in srgb, var(--color-primary) 5%, transparent) 0%,
+        color-mix(in srgb, var(--color-primary) 7%, transparent) 0%,
         transparent 65%
       );
     color: var(--text-primary);
   }
 
-  .workspace-canvas::before {
-    z-index: 0;
-    opacity: 0.036;
-    mix-blend-mode: overlay;
+  .workspace-canvas::after {
+    z-index: 2;
+    opacity: 0.04;
+    mix-blend-mode: multiply;
   }
 
-  [data-mode="dark"] .workspace-canvas::before {
-    opacity: 0.048;
+  [data-mode="dark"] .workspace-canvas::after {
+    opacity: 0.075;
+    mix-blend-mode: soft-light;
   }
 
-  [data-mode="dark"][data-amoled="true"] .workspace-canvas::before,
+  [data-mode="dark"][data-amoled="true"] .workspace-canvas::after,
   [data-mode="dark"][data-amoled="true"] .shell-frame::after {
-    opacity: 0.022;
+    opacity: 0.03;
   }
 
   .workspace-canvas > * {
@@ -516,7 +535,7 @@
   }
 
   .shell-frame::after,
-  .workspace-canvas::before {
+  .workspace-canvas::after {
     display: none !important;
   }
 

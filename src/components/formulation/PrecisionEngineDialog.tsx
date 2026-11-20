@@ -12,9 +12,9 @@ import { cn } from "../../utils/cn";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
-import { Select } from "../ui/Select";
 import { SheetDialog } from "../ui/SheetDialog";
 import { Switch } from "../ui/Switch";
+import { ThemedSelect } from "../ui/ThemedSelect";
 
 export type PrecisionFocusSection = "fractional" | "stochastic" | "enzyme";
 
@@ -214,34 +214,47 @@ export function PrecisionEngineDialog({
               "Minimize cost per unit of energy or amino acid using Dinkelbach iterations with 0/0 denominator protection.",
             )}
           </p>
-          <Select
-            aria-label={pickLang(
+          <ThemedSelect
+            ariaLabel={pickLang(
               language,
               "Sasaran objektif formulasi",
               "Formulation objective target",
             )}
+            modalTitle={pickLang(
+              language,
+              "Pilih Sasaran Objektif Formulasi",
+              "Select Formulation Objective",
+            )}
+            searchPlaceholder={pickLang(
+              language,
+              "Cari nutrien sasaran…",
+              "Search target nutrient…",
+            )}
+            searchable
             value={config.fractionalObjective?.nutrientId ?? ""}
-            onChange={(e) => {
-              const val = e.target.value;
+            language={language}
+            popoverMinWidthPx={300}
+            onChange={(val) => {
               onUpdatePrecision({
                 fractionalObjective: val ? { mode: "cost_per_nutrient", nutrientId: val } : null,
               });
             }}
-          >
-            <option value="">
-              {pickLang(
-                language,
-                "Least-Cost Standar (Biaya / kg pakan)",
-                "Standard Least-Cost (Cost / kg feed)",
-              )}
-            </option>
-            {allNutrients.map((nut) => (
-              <option key={nut.id} value={nut.id}>
-                {pickLang(language, "Biaya /", "Cost /")}{" "}
-                {language === "id" ? nut.name : (nut.nameEn ?? nut.name)} ({nut.unit})
-              </option>
-            ))}
-          </Select>
+            options={[
+              {
+                value: "",
+                label: pickLang(
+                  language,
+                  "Least-Cost Standar (Biaya / kg pakan)",
+                  "Standard Least-Cost (Cost / kg feed)",
+                ),
+              },
+              ...allNutrients.map((nut) => ({
+                value: nut.id,
+                label: `${pickLang(language, "Biaya /", "Cost /")} ${language === "id" ? nut.name : (nut.nameEn ?? nut.name)} (${nut.unit})`,
+                group: pickLang(language, "Biaya per Unit Nutrien", "Cost per Nutrient Unit"),
+              })),
+            ]}
+          />
         </div>
 
         {/* PR-04: Stochastic SLP */}
@@ -397,17 +410,27 @@ export function PrecisionEngineDialog({
                       <span className="text-[var(--text-secondary)]">
                         {pickLang(language, "Retensi Termal:", "Thermal Ret.:")}
                       </span>
-                      <Select
-                        aria-label={`${preset.type} thermal retention`}
-                        value={String(active.thermalRetention ?? 0.85)}
-                        onChange={(e) => updateEnzymeRetention(preset.id, Number(e.target.value))}
-                        className="h-7 min-h-7 w-28 py-0 text-[11px]"
-                      >
-                        <option value="1">100% (Mash)</option>
-                        <option value="0.85">85% (Pellet 80°C)</option>
-                        <option value="0.7">70% (Pellet 90°C)</option>
-                        <option value="0.5">50% (Extruder)</option>
-                      </Select>
+                      <div className="w-36">
+                        <ThemedSelect
+                          ariaLabel={`${preset.type} thermal retention`}
+                          modalTitle={pickLang(
+                            language,
+                            "Pilih Retensi Termal Enzim",
+                            "Select Enzyme Thermal Retention",
+                          )}
+                          value={String(active.thermalRetention ?? 0.85)}
+                          language={language}
+                          popoverMinWidthPx={190}
+                          onChange={(val) => updateEnzymeRetention(preset.id, Number(val))}
+                          options={[
+                            { value: "1", label: "100% (Mash)" },
+                            { value: "0.85", label: "85% (Pellet 80°C)" },
+                            { value: "0.7", label: "70% (Pellet 90°C)" },
+                            { value: "0.5", label: "50% (Extruder)" },
+                          ]}
+                          className="h-7 min-h-7 py-0 text-[11px]"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -423,17 +446,27 @@ export function PrecisionEngineDialog({
                 "Combined Sub-Additive Cap (ψ)",
               )}
             </span>
-            <Select
-              aria-label={pickLang(language, "Plafon sub-aditif enzim", "Enzyme sub-additive cap")}
-              value={String(capPsi)}
-              onChange={(e) => onUpdatePrecision({ enzymeSubAdditiveCap: Number(e.target.value) })}
-              className="h-7 min-h-7 w-36 py-0 text-[11px]"
-            >
-              <option value="1">1.00 (100% Aditif)</option>
-              <option value="0.85">0.85 (85% Cap)</option>
-              <option value="0.7">0.70 (70% Cap)</option>
-              <option value="0.5">0.50 (50% Cap)</option>
-            </Select>
+            <div className="w-40">
+              <ThemedSelect
+                ariaLabel={pickLang(language, "Plafon sub-aditif enzim", "Enzyme sub-additive cap")}
+                modalTitle={pickLang(
+                  language,
+                  "Pilih Plafon Sub-Aditif (ψ)",
+                  "Select Sub-Additive Cap (ψ)",
+                )}
+                value={String(capPsi)}
+                language={language}
+                popoverMinWidthPx={190}
+                onChange={(val) => onUpdatePrecision({ enzymeSubAdditiveCap: Number(val) })}
+                options={[
+                  { value: "1", label: "1.00 (100% Aditif)" },
+                  { value: "0.85", label: "0.85 (85% Cap)" },
+                  { value: "0.7", label: "0.70 (70% Cap)" },
+                  { value: "0.5", label: "0.50 (50% Cap)" },
+                ]}
+                className="h-7 min-h-7 py-0 text-[11px]"
+              />
+            </div>
           </div>
           {hasRumenEvaluation && onJumpToRumenEvaluator && (
             <div className="mt-3 flex justify-end border-t border-[var(--border-subtle)] pt-2.5">

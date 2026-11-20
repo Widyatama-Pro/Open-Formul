@@ -8,8 +8,8 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { Input } from "../ui/Input";
-import { Select } from "../ui/Select";
 import { SheetDialog } from "../ui/SheetDialog";
+import { ThemedSelect } from "../ui/ThemedSelect";
 
 export interface RequirementLibraryPageProps {
   readonly requirements: readonly Requirement[];
@@ -336,28 +336,43 @@ export const RequirementLibraryPage = memo(function RequirementLibraryPage({
               <label className="mb-1 block font-medium text-[var(--text-primary)]">
                 {pickLang(language, "Komoditas / Spesies", "Species")}
               </label>
-              <Select value={species} onChange={(e) => setSpecies(e.target.value)}>
-                <option value="broiler">{getSpeciesLabelI18n(language, "broiler")}</option>
-                <option value="layer">{getSpeciesLabelI18n(language, "layer")}</option>
-                <option value="buras">{getSpeciesLabelI18n(language, "buras")}</option>
-                <option value="duck">{getSpeciesLabelI18n(language, "duck")}</option>
-                <option value="cattle_beef">{getSpeciesLabelI18n(language, "cattle_beef")}</option>
-                <option value="cattle_dairy">
-                  {getSpeciesLabelI18n(language, "cattle_dairy")}
-                </option>
-                <option value="goat_sheep">{getSpeciesLabelI18n(language, "goat_sheep")}</option>
-              </Select>
+              <ThemedSelect
+                ariaLabel={pickLang(language, "Komoditas / Spesies", "Species")}
+                modalTitle={pickLang(language, "Pilih Komoditas / Spesies", "Select Species")}
+                value={species}
+                language={language}
+                popoverMinWidthPx={220}
+                onChange={setSpecies}
+                options={[
+                  { value: "broiler", label: getSpeciesLabelI18n(language, "broiler") },
+                  { value: "layer", label: getSpeciesLabelI18n(language, "layer") },
+                  { value: "buras", label: getSpeciesLabelI18n(language, "buras") },
+                  { value: "duck", label: getSpeciesLabelI18n(language, "duck") },
+                  { value: "cattle_beef", label: getSpeciesLabelI18n(language, "cattle_beef") },
+                  { value: "cattle_dairy", label: getSpeciesLabelI18n(language, "cattle_dairy") },
+                  { value: "goat_sheep", label: getSpeciesLabelI18n(language, "goat_sheep") },
+                ]}
+              />
             </div>
             <div>
               <label className="mb-1 block font-medium text-[var(--text-primary)]">
                 {pickLang(language, "Basis Standar", "Standard Basis")}
               </label>
-              <Select value={basis} onChange={(e) => setBasis(e.target.value as Basis)}>
-                <option value="as_fed">As-Fed</option>
-                <option value="dry_matter">
-                  {pickLang(language, "Bahan Kering (BK)", "Dry Matter (DM)")}
-                </option>
-              </Select>
+              <ThemedSelect
+                ariaLabel={pickLang(language, "Basis Standar", "Standard Basis")}
+                modalTitle={pickLang(language, "Pilih Basis Standar", "Select Standard Basis")}
+                value={basis}
+                language={language}
+                popoverMinWidthPx={190}
+                onChange={(val) => setBasis(val as Basis)}
+                options={[
+                  { value: "as_fed", label: "As-Fed" },
+                  {
+                    value: "dry_matter",
+                    label: pickLang(language, "Bahan Kering (BK)", "Dry Matter (DM)"),
+                  },
+                ]}
+              />
             </div>
           </div>
         </div>

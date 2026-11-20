@@ -45,8 +45,8 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { FeedClassIcon } from "../ui/FeedClassIcon";
 import { Input } from "../ui/Input";
-import { Select } from "../ui/Select";
 import { Switch } from "../ui/Switch";
+import { ThemedSelect } from "../ui/ThemedSelect";
 import { NutrientStatusBadge } from "./NutrientStatusBadge";
 import { NumericCellInput } from "./NumericCellInput";
 import { RatioConstraintsSection } from "./RatioConstraintsSection";
@@ -379,27 +379,30 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
               aria-label={pickLang(language, "Nama Nutrien Kustom", "Custom Nutrient Name")}
             />
             <div className="grid grid-cols-2 gap-1.5">
-              <Select
+              <ThemedSelect
+                ariaLabel={pickLang(language, "Satuan Nutrien Kustom", "Custom Nutrient Unit")}
+                modalTitle={pickLang(language, "Pilih Satuan Nutrien", "Select Nutrient Unit")}
                 value={customUnit}
-                onChange={(e) => setCustomUnit(e.target.value as NutrientUnit)}
-                aria-label={pickLang(language, "Satuan Nutrien Kustom", "Custom Nutrient Unit")}
-              >
-                {NUTRIENT_UNITS.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </Select>
-              <Select
+                language={language}
+                popoverMinWidthPx={150}
+                onChange={(val) => setCustomUnit(val as NutrientUnit)}
+                options={NUTRIENT_UNITS.map((u) => ({ value: u, label: u }))}
+              />
+              <ThemedSelect
+                ariaLabel={pickLang(language, "Basis Nutrien Kustom", "Custom Nutrient Basis")}
+                modalTitle={pickLang(language, "Pilih Basis Nutrien", "Select Nutrient Basis")}
                 value={customBasis}
-                onChange={(e) => setCustomBasis(e.target.value as Basis)}
-                aria-label={pickLang(language, "Basis Nutrien Kustom", "Custom Nutrient Basis")}
-              >
-                <option value="as_fed">{pickLang(language, "Basis As-Fed", "As-Fed Basis")}</option>
-                <option value="dry_matter">
-                  {pickLang(language, "Basis BK (DM)", "DM Basis")}
-                </option>
-              </Select>
+                language={language}
+                popoverMinWidthPx={170}
+                onChange={(val) => setCustomBasis(val as Basis)}
+                options={[
+                  { value: "as_fed", label: pickLang(language, "Basis As-Fed", "As-Fed Basis") },
+                  {
+                    value: "dry_matter",
+                    label: pickLang(language, "Basis BK (DM)", "DM Basis"),
+                  },
+                ]}
+              />
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <Input
@@ -789,20 +792,30 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
                         <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-[var(--border-subtle)] pt-1.5 text-[10px]">
                           <div className="flex items-center gap-1">
                             <span className="text-[var(--text-secondary)]">p:</span>
-                            <select
-                              aria-label={`Target probability ${fullName}`}
-                              value={String(c?.targetProbability ?? 0.95)}
-                              onChange={(e) =>
-                                onUpdateConstraint(nut.id, {
-                                  targetProbability: Number(e.target.value),
-                                })
-                              }
-                              className="rounded border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-1 py-0.5 text-[10px] text-[var(--text-primary)]"
-                            >
-                              <option value="0.9">90%</option>
-                              <option value="0.95">95%</option>
-                              <option value="0.99">99%</option>
-                            </select>
+                            <div className="w-18">
+                              <ThemedSelect
+                                ariaLabel={`Target probability ${fullName}`}
+                                modalTitle={pickLang(
+                                  language,
+                                  "Tingkat Keyakinan Stokastik",
+                                  "Stochastic Confidence Level",
+                                )}
+                                value={String(c?.targetProbability ?? 0.95)}
+                                language={language}
+                                popoverMinWidthPx={120}
+                                onChange={(val) =>
+                                  onUpdateConstraint(nut.id, {
+                                    targetProbability: Number(val),
+                                  })
+                                }
+                                options={[
+                                  { value: "0.9", label: "90%" },
+                                  { value: "0.95", label: "95%" },
+                                  { value: "0.99", label: "99%" },
+                                ]}
+                                className="h-6 min-h-6 px-1.5 py-0 text-[10px] md:min-h-6"
+                              />
+                            </div>
                             <label className="inline-flex cursor-pointer items-center gap-1 text-[var(--text-secondary)]">
                               <input
                                 type="checkbox"

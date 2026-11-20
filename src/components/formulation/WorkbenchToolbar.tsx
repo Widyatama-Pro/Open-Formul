@@ -357,7 +357,12 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
               <Calculator className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
             </span>
             <h1 className="truncate text-[13px] font-extrabold tracking-tight text-[var(--text-primary)] sm:text-sm lg:text-[17px]">
-              {pickLang(language, "Formulasi Ransum", "Ration Formulation")}
+              <span aria-hidden="true" className="sm:hidden">
+                {pickLang(language, "Formulasi", "Ration")}
+              </span>
+              <span className="sr-only sm:not-sr-only">
+                {pickLang(language, "Formulasi Ransum", "Ration Formulation")}
+              </span>
             </h1>
           </div>
 
@@ -477,26 +482,33 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
           </div>
         </div>
 
-        {/* KPI biaya compact 1 baris rapi (tanpa teks patah vertikal di HP) */}
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 lg:order-2 lg:border-l lg:border-[var(--border-subtle)] lg:pl-3">
+        {/* KPI biaya compact 1 baris rapi (tanpa teks patah vertikal di HP 360px–390px) */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:gap-x-2.5 lg:order-2 lg:border-l lg:border-[var(--border-subtle)] lg:pl-3">
           <div className="flex shrink-0 items-baseline gap-1 whitespace-nowrap">
             <span className="text-[10px] font-medium text-[var(--text-muted)] lg:text-[11px]">
-              {pickLang(language, "Biaya / kg", "Cost / kg")}
-              <span className="hidden sm:inline">
-                {" "}
-                ({result.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK", "DM")})
+              <span aria-hidden="true" className="sm:hidden">
+                {pickLang(language, "Biaya/kg", "Cost/kg")}
+              </span>
+              <span className="sr-only sm:not-sr-only">
+                {pickLang(language, "Biaya / kg", "Cost / kg")} (
+                {result.basis === "as_fed" ? "As-Fed" : pickLang(language, "BK", "DM")})
               </span>
             </span>
-            <span className="text-xs font-bold tabular-nums text-[var(--status-warning)] lg:text-sm">
+            <span className="text-[11px] font-bold tabular-nums text-[var(--status-warning)] sm:text-xs lg:text-sm">
               {result.costPerKg !== null ? formatCurrencyIdr(result.costPerKg) : "—"}
             </span>
           </div>
 
-          <div className="flex shrink-0 items-baseline gap-1 border-l border-[var(--border-subtle)] pl-2.5 whitespace-nowrap">
+          <div className="flex shrink-0 items-baseline gap-1 border-l border-[var(--border-subtle)] pl-2 whitespace-nowrap sm:pl-2.5">
             <span className="text-[10px] font-medium text-[var(--text-muted)] lg:text-[11px]">
-              {pickLang(language, "Biaya", "Cost")} / {config.batchSizeKg} kg
+              <span aria-hidden="true" className="sm:hidden">
+                /{config.batchSizeKg}kg
+              </span>
+              <span className="sr-only sm:not-sr-only">
+                {pickLang(language, "Biaya", "Cost")} / {config.batchSizeKg} kg
+              </span>
             </span>
-            <span className="text-xs font-bold tabular-nums text-[var(--status-success)] lg:text-sm">
+            <span className="text-[11px] font-bold tabular-nums text-[var(--status-success)] sm:text-xs lg:text-sm">
               {result.batchTotalCost !== null && result.batchTotalCost !== undefined
                 ? formatCurrencyIdr(result.batchTotalCost)
                 : "—"}
@@ -859,8 +871,8 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
           )}
         </div>
 
-        {/* Baris Basis, Mode & Toleransi (rapat & rapi pada mobile maupun desktop) */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Baris Basis, Mode & Toleransi (rapat & terbaca utuh bahkan di 360px) */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <div
             role="group"
             aria-label={pickLang(
@@ -879,20 +891,31 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
                   aria-pressed={active}
                   onClick={() => onSetBasis(basis)}
                   className={cn(
-                    "cursor-pointer rounded-md px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap transition-[transform,background-color,color] duration-150 active:scale-[0.97] motion-reduce:transform-none",
+                    "cursor-pointer rounded-md px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap transition-[transform,background-color,color] duration-150 active:scale-[0.97] sm:px-2.5 motion-reduce:transform-none",
                     active
                       ? "bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[var(--shadow-neu-flat)]"
                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
                   )}
                 >
-                  {basis === "as_fed" ? "As-Fed" : pickLang(language, "BK (DM)", "DM")}
+                  {basis === "as_fed" ? (
+                    "As-Fed"
+                  ) : (
+                    <>
+                      <span aria-hidden="true" className="sm:hidden">
+                        {pickLang(language, "BK", "DM")}
+                      </span>
+                      <span className="sr-only sm:not-sr-only">
+                        {pickLang(language, "BK (DM)", "DM")}
+                      </span>
+                    </>
+                  )}
                 </button>
               );
             })}
           </div>
 
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:flex-none">
-            <span className="shrink-0 text-[11px] font-semibold whitespace-nowrap text-[var(--text-secondary)]">
+          <div className="flex min-w-[122px] flex-1 items-center gap-1.5 sm:flex-none">
+            <span className="hidden shrink-0 text-[11px] font-semibold whitespace-nowrap text-[var(--text-secondary)] sm:inline">
               Mode
             </span>
             <div className="min-w-0 flex-1 sm:w-40 sm:flex-none">
@@ -911,7 +934,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
               "Izinkan sedikit toleransi batas jika target nutrisi terlalu ketat agar tetap keluar racikan terdekat.",
               "Allow slight bound tolerance when targets are too tight.",
             )}
-            className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)] sm:hidden"
+            className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--text-secondary)] sm:hidden"
           >
             <Switch
               checked={config.enableElasticFallback}

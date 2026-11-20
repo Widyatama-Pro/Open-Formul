@@ -174,8 +174,8 @@ export function ExportDialog({
               <p className="mt-0.5 text-[11px] opacity-90">
                 {pickLang(
                   language,
-                  "Mode Relaksasi Elastik — dokumen bertanda kompromi nutrisi. PDF Lengkap menyertakan penanda kompromi nutrisi, sedangkan PDF Lembar Timbang Gudang dikunci hingga formula mencapai status Optimal penuh.",
-                  "Elastic Relaxation Mode — documents carry nutrient compromise notice. Full PDF includes compromise warnings, while Batch-Only PDF is locked until status is fully Optimal.",
+                  "Dokumen bertanda kompromi nutrisi. PDF Lengkap menyertakan penanda kompromi nutrisi, sedangkan PDF Lembar Timbang Gudang dikunci hingga formula mencapai status Optimal penuh.",
+                  "Documents carry a nutrient compromise notice. Full PDF includes compromise warnings, while Batch-Only PDF is locked until status is fully Optimal.",
                 )}
               </p>
             </div>

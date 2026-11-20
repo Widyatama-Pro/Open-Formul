@@ -146,7 +146,7 @@ export function parseHighsResult(
           severity: "error",
           message: msg,
           suggestion:
-            "Aktifkan Mode Relaksasi Elastik atau longgarkan target nutrien / batas maksimal bahan yang terlalu ketat.",
+            "Aktifkan Mode Toleransi Target atau longgarkan target nutrien / batas maksimal bahan yang terlalu ketat.",
         },
       ],
       [msg],
@@ -511,7 +511,7 @@ export function parseHighsResult(
 
   const messages: string[] = isNearFeasible
     ? [
-        `Mode Relaksasi Elastik aktif: solusi kompromi ditemukan dengan penyesuaian ${rowViolations.length} kendala.`,
+        `Mode Toleransi Target aktif: solusi terdekat ditemukan dengan penyesuaian ${rowViolations.length} kendala.`,
       ]
     : ["Optimasi Linear Programming HiGHS konvergen Optimal (verifikasi toleransi 1e-6 lolos)."];
 

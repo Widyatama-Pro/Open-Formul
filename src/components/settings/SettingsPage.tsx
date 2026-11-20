@@ -21,8 +21,8 @@ import { Card } from "../ui/Card";
 import { GlossySquircleIcon } from "../ui/GlossySquircleIcon";
 import { Input } from "../ui/Input";
 import { SegmentedTabs } from "../ui/SegmentedTabs";
-import { Select } from "../ui/Select";
 import { Switch } from "../ui/Switch";
+import { ThemedSelect } from "../ui/ThemedSelect";
 import { ThemeSwitcherMenu, type ThemeChangePayload } from "./ThemeSwitcherMenu";
 
 export interface SettingsPageProps {
@@ -211,15 +211,20 @@ export const SettingsPage = memo(function SettingsPage({
                 </p>
                 <p className="text-xs text-[var(--text-muted)]">Bahasa Indonesia / English</p>
               </div>
-              <Select
-                aria-label={pickLang(lang, "Pilih bahasa", "Select language")}
-                value={preferences.language}
-                onChange={(e) => onUpdate({ language: e.target.value as "id" | "en" })}
-                className="w-44"
-              >
-                <option value="id">Bahasa Indonesia</option>
-                <option value="en">English</option>
-              </Select>
+              <div className="w-44">
+                <ThemedSelect
+                  ariaLabel={pickLang(lang, "Pilih bahasa", "Select language")}
+                  modalTitle={pickLang(lang, "Pilih Bahasa Antarmuka", "Select Interface Language")}
+                  value={preferences.language}
+                  language={lang}
+                  popoverMinWidthPx={190}
+                  onChange={(val) => onUpdate({ language: val as "id" | "en" })}
+                  options={[
+                    { value: "id", label: "Bahasa Indonesia" },
+                    { value: "en", label: "English" },
+                  ]}
+                />
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
@@ -235,34 +240,42 @@ export const SettingsPage = memo(function SettingsPage({
                   )}
                 </p>
               </div>
-              <Select
-                aria-label={pickLang(lang, "Desimal Tampilan Angka", "Display Decimal Places")}
-                value={String(decimalPlaces)}
-                onChange={(e) => handleSetDecimalPlaces(Number(e.target.value) as 0 | 1 | 2)}
-                className="w-52"
-              >
-                <option value="0">
-                  {pickLang(
-                    lang,
-                    "0 desimal (Bulat, contoh 18%)",
-                    "0 decimals (Integer, e.g. 18%)",
-                  )}
-                </option>
-                <option value="1">
-                  {pickLang(
-                    lang,
-                    "1 desimal (xx,0 — contoh 18,5%)",
-                    "1 decimal (xx.0 — e.g. 18.5%)",
-                  )}
-                </option>
-                <option value="2">
-                  {pickLang(
-                    lang,
-                    "2 desimal (xx,00 — contoh 18,50%)",
-                    "2 decimals (xx.00 — e.g. 18.50%)",
-                  )}
-                </option>
-              </Select>
+              <div className="w-56">
+                <ThemedSelect
+                  ariaLabel={pickLang(lang, "Desimal Tampilan Angka", "Display Decimal Places")}
+                  modalTitle={pickLang(lang, "Desimal Tampilan Angka", "Display Decimal Places")}
+                  value={String(decimalPlaces)}
+                  language={lang}
+                  popoverMinWidthPx={260}
+                  onChange={(val) => handleSetDecimalPlaces(Number(val) as 0 | 1 | 2)}
+                  options={[
+                    {
+                      value: "0",
+                      label: pickLang(
+                        lang,
+                        "0 desimal (Bulat, contoh 18%)",
+                        "0 decimals (Integer, e.g. 18%)",
+                      ),
+                    },
+                    {
+                      value: "1",
+                      label: pickLang(
+                        lang,
+                        "1 desimal (xx,0 — contoh 18,5%)",
+                        "1 decimal (xx.0 — e.g. 18.5%)",
+                      ),
+                    },
+                    {
+                      value: "2",
+                      label: pickLang(
+                        lang,
+                        "2 desimal (xx,00 — contoh 18,50%)",
+                        "2 decimals (xx.00 — e.g. 18.50%)",
+                      ),
+                    },
+                  ]}
+                />
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
@@ -278,17 +291,27 @@ export const SettingsPage = memo(function SettingsPage({
                   )}
                 </p>
               </div>
-              <Select
-                aria-label={pickLang(lang, "Basis default", "Default basis")}
-                value={preferences.defaultBasis}
-                onChange={(e) => onUpdate({ defaultBasis: e.target.value as Basis })}
-                className="w-44"
-              >
-                <option value="as_fed">As-Fed</option>
-                <option value="dry_matter">
-                  {pickLang(lang, "Bahan Kering (BK)", "Dry Matter (DM)")}
-                </option>
-              </Select>
+              <div className="w-48">
+                <ThemedSelect
+                  ariaLabel={pickLang(lang, "Basis default", "Default basis")}
+                  modalTitle={pickLang(
+                    lang,
+                    "Basis Perhitungan Default",
+                    "Default Calculation Basis",
+                  )}
+                  value={preferences.defaultBasis}
+                  language={lang}
+                  popoverMinWidthPx={210}
+                  onChange={(val) => onUpdate({ defaultBasis: val as Basis })}
+                  options={[
+                    { value: "as_fed", label: "As-Fed" },
+                    {
+                      value: "dry_matter",
+                      label: pickLang(lang, "Bahan Kering (BK)", "Dry Matter (DM)"),
+                    },
+                  ]}
+                />
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">

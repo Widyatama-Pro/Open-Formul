@@ -21,7 +21,7 @@ import {
 } from "../../utils/locale-number";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
-import { Select } from "../ui/Select";
+import { ThemedSelect } from "../ui/ThemedSelect";
 
 export interface ShadowPriceTabProps {
   readonly nutrients: readonly NutrientResult[];
@@ -237,22 +237,29 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Select
-                aria-label={pickLang(
-                  language,
-                  "Pilih bahan untuk kurva tangga harga",
-                  "Select ingredient for price ladder",
-                )}
-                value={effectiveTargetId}
-                onChange={(e) => setSelectedIngId(e.target.value)}
-                className="h-8 min-h-8 w-44 py-0 text-[11px]"
-              >
-                {activeIngredients.map((ing) => (
-                  <option key={ing.id} value={ing.id}>
-                    {language === "id" ? ing.name : (ing.nameEn ?? ing.name)}
-                  </option>
-                ))}
-              </Select>
+              <div className="w-48">
+                <ThemedSelect
+                  ariaLabel={pickLang(
+                    language,
+                    "Pilih bahan untuk kurva tangga harga",
+                    "Select ingredient for price ladder",
+                  )}
+                  modalTitle={pickLang(
+                    language,
+                    "Pilih Bahan Kurva Harga",
+                    "Select Ingredient for Price Ladder",
+                  )}
+                  value={effectiveTargetId}
+                  language={language}
+                  popoverMinWidthPx={230}
+                  onChange={setSelectedIngId}
+                  options={activeIngredients.map((ing) => ({
+                    value: ing.id,
+                    label: language === "id" ? ing.name : (ing.nameEn ?? ing.name),
+                  }))}
+                  className="h-8 min-h-8 py-0 text-[11px]"
+                />
+              </div>
               <Button
                 variant="secondary"
                 size="sm"

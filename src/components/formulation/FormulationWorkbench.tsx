@@ -86,6 +86,7 @@ export function FormulationWorkbench({
   const [catalogClassFilter, setCatalogClassFilter] = useState<"all" | FeedClassCode>("all");
   const [catalogExpanded, setCatalogExpanded] = useState(true);
   const [mobileTableMode, setMobileTableMode] = useState(false);
+  const [mobileShowBounds, setMobileShowBounds] = useState(false);
   const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [mobileControlsCollapsed, setMobileControlsCollapsed] = useState(false);
@@ -577,7 +578,7 @@ export function FormulationWorkbench({
       </motion.div>
 
       {/* Mobile & Tablet Stepper Content (< 1024px): menyatu dengan scroll utama halaman + padding bawah lega */}
-      <div className="p-3 pb-36 md:p-4 md:pb-8 lg:hidden">
+      <div className="landscape-workbench-scroll p-3 pb-36 md:p-4 md:pb-8 lg:hidden">
         {activeMobileStep === "ingredients" && (
           <div className="selectable-panel space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -587,12 +588,29 @@ export function FormulationWorkbench({
                 </h2>
                 <Badge tone="emerald">{usedIngredients.length}</Badge>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                {!mobileTableMode && (
+                  <Button
+                    variant={mobileShowBounds ? "primary" : "ghost"}
+                    size="sm"
+                    onClick={() => setMobileShowBounds((v) => !v)}
+                    aria-pressed={mobileShowBounds}
+                    className={cn("rounded-lg text-[11px]", !mobileShowBounds && "neu-pill-btn")}
+                    aria-label={pickLang(
+                      language,
+                      "Tampilkan atau sembunyikan input Min dan Max",
+                      "Toggle Min and Max bounds inputs",
+                    )}
+                  >
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    <span>Min/Max</span>
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setMobileTableMode((v) => !v)}
-                  className="neu-pill-btn rounded-lg md:hidden"
+                  className="neu-pill-btn rounded-lg"
                   aria-label={pickLang(
                     language,
                     "Ganti tampilan Kartu atau Tabel Kompak",
@@ -609,7 +627,7 @@ export function FormulationWorkbench({
             </div>
 
             {mobileTableMode ? (
-              <div className="h-[55dvh]">
+              <div className="landscape-table-box h-[55dvh]">
                 <IngredientDesktopTable
                   ingredients={usedIngredients}
                   allIngredients={store.ingredients}
@@ -633,6 +651,9 @@ export function FormulationWorkbench({
             ) : (
               <IngredientMobileCards
                 ingredients={usedIngredients}
+                activeSpecies={activeSpecies}
+                showBounds={mobileShowBounds}
+                onToggleBounds={() => setMobileShowBounds((v) => !v)}
                 decimalPlaces={decimalPlaces}
                 simpleMode={simpleMode}
                 language={language}

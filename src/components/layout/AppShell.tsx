@@ -117,9 +117,8 @@ export function AppShell({
             {/* Header atas ringkas: menyatu dengan kanvas ambient mesh saat UI Enhancer aktif */}
             <motion.header
               variants={HEADER_ITEM_VARIANTS}
-              style={{ paddingTop: "var(--safe-area-top)" }}
               className={cn(
-                "relative z-20 flex min-h-[50px] shrink-0 items-center justify-between gap-3 px-3.5 lg:min-h-[54px] lg:px-5",
+                "safe-area-header landscape-compact-header relative z-20 flex min-h-[50px] shrink-0 items-center justify-between gap-3 lg:min-h-[54px]",
                 uiEnhancer
                   ? "border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-table-bg,var(--bg-surface))] text-[var(--text-primary)] backdrop-blur-md"
                   : "border-b border-[var(--shell-chrome-border)] bg-[var(--shell-chrome-bg)] text-[var(--shell-chrome-fg)]",
@@ -285,7 +284,7 @@ export function AppShell({
             <motion.main
               variants={MAIN_ITEM_VARIANTS}
               className={cn(
-                "min-h-0 min-w-0 flex-1 overflow-x-hidden overscroll-contain",
+                "safe-area-main-x min-h-0 min-w-0 flex-1 overflow-x-hidden overscroll-contain",
                 route === "formulation"
                   ? "overflow-hidden"
                   : "workspace-main-scrollbar overflow-y-auto pb-24 md:pb-4 lg:pb-0",

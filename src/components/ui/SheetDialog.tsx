@@ -50,7 +50,7 @@ export function SheetDialog({
 
   return (
     <div
-      className={cn("fixed inset-0 z-50 flex bg-black/50", containerMode)}
+      className={cn("safe-area-dialog-backdrop fixed inset-0 z-50 flex bg-black/50", containerMode)}
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -58,12 +58,12 @@ export function SheetDialog({
     >
       <div
         className={cn(
-          "flex w-full flex-col overflow-hidden overscroll-contain border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[0_24px_54px_-14px_rgba(0,0,0,0.34),0_4px_16px_-4px_rgba(0,0,0,0.14)]",
+          "landscape-dialog-panel flex w-full flex-col overflow-hidden overscroll-contain border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-[0_24px_54px_-14px_rgba(0,0,0,0.34),0_4px_16px_-4px_rgba(0,0,0,0.14)]",
           panelRadius,
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-5 py-3.5">
+        <div className="landscape-dialog-head flex items-start justify-between gap-4 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-5 py-3.5">
           <div className="min-w-0">
             <h2 className="truncate text-base font-bold tracking-tight text-[var(--text-primary)]">
               {title}
@@ -82,12 +82,12 @@ export function SheetDialog({
           </button>
         </div>
 
-        <div className="custom-scrollbar mobile-drawer-scroll flex-1 overflow-y-auto overscroll-contain bg-[var(--bg-canvas)] p-5">
+        <div className="custom-scrollbar mobile-drawer-scroll landscape-dialog-body flex-1 overflow-y-auto overscroll-contain bg-[var(--bg-canvas)] p-5">
           {children}
         </div>
 
         {footer !== undefined && (
-          <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] px-5 py-3">
+          <div className="landscape-dialog-foot border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] px-5 py-3">
             {footer}
           </div>
         )}

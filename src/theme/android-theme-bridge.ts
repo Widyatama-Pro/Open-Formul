@@ -13,6 +13,7 @@ export interface AndroidThemeBridgeOptions {
   readonly paletteId?: ThemePaletteId;
   readonly mode?: ResolvedThemeMode;
   readonly amoledPureBlack?: boolean;
+  readonly uiEnhancer?: boolean;
   readonly overlayWebView?: boolean;
   readonly resolvedCanvasHex?: string;
 }
@@ -45,8 +46,54 @@ interface CapacitorGlobal {
   };
 }
 
+interface OpenFormulSystemBarsBridge {
+  readonly setSystemBars?: (statusHex: string, navHex: string, isDarkBackground: boolean) => void;
+  readonly getSystemInsetsCss?: () => string;
+}
+
 interface CapacitorWindow extends Window {
   readonly Capacitor?: CapacitorGlobal;
+  readonly OpenFormulSystemBars?: OpenFormulSystemBarsBridge;
+}
+
+export interface SystemInsetsPx {
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+}
+
+/**
+ * Applies native Android WindowInsets (systemBars | displayCutout) to CSS custom properties
+ * so notch/poni & tall-screen safe areas stay preserved even when WebView env() reports 0px.
+ */
+export function applyAndroidSystemInsets(insets?: Partial<SystemInsetsPx>): boolean {
+  if (typeof document === "undefined") return false;
+  let parsed: Partial<SystemInsetsPx> | undefined = insets;
+
+  if (!parsed && typeof window !== "undefined") {
+    const raw = (window as CapacitorWindow).OpenFormulSystemBars?.getSystemInsetsCss?.();
+    if (raw) {
+      try {
+        parsed = JSON.parse(raw) as Partial<SystemInsetsPx>;
+      } catch {
+        parsed = undefined;
+      }
+    }
+  }
+
+  if (!parsed) return false;
+  const style = document.documentElement.style;
+  const setVar = (name: string, val: unknown) => {
+    if (typeof val === "number" && Number.isFinite(val) && val >= 0) {
+      style.setProperty(name, `${Math.round(val)}px`);
+    }
+  };
+  setVar("--android-inset-top", parsed.top);
+  setVar("--android-inset-right", parsed.right);
+  setVar("--android-inset-bottom", parsed.bottom);
+  setVar("--android-inset-left", parsed.left);
+  return true;
 }
 
 /**
@@ -104,17 +151,16 @@ export async function syncAndroidSystemBars(
 ): Promise<AndroidSystemBarResult> {
   let mode: ResolvedThemeMode;
   let canvasHex: string;
+  const resolved = resolveActiveThemeColors({
+    ...(options.paletteId !== undefined ? { paletteId: options.paletteId } : {}),
+    ...(options.mode !== undefined ? { mode: options.mode } : {}),
+    ...(options.amoledPureBlack !== undefined ? { amoledPureBlack: options.amoledPureBlack } : {}),
+  });
+  const primaryHex = resolved.primaryHex;
   if (options.resolvedCanvasHex !== undefined && options.mode !== undefined) {
     mode = options.mode;
     canvasHex = options.resolvedCanvasHex;
   } else {
-    const resolved = resolveActiveThemeColors({
-      ...(options.paletteId !== undefined ? { paletteId: options.paletteId } : {}),
-      ...(options.mode !== undefined ? { mode: options.mode } : {}),
-      ...(options.amoledPureBlack !== undefined
-        ? { amoledPureBlack: options.amoledPureBlack }
-        : {}),
-    });
     mode = resolved.mode;
     canvasHex = resolved.canvasHex;
   }
@@ -128,21 +174,31 @@ export async function syncAndroidSystemBars(
     }
   }
 
-  const bgColor = mode === "dark" && options.amoledPureBlack ? "#000000" : canvasHex;
-  const { iconStyle, isDarkBackground, luminance } = resolveSystemBarAppearance(bgColor);
+  const navBgColor = mode === "dark" && options.amoledPureBlack ? "#000000" : canvasHex;
+  // When UI Enhancer is OFF in Light Mode, AppShell header uses dark --shell-chrome-bg (--color-primary)
+  const statusBgColor = options.uiEnhancer === false && mode === "light" ? primaryHex : navBgColor;
+  const { iconStyle, isDarkBackground, luminance } = resolveSystemBarAppearance(statusBgColor);
+  const navAppearance = resolveSystemBarAppearance(navBgColor);
   let appliedToCapacitor = false;
 
-  const capacitorObj =
-    typeof window !== "undefined" ? (window as CapacitorWindow).Capacitor : undefined;
+  const win = typeof window !== "undefined" ? (window as CapacitorWindow) : undefined;
+  const capacitorObj = win?.Capacitor;
 
   try {
+    const nativeBridge = win?.OpenFormulSystemBars;
+    if (nativeBridge?.setSystemBars) {
+      nativeBridge.setSystemBars(statusBgColor, navBgColor, isDarkBackground);
+      applyAndroidSystemInsets();
+      appliedToCapacitor = true;
+    }
+
     const statusBarPlugin = capacitorObj?.Plugins?.StatusBar;
     if (statusBarPlugin) {
       if (typeof options.overlayWebView === "boolean" && statusBarPlugin.setOverlaysWebView) {
         await statusBarPlugin.setOverlaysWebView({ overlay: options.overlayWebView });
       }
       if (statusBarPlugin.setBackgroundColor) {
-        await statusBarPlugin.setBackgroundColor({ color: bgColor });
+        await statusBarPlugin.setBackgroundColor({ color: statusBgColor });
       }
       if (statusBarPlugin.setStyle) {
         await statusBarPlugin.setStyle({ style: iconStyle });
@@ -154,13 +210,13 @@ export async function syncAndroidSystemBars(
     if (navBarPlugin) {
       if (navBarPlugin.setNavigationBarColor) {
         await navBarPlugin.setNavigationBarColor({
-          color: bgColor,
-          darkButtons: !isDarkBackground,
+          color: navBgColor,
+          darkButtons: !navAppearance.isDarkBackground,
         });
       } else if (navBarPlugin.setColor) {
         await navBarPlugin.setColor({
-          color: bgColor,
-          darkButtons: !isDarkBackground,
+          color: navBgColor,
+          darkButtons: !navAppearance.isDarkBackground,
         });
       }
       appliedToCapacitor = true;
@@ -170,7 +226,7 @@ export async function syncAndroidSystemBars(
   }
 
   return {
-    backgroundColor: bgColor,
+    backgroundColor: statusBgColor,
     iconStyle,
     isDarkBackground,
     luminance,

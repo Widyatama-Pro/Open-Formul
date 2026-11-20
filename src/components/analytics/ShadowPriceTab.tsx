@@ -109,7 +109,7 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
 
       {/* Harga Bayangan Nutrisi */}
       <div className="glass-card rounded-xl p-3">
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-bold text-[var(--text-primary)]">
             {pickLang(
               language,
@@ -121,18 +121,113 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
             {pickLang(language, "Analisis Sensitivitas", "Sensitivity Analysis")}
           </Badge>
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Mobile Cards (< md) agar setiap baris tidak bertabrakan atau terpotong */}
+        <div className="space-y-2 md:hidden">
+          {nutrients.map((n) => {
+            const meta = nutMap.get(n.nutrientId);
+            const sp = n.shadowPrice ?? 0;
+            const nutLabel = meta
+              ? getNutrientDisplayName(meta, language, simpleMode)
+              : n.nutrientId;
+            const nutTitle = meta ? getNutrientFullName(meta, language) : n.nutrientId;
+            const validRangeText =
+              n.rhsRange && (n.rhsRange.min !== null || n.rhsRange.max !== null)
+                ? `${
+                    n.rhsRange.min !== null
+                      ? formatNumberLocale(
+                          n.rhsRange.min,
+                          resolveDisplayDigits(
+                            meta?.unit,
+                            n.nutrientId,
+                            decimalPlaces,
+                            n.rhsRange.min,
+                          ),
+                        )
+                      : "0"
+                  } – ${
+                    n.rhsRange.max !== null
+                      ? formatNumberLocale(
+                          n.rhsRange.max,
+                          resolveDisplayDigits(
+                            meta?.unit,
+                            n.nutrientId,
+                            decimalPlaces,
+                            n.rhsRange.max,
+                          ),
+                        )
+                      : "∞"
+                  }`
+                : "—";
+
+            return (
+              <div
+                key={n.nutrientId}
+                className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 p-2.5"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    title={nutTitle}
+                    className="min-w-0 truncate font-bold text-[var(--text-primary)]"
+                  >
+                    {nutLabel} ({meta?.unit ?? ""})
+                  </span>
+                  {n.isDegenerate ? (
+                    <Badge tone="rose">{pickLang(language, "Degenerat", "Degenerate")}</Badge>
+                  ) : (
+                    <Badge tone={sp !== 0 ? "amber" : "neutral"}>
+                      {sp !== 0
+                        ? pickLang(language, "Mengikat Biaya", "Binding")
+                        : pickLang(language, "Longgar", "Slack")}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="mt-2 grid grid-cols-2 gap-2 border-t border-[var(--border-subtle)] pt-2 text-[11px] tabular-nums">
+                  <div className="min-w-0">
+                    <span className="block text-[10px] font-medium text-[var(--text-muted)]">
+                      {pickLang(language, "Harga Bayangan", "Shadow Price")}
+                    </span>
+                    <span className="font-bold text-[var(--text-primary)]">
+                      {sp !== 0 ? formatCurrencyIdr(sp) : "Rp 0"}
+                    </span>
+                    {n.isDegenerate &&
+                      (n.shadowPriceDown !== undefined || n.shadowPriceUp !== undefined) && (
+                        <span className="block text-[10px] text-[var(--text-muted)]">
+                          ↓ {n.shadowPriceDown != null ? formatCurrencyIdr(n.shadowPriceDown) : "—"}{" "}
+                          · ↑ {n.shadowPriceUp != null ? formatCurrencyIdr(n.shadowPriceUp) : "—"}
+                        </span>
+                      )}
+                  </div>
+                  <div className="min-w-0 text-right">
+                    <span className="block text-[10px] font-medium text-[var(--text-muted)]">
+                      {pickLang(language, "Rentang Batas Valid", "Valid Bound Range")}
+                    </span>
+                    <span className="font-semibold text-[var(--text-secondary)]">
+                      {validRangeText}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop Table (>= md) */}
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full border-collapse">
             <thead className="border-b border-[var(--border-subtle)] text-[11px] font-bold text-[var(--text-secondary)]">
               <tr>
-                <th className="py-1.5 text-left">{pickLang(language, "Nutrien", "Nutrient")}</th>
-                <th className="py-1.5 text-right">
+                <th className="px-2.5 py-2 text-left whitespace-nowrap">
+                  {pickLang(language, "Nutrien", "Nutrient")}
+                </th>
+                <th className="px-2.5 py-2 text-right whitespace-nowrap">
                   {pickLang(language, "Harga Bayangan", "Shadow Price")}
                 </th>
-                <th className="py-1.5 text-right">
+                <th className="px-2.5 py-2 text-right whitespace-nowrap">
                   {pickLang(language, "Rentang Batas Valid", "Valid Bound Range")}
                 </th>
-                <th className="py-1.5 text-right">
+                <th className="px-2.5 py-2 text-right whitespace-nowrap">
                   {pickLang(language, "Status Batas", "Bound Status")}
                 </th>
               </tr>
@@ -149,11 +244,11 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
                   <tr key={n.nutrientId}>
                     <td
                       title={nutTitle}
-                      className="py-1.5 font-semibold text-[var(--text-primary)]"
+                      className="px-2.5 py-2 font-semibold whitespace-nowrap text-[var(--text-primary)]"
                     >
                       {nutLabel} ({meta?.unit ?? ""})
                     </td>
-                    <td className="py-1.5 text-right font-medium tabular-nums text-[var(--text-primary)]">
+                    <td className="px-2.5 py-2 text-right font-medium whitespace-nowrap tabular-nums text-[var(--text-primary)]">
                       <div>{sp !== 0 ? formatCurrencyIdr(sp) : "Rp 0"}</div>
                       {n.isDegenerate &&
                         (n.shadowPriceDown !== undefined || n.shadowPriceUp !== undefined) && (
@@ -164,7 +259,7 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
                           </div>
                         )}
                     </td>
-                    <td className="py-1.5 text-right font-medium tabular-nums text-[var(--text-secondary)]">
+                    <td className="px-2.5 py-2 text-right font-medium whitespace-nowrap tabular-nums text-[var(--text-secondary)]">
                       {n.rhsRange && (n.rhsRange.min !== null || n.rhsRange.max !== null)
                         ? `${
                             n.rhsRange.min !== null
@@ -193,7 +288,7 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
                           }`
                         : "—"}
                     </td>
-                    <td className="py-1.5 text-right">
+                    <td className="px-2.5 py-2 text-right whitespace-nowrap">
                       {n.isDegenerate ? (
                         <Badge tone="rose">{pickLang(language, "Degenerat", "Degenerate")}</Badge>
                       ) : (
@@ -236,8 +331,8 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="w-48">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <div className="min-w-0 flex-1 sm:w-48 sm:flex-none">
                 <ThemedSelect
                   ariaLabel={pickLang(
                     language,
@@ -290,17 +385,17 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
           )}
 
           {!ladderLoading && ladderSteps && ladderSteps.length > 0 && (
-            <div className="overflow-x-auto">
+            <div style={{ touchAction: "pan-x pan-y" }} className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead className="border-b border-[var(--border-subtle)] text-[11px] font-bold text-[var(--text-secondary)]">
                   <tr>
-                    <th className="py-1.5 text-left">
+                    <th className="px-2.5 py-2 text-left whitespace-nowrap">
                       {pickLang(language, "Titik Harga Bahan", "Ingredient Price")}
                     </th>
-                    <th className="py-1.5 text-right">
+                    <th className="px-2.5 py-2 text-right whitespace-nowrap">
                       {pickLang(language, "Inklusi Target", "Target Inclusion")}
                     </th>
-                    <th className="py-1.5 text-right">
+                    <th className="px-2.5 py-2 text-right whitespace-nowrap">
                       {pickLang(language, "Biaya Ransum / kg", "Ration Cost / kg")}
                     </th>
                   </tr>
@@ -312,17 +407,17 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
                         ?.fraction ?? 0;
                     return (
                       <tr key={`${step.price}-${idx}`}>
-                        <td className="py-1.5 font-semibold tabular-nums text-[var(--text-primary)]">
+                        <td className="px-2.5 py-2 font-semibold whitespace-nowrap tabular-nums text-[var(--text-primary)]">
                           {formatCurrencyIdr(step.price)}
                         </td>
-                        <td className="py-1.5 text-right font-semibold tabular-nums text-[var(--status-success)]">
+                        <td className="px-2.5 py-2 text-right font-semibold whitespace-nowrap tabular-nums text-[var(--status-success)]">
                           {formatNumberLocale(
                             frac * 100,
                             resolveDisplayDigits("%", "inclusion", decimalPlaces, frac * 100),
                           )}
                           %
                         </td>
-                        <td className="py-1.5 text-right tabular-nums text-[var(--text-secondary)]">
+                        <td className="px-2.5 py-2 text-right whitespace-nowrap tabular-nums text-[var(--text-secondary)]">
                           {step.costPerKg !== null ? formatCurrencyIdr(step.costPerKg) : "—"}
                         </td>
                       </tr>
@@ -403,9 +498,9 @@ export const ShadowPriceTab = memo(function ShadowPriceTab({
                   : opp.ingredientId;
                 return (
                   <div key={opp.ingredientId} className="neu-well rounded-lg p-2">
-                    <div className="flex justify-between font-semibold text-[var(--text-primary)]">
-                      <span>{ingLabel}</span>
-                      <span className="tabular-nums text-[var(--status-success)]">
+                    <div className="flex flex-wrap items-center justify-between gap-1.5 font-semibold text-[var(--text-primary)]">
+                      <span className="min-w-0 truncate">{ingLabel}</span>
+                      <span className="shrink-0 tabular-nums text-[var(--status-success)]">
                         {pickLang(language, "Layak ≤", "Break-even ≤")}{" "}
                         {formatCurrencyIdr(opp.opportunityPrice)}/kg
                       </span>

@@ -235,7 +235,11 @@ export const ResultsPanel = memo(function ResultsPanel({
                 badge: result.composition.length,
               },
               { value: "charts", label: pickLang(language, "Grafik", "Charts") },
-              { value: "dual", label: pickLang(language, "Harga Bayangan", "Shadow Price") },
+              {
+                value: "dual",
+                label: pickLang(language, "Harga Bayangan", "Shadow Price"),
+                mobileLabel: pickLang(language, "Bayangan", "Shadow"),
+              },
               {
                 value: "whatif",
                 label: "What-If",

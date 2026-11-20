@@ -398,6 +398,17 @@ export function computeDynamicBeefRequirement(
   const caPct = roundTo(clamp((row.ca / (row.dmi * 1000)) * 100, 0.14, 1.2), 2);
   const pPct = roundTo(clamp((row.p / (row.dmi * 1000)) * 100, 0.14, 0.8), 2);
 
+  // LK (ee) & SK (cf) pada basis BK sesuai kepadatan energi TDN Kearl (1982):
+  // - LK (ee): maks 6.5% BK (SNI 3148-2:2017 & NRC 2016 batas aman lemak rumen <=6-7% BK)
+  // - SK (cf): batas serat rumen proporsional terhadap TDN (Hartadi 1980 Table 7 & NRC 2016 / SNI 3148-2)
+  const energyDensityRatio = clamp((tdnPct - 48) / (72 - 48), 0, 1);
+  const eeMinPct = 1.5;
+  const eeMaxPct = 6.5;
+  const eeIdealPct = roundTo(2.5 + 1.0 * energyDensityRatio, 1);
+  const cfMinPct = roundTo(17.0 - 4.0 * energyDensityRatio, 1);
+  const cfMaxPct = roundTo(31.0 - 7.0 * energyDensityRatio, 1);
+  const cfIdealPct = roundTo(24.0 - 6.0 * energyDensityRatio, 1);
+
   const modeTag = isExtrapolated ? "Ekstrapolasi Kearl 1982" : "Interpolasi Kearl 1982";
 
   return {
@@ -414,6 +425,20 @@ export function computeDynamicBeefRequirement(
       constraints: [
         { nutrientId: "cp", min: cpPct, idealTarget: roundTo(cpPct + 0.5, 2), enabled: true },
         { nutrientId: "tdn", min: tdnPct, idealTarget: roundTo(tdnPct + 2.0, 1), enabled: true },
+        {
+          nutrientId: "ee",
+          min: eeMinPct,
+          max: eeMaxPct,
+          idealTarget: eeIdealPct,
+          enabled: true,
+        },
+        {
+          nutrientId: "cf",
+          min: cfMinPct,
+          max: cfMaxPct,
+          idealTarget: cfIdealPct,
+          enabled: true,
+        },
         {
           nutrientId: "ca",
           min: caPct,
@@ -439,7 +464,7 @@ export function computeDynamicBeefRequirement(
           max: 2.5,
         },
       ],
-      source: `${modeTag} Table 14 (${phaseLabelEn}) — DMI ${dmiKg} kg BK; ME ${roundTo(row.me, 2)} Mcal; TDN ${roundTo(row.tdn, 2)} kg (${tdnPct}% BK); PK ${roundTo(row.cp, 0)} g (${cpPct}% BK); Ca ${roundTo(row.ca, 0)} g (${caPct}% BK); P ${roundTo(row.p, 0)} g (${pPct}% BK)`,
+      source: `${modeTag} Table 14 (${phaseLabelEn}) — DMI ${dmiKg} kg BK; ME ${roundTo(row.me, 2)} Mcal; TDN ${roundTo(row.tdn, 2)} kg (${tdnPct}% BK); PK ${roundTo(row.cp, 0)} g (${cpPct}% BK); Ca ${roundTo(row.ca, 0)} g (${caPct}% BK); P ${roundTo(row.p, 0)} g (${pPct}% BK); LK ${eeMinPct}–${eeMaxPct}% BK (SNI 3148-2:2017 / NRC 2016); SK ${cfMinPct}–${cfMaxPct}% BK (Hartadi 1980 T7 / SNI 3148-2:2017)`,
     },
   };
 }
@@ -578,6 +603,15 @@ export function computeDynamicDairyRequirement(
   const caPct = roundTo(clamp((totalCa / (dmiKg * 1000)) * 100, 0.25, 1.3), 2);
   const pPct = roundTo(clamp((totalP / (dmiKg * 1000)) * 100, 0.2, 0.8), 2);
 
+  // LK (ee) & SK (cf) pada basis BK sesuai fase laktasi/kering & TDN (SNI 3148-1:2017, NRC 1988, Hartadi 1980 T7)
+  const dairyEnergyRatio = clamp((tdnPct - 54) / (74 - 54), 0, 1);
+  const eeMinPct = isDryPregnant ? 1.5 : 2.0;
+  const eeMaxPct = 6.5;
+  const eeIdealPct = isDryPregnant ? 2.5 : roundTo(2.8 + 1.0 * dairyEnergyRatio, 1);
+  const cfMinPct = isDryPregnant ? 18.0 : roundTo(17.0 - 3.5 * dairyEnergyRatio, 1);
+  const cfMaxPct = isDryPregnant ? 31.0 : roundTo(29.0 - 5.0 * dairyEnergyRatio, 1);
+  const cfIdealPct = isDryPregnant ? 24.0 : roundTo(22.5 - 4.5 * dairyEnergyRatio, 1);
+
   const stdLabel = standard === "kearl_1982" ? "Kearl 1982" : "NRC 1988";
   const calcTag = isExtrapolated ? `Ekstrapolasi ${stdLabel}` : `Interpolasi ${stdLabel}`;
   const phaseStr = isDryPregnant
@@ -606,6 +640,20 @@ export function computeDynamicDairyRequirement(
         { nutrientId: "cp", min: cpPct, idealTarget: roundTo(cpPct + 0.6, 2), enabled: true },
         { nutrientId: "tdn", min: tdnPct, idealTarget: roundTo(tdnPct + 2.0, 1), enabled: true },
         {
+          nutrientId: "ee",
+          min: eeMinPct,
+          max: eeMaxPct,
+          idealTarget: eeIdealPct,
+          enabled: true,
+        },
+        {
+          nutrientId: "cf",
+          min: cfMinPct,
+          max: cfMaxPct,
+          idealTarget: cfIdealPct,
+          enabled: true,
+        },
+        {
           nutrientId: "ca",
           min: caPct,
           max: roundTo(Math.max(caPct * 2.2, 1.0), 2),
@@ -630,7 +678,7 @@ export function computeDynamicDairyRequirement(
           max: 2.5,
         },
       ],
-      source: `${calcTag} — ${phaseStr}; DMI ${dmiKg} kg BK; ME ${roundTo(totalMe, 2)} Mcal; TDN ${roundTo(totalTdn, 2)} kg (${tdnPct}% BK); PK ${roundTo(totalCp, 0)} g (${cpPct}% BK); Ca ${roundTo(totalCa, 0)} g (${caPct}% BK); P ${roundTo(totalP, 0)} g (${pPct}% BK)`,
+      source: `${calcTag} — ${phaseStr}; DMI ${dmiKg} kg BK; ME ${roundTo(totalMe, 2)} Mcal; TDN ${roundTo(totalTdn, 2)} kg (${tdnPct}% BK); PK ${roundTo(totalCp, 0)} g (${cpPct}% BK); Ca ${roundTo(totalCa, 0)} g (${caPct}% BK); P ${roundTo(totalP, 0)} g (${pPct}% BK); LK ${eeMinPct}–${eeMaxPct}% BK (SNI 3148-1:2017 / NRC 1988); SK ${cfMinPct}–${cfMaxPct}% BK (NRC 1988 / Hartadi 1980 T7)`,
     },
   };
 }

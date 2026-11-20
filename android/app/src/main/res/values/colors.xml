@@ -5,13 +5,13 @@
   Covers default Material / StatusBar / NavigationBar fallback plus all 14 theme variants.
 -->
 <resources>
-    <!-- Default Splash / System Bar Fallback (original-default Light) -->
+    <!-- Default Splash / System Bar Fallback (brand deep teal so status bar never flashes white) -->
     <color name="colorPrimary">#142B27</color>
     <color name="colorPrimaryDark">#0F1A18</color>
     <color name="colorAccent">#D5A45C</color>
-    <color name="statusBarColor">#F5F4EF</color>
-    <color name="navigationBarColor">#F5F4EF</color>
-    <color name="splashBackground">#F5F4EF</color>
+    <color name="statusBarColor">#142B27</color>
+    <color name="navigationBarColor">#142B27</color>
+    <color name="splashBackground">#143C3B</color>
     <color name="amoledPureBlack">#000000</color>
 
     <!-- Palette 01: original-default -->

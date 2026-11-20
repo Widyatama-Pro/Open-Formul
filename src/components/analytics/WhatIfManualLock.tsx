@@ -104,7 +104,7 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
                 <span>{ingName}</span>
               </button>
 
-              <div className="flex items-center gap-2.5">
+              <div className="flex w-full items-center gap-2.5 sm:w-auto">
                 <input
                   type="range"
                   min={0}
@@ -113,7 +113,7 @@ export const WhatIfManualLock = memo(function WhatIfManualLock({
                   value={currentPct}
                   aria-label={`Slider What-If ${ingName}`}
                   onChange={(e) => onSetManualLock(ing.id, Number(e.target.value))}
-                  className="w-24 cursor-pointer accent-[var(--color-primary)] sm:w-32"
+                  className="min-w-0 flex-1 cursor-pointer accent-[var(--color-primary)] sm:w-32 sm:flex-none"
                 />
                 <div className="w-20">
                   <NumericCellInput

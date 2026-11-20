@@ -1,8 +1,30 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_CONFIG, HARTADI_FEEDS, MOCK_INGREDIENTS } from "../src/data/mock-state";
+import { solveLpInNode } from "../src/solver/highsNodeRunner";
+import { solveFormulationWithRunner } from "../src/solver/solveFormulation";
 import {
   computeDynamicBeefRequirement,
   computeDynamicDairyRequirement,
 } from "../src/utils/cattle-requirements";
+
+const CATTLE_HARTADI_STARTER = HARTADI_FEEDS.map((ing) => ({
+  ...ing,
+  isActive: [
+    "hartadi-rumput-gajah",
+    "hartadi-jerami-padi",
+    "hartadi-lamtoro",
+    "hartadi-bungkil-kelapa",
+    "hartadi-pollard",
+    "hartadi-onggok-kering",
+    "hartadi-molases",
+    "hartadi-bis-ekspeller",
+  ].includes(ing.id),
+}));
+
+const CATTLE_MOCK_SET = MOCK_INGREDIENTS.map((ing) => ({
+  ...ing,
+  isActive: ing.id === "napier-grass" || ing.isActive !== false,
+}));
 
 describe("Dynamic Cattle Requirements (Kearl 1982 & NRC 1988)", () => {
   it("computes dynamic Beef Cattle growth via Kearl Table 14 interpolation", () => {
@@ -115,5 +137,136 @@ describe("Dynamic Cattle Requirements (Kearl 1982 & NRC 1988)", () => {
     expect(
       dryPreg.requirement.constraints.find((c) => c.nutrientId === "tdn")?.min,
     ).toBeGreaterThan(50);
+  });
+
+  it("populates sourced ee (LK) and cf (SK) constraints after BW input for beef & dairy", () => {
+    const beefMaint = computeDynamicBeefRequirement({
+      bodyWeightKg: 300,
+      adgKgPerDay: 0,
+      physiologicalState: "growth",
+    });
+    const beefFinish = computeDynamicBeefRequirement({
+      bodyWeightKg: 350,
+      adgKgPerDay: 1.0,
+      physiologicalState: "growth",
+    });
+    const dairyLact = computeDynamicDairyRequirement({
+      bodyWeightKg: 450,
+      milkKgPerDay: 15,
+      fatPct: 3.8,
+      standard: "kearl_1982",
+    });
+
+    for (const res of [beefMaint, beefFinish, dairyLact]) {
+      const ee = res.requirement.constraints.find((c) => c.nutrientId === "ee");
+      const cf = res.requirement.constraints.find((c) => c.nutrientId === "cf");
+      expect(ee).toBeDefined();
+      expect(cf).toBeDefined();
+      expect(ee?.enabled).toBe(true);
+      expect(cf?.enabled).toBe(true);
+      expect(ee?.min).toBeGreaterThanOrEqual(1.5);
+      expect(ee?.max).toBeLessThanOrEqual(7.0);
+      expect(cf?.min).toBeGreaterThanOrEqual(12);
+      expect(cf?.max).toBeLessThanOrEqual(32);
+      expect(res.requirement.source).toMatch(/SNI 3148|Hartadi|NRC/i);
+    }
+
+    // Finishing ration (higher TDN) must allow/expect lower CF than maintenance
+    const maintCfMax = beefMaint.requirement.constraints.find((c) => c.nutrientId === "cf")!.max!;
+    const finishCfMax = beefFinish.requirement.constraints.find((c) => c.nutrientId === "cf")!.max!;
+    expect(finishCfMax).toBeLessThan(maintCfMax);
+  });
+
+  it("remains LP-feasible in HiGHS across beef & dairy weights/ADGs with Hartadi & mock feeds", async () => {
+    const beefCases = [
+      { bodyWeightKg: 150, adgKgPerDay: 0.5, physiologicalState: "growth" as const },
+      { bodyWeightKg: 250, adgKgPerDay: 0.75, physiologicalState: "growth" as const },
+      { bodyWeightKg: 300, adgKgPerDay: 0.0, physiologicalState: "growth" as const },
+      { bodyWeightKg: 300, adgKgPerDay: 0.8, physiologicalState: "growth" as const },
+      { bodyWeightKg: 350, adgKgPerDay: 1.0, physiologicalState: "growth" as const },
+      { bodyWeightKg: 450, adgKgPerDay: 0.5, physiologicalState: "growth" as const },
+      { bodyWeightKg: 600, adgKgPerDay: 0.4, physiologicalState: "gestation_cow" as const },
+      { bodyWeightKg: 450, adgKgPerDay: 0.0, physiologicalState: "work_heavy" as const },
+    ];
+
+    for (const input of beefCases) {
+      const { requirement } = computeDynamicBeefRequirement(input);
+      const res = await solveFormulationWithRunner(
+        CATTLE_HARTADI_STARTER,
+        requirement,
+        {
+          ...DEFAULT_CONFIG,
+          activeBasis: "dry_matter",
+          optimizationMode: 1,
+          enableElasticFallback: false,
+        },
+        solveLpInNode,
+      );
+      expect(res.status, `Beef BW=${input.bodyWeightKg} ADG=${input.adgKgPerDay}`).toBe("optimal");
+      const eeRes = res.nutrients.find((n) => n.nutrientId === "ee");
+      const cfRes = res.nutrients.find((n) => n.nutrientId === "cf");
+      expect(eeRes?.status).toBe("met");
+      expect(cfRes?.status).toBe("met");
+    }
+
+    const dairyCases = [
+      { bodyWeightKg: 350, milkKgPerDay: 10, fatPct: 4.0, standard: "kearl_1982" as const },
+      { bodyWeightKg: 450, milkKgPerDay: 15, fatPct: 3.8, standard: "kearl_1982" as const },
+      { bodyWeightKg: 550, milkKgPerDay: 22, fatPct: 3.8, standard: "nrc_1988" as const },
+      { bodyWeightKg: 500, milkKgPerDay: 0, fatPct: 4.0, isDryPregnant: true },
+    ];
+
+    for (const input of dairyCases) {
+      const { requirement } = computeDynamicDairyRequirement(input);
+      const res = await solveFormulationWithRunner(
+        CATTLE_HARTADI_STARTER,
+        requirement,
+        {
+          ...DEFAULT_CONFIG,
+          activeBasis: "dry_matter",
+          optimizationMode: 1,
+          enableElasticFallback: false,
+        },
+        solveLpInNode,
+      );
+      expect(res.status, `Dairy BW=${input.bodyWeightKg} milk=${input.milkKgPerDay}`).toBe(
+        "optimal",
+      );
+      expect(res.nutrients.find((n) => n.nutrientId === "ee")?.status).toBe("met");
+      expect(res.nutrients.find((n) => n.nutrientId === "cf")?.status).toBe("met");
+    }
+
+    // Verify Single-target mode & MOCK_INGREDIENTS + napier-grass feasibility
+    const beef300 = computeDynamicBeefRequirement({
+      bodyWeightKg: 300,
+      adgKgPerDay: 0.8,
+      physiologicalState: "growth",
+    }).requirement;
+    const singleModeRes = await solveFormulationWithRunner(
+      CATTLE_HARTADI_STARTER,
+      beef300,
+      {
+        ...DEFAULT_CONFIG,
+        activeBasis: "dry_matter",
+        targetInputMode: "single",
+        optimizationMode: 1,
+        enableElasticFallback: false,
+      },
+      solveLpInNode,
+    );
+    expect(singleModeRes.status).toBe("optimal");
+
+    const mockSetRes = await solveFormulationWithRunner(
+      CATTLE_MOCK_SET,
+      beef300,
+      {
+        ...DEFAULT_CONFIG,
+        activeBasis: "dry_matter",
+        optimizationMode: 1,
+        enableElasticFallback: false,
+      },
+      solveLpInNode,
+    );
+    expect(mockSetRes.status).toBe("optimal");
   });
 });

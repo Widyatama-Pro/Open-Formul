@@ -22,10 +22,12 @@ export {
   type PwaThemeSyncOptions,
 } from "./pwa-theme-sync";
 export {
+  applyAndroidSystemInsets,
   computeRelativeLuminance,
   resolveSystemBarAppearance,
   syncAndroidSystemBars,
   type AndroidSystemBarResult,
   type AndroidThemeBridgeOptions,
   type CapacitorBarStyle,
+  type SystemInsetsPx,
 } from "./android-theme-bridge";

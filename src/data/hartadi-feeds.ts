@@ -1399,8 +1399,8 @@ export const HARTADI_FEEDS: readonly Ingredient[] = [
   },
   {
     id: "hartadi-t12-0089",
-    name: "(0089)",
-    nameEn: "Papaya, buah, matang, masak, segar Papaya, fruit, fresh (0089)",
+    name: "Pepaya, buah, matang, masak, segar (0089)",
+    nameEn: "Papaya, fruit, fresh (0089)",
     category: "energy",
     pricePerKg: 2800,
     dryMatter: 10.0,
@@ -1423,8 +1423,8 @@ export const HARTADI_FEEDS: readonly Ingredient[] = [
   },
   {
     id: "hartadi-t12-0091",
-    name: "(0091)",
-    nameEn: "Papaya, buah, muda, hijau, segar Papaya, fruit, fresh, immature (0091)",
+    name: "Pepaya, buah, muda, hijau, segar (0091)",
+    nameEn: "Papaya, fruit, fresh, immature (0091)",
     category: "energy",
     pricePerKg: 2800,
     dryMatter: 7.0,

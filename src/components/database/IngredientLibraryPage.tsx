@@ -778,14 +778,17 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
                     )}
                   </p>
                 ) : (
-                  <div className="custom-scrollbar max-h-[360px] overflow-auto">
+                  <div
+                    style={{ touchAction: "pan-x pan-y" }}
+                    className="custom-scrollbar max-h-[360px] overflow-auto"
+                  >
                     <table className="w-max min-w-full border-collapse text-left text-xs">
                       <thead className="sticky top-0 z-10 bg-[var(--bg-sunken)] text-[11px] font-bold text-[var(--text-secondary)]">
                         <tr>
-                          <th className="sticky left-0 z-20 w-12 border-r border-b border-[var(--border-subtle)] bg-[var(--bg-sunken)] px-2 py-2 text-center sm:w-14 sm:px-3">
+                          <th className="w-11 border-r border-b border-[var(--border-subtle)] bg-[var(--bg-sunken)] px-2 py-2 text-center md:sticky md:left-0 md:z-20 md:w-14 md:px-3">
                             {pickLang(language, "Pakai", "Use")}
                           </th>
-                          <th className="sticky left-12 z-20 w-36 min-w-36 max-w-44 border-r border-b border-[var(--border-subtle)] bg-[var(--bg-sunken)] px-2 py-2 sm:left-14 sm:w-auto sm:min-w-56 sm:max-w-72 sm:px-3">
+                          <th className="w-40 min-w-40 max-w-48 border-r border-b border-[var(--border-subtle)] bg-[var(--bg-sunken)] px-2 py-2 md:sticky md:left-14 md:z-20 md:w-auto md:min-w-56 md:max-w-72 md:px-3">
                             {pickLang(language, "Nama Bahan", "Ingredient")}
                           </th>
                           {coreCols.basis && (
@@ -847,7 +850,7 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
                                 isActive && "bg-[var(--status-success-soft)]",
                               )}
                             >
-                              <td className="sticky left-0 z-10 w-12 border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1.5 text-center sm:w-14 sm:px-3">
+                              <td className="w-11 border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1.5 text-center md:sticky md:left-0 md:z-10 md:w-14 md:px-3">
                                 <input
                                   type="checkbox"
                                   checked={isActive}
@@ -856,7 +859,7 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
                                   className="h-4 w-4 cursor-pointer rounded border-[var(--border-subtle)] accent-[var(--color-primary)]"
                                 />
                               </td>
-                              <td className="sticky left-12 z-10 w-36 min-w-36 max-w-44 border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1.5 sm:left-14 sm:w-auto sm:min-w-56 sm:max-w-72 sm:px-3">
+                              <td className="w-40 min-w-40 max-w-48 border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1.5 md:sticky md:left-14 md:z-10 md:w-auto md:min-w-56 md:max-w-72 md:px-3">
                                 <div className="flex items-center gap-2">
                                   <FeedClassIcon code={meta.code} language={language} />
                                   <div className="min-w-0">

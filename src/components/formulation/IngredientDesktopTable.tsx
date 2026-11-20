@@ -129,7 +129,7 @@ const IngredientTableRow = memo(function IngredientTableRow({
         !isActive && "opacity-55",
       )}
     >
-      <td className="sticky left-0 z-10 w-10 border-r border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-surface-elevated))] px-1.5 py-1.5 text-center backdrop-blur-md transition-colors group-hover:bg-[var(--glass-row-hover,var(--bg-surface))]">
+      <td className="w-10 border-r border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-surface-elevated))] px-1.5 py-1.5 text-center backdrop-blur-md transition-colors group-hover:bg-[var(--glass-row-hover,var(--bg-surface))] md:sticky md:left-0 md:z-10">
         <input
           type="checkbox"
           checked={isActive}
@@ -146,7 +146,7 @@ const IngredientTableRow = memo(function IngredientTableRow({
           maxWidth: `${nameColWidth}px`,
         }}
         title={displayName}
-        className="sticky left-10 z-10 border-r border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-surface-elevated))] px-2 py-1.5 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.08)] backdrop-blur-md transition-colors group-hover:bg-[var(--glass-row-hover,var(--bg-surface))]"
+        className="border-r border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-surface-elevated))] px-2 py-1.5 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.08)] backdrop-blur-md transition-colors group-hover:bg-[var(--glass-row-hover,var(--bg-surface))] md:sticky md:left-10 md:z-10"
       >
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex min-w-0 items-center gap-1.5">
@@ -826,6 +826,7 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
       )}
 
       <div
+        style={{ touchAction: "pan-x pan-y" }}
         className={cn(
           "custom-scrollbar relative min-h-0 overflow-auto rounded-xl border border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-table-bg,var(--bg-surface-elevated))]",
           scrollMaxHeightClass ?? "flex-1",
@@ -834,7 +835,7 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
         <table className="w-max min-w-full border-collapse text-left text-xs">
           <thead className="sticky top-0 z-20 bg-[var(--glass-sticky-bg,var(--bg-sunken))] text-[11px] font-bold tracking-wide text-[var(--text-secondary)] backdrop-blur-md">
             <tr>
-              <th className="sticky left-0 z-30 w-10 border-r border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-sunken))] px-1.5 py-2 text-center backdrop-blur-md">
+              <th className="w-10 border-r border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-sunken))] px-1.5 py-2 text-center backdrop-blur-md md:sticky md:left-0 md:z-30">
                 {pickLang(language, "Aktif", "Active")}
               </th>
               <th
@@ -843,7 +844,7 @@ export const IngredientDesktopTable = memo(function IngredientDesktopTable({
                   minWidth: `${nameColWidth}px`,
                   maxWidth: `${nameColWidth}px`,
                 }}
-                className="sticky left-10 z-30 border-r border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-sunken))] py-2 pr-4 pl-2.5 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.1)] backdrop-blur-md"
+                className="border-r border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-sunken))] py-2 pr-4 pl-2.5 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.1)] backdrop-blur-md md:sticky md:left-10 md:z-30"
               >
                 <div className="flex items-center justify-between gap-1">
                   <span className="truncate">{pickLang(language, "Nama Bahan", "Ingredient")}</span>

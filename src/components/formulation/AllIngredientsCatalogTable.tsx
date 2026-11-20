@@ -123,15 +123,16 @@ export const AllIngredientsCatalogTable = memo(function AllIngredientsCatalogTab
     <div
       ref={scrollRef}
       onScroll={useVirtual ? handleScroll : undefined}
+      style={{ touchAction: "pan-x pan-y" }}
       className="custom-scrollbar max-h-[240px] overflow-auto rounded-xl border border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-table-bg,var(--bg-surface))]"
     >
       <table className="w-max min-w-full border-collapse text-left text-xs">
         <thead className="sticky top-0 z-10 bg-[var(--glass-sticky-bg,var(--bg-sunken))] text-[11px] font-bold text-[var(--text-secondary)] backdrop-blur-md">
           <tr>
-            <th className="sticky left-0 z-20 w-12 border-r border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-sunken))] px-1.5 py-2 text-center backdrop-blur-md sm:w-14 sm:px-2">
+            <th className="w-11 border-r border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-sunken))] px-1.5 py-2 text-center backdrop-blur-md md:sticky md:left-0 md:z-20 md:w-14 md:px-2">
               {pickLang(language, "Pakai", "Use")}
             </th>
-            <th className="sticky left-12 z-20 w-36 min-w-36 max-w-40 border-r border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-sunken))] px-2 py-2 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.08)] backdrop-blur-md sm:left-14 sm:w-56 sm:min-w-56 sm:max-w-56 sm:px-2.5">
+            <th className="w-40 min-w-40 max-w-48 border-r border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-sunken))] px-2 py-2 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.08)] backdrop-blur-md md:sticky md:left-14 md:z-20 md:w-56 md:min-w-56 md:max-w-56 md:px-2.5">
               {pickLang(language, "Nama Bahan", "Ingredient Name")}
             </th>
             {showStandardCols && (
@@ -197,7 +198,7 @@ export const AllIngredientsCatalogTable = memo(function AllIngredientsCatalogTab
                   isActive && "bg-[var(--glass-row-active,var(--status-success-soft))]",
                 )}
               >
-                <td className="sticky left-0 z-10 w-12 border-r border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-surface))] px-1.5 py-1 text-center backdrop-blur-md transition-colors group-hover:bg-[var(--glass-row-hover,var(--bg-surface-elevated))] sm:w-14 sm:px-2">
+                <td className="w-11 border-r border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-surface))] px-1.5 py-1 text-center backdrop-blur-md transition-colors group-hover:bg-[var(--glass-row-hover,var(--bg-surface-elevated))] md:sticky md:left-0 md:z-10 md:w-14 md:px-2">
                   <input
                     type="checkbox"
                     checked={isActive}
@@ -208,7 +209,7 @@ export const AllIngredientsCatalogTable = memo(function AllIngredientsCatalogTab
                 </td>
                 <td
                   title={displayName}
-                  className="sticky left-12 z-10 w-36 min-w-36 max-w-40 border-r border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-surface))] px-2 py-1 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.08)] backdrop-blur-md transition-colors group-hover:bg-[var(--glass-row-hover,var(--bg-surface-elevated))] sm:left-14 sm:w-56 sm:min-w-56 sm:max-w-56 sm:px-2.5"
+                  className="w-40 min-w-40 max-w-48 border-r border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-sticky-bg,var(--bg-surface))] px-2 py-1 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.08)] backdrop-blur-md transition-colors group-hover:bg-[var(--glass-row-hover,var(--bg-surface-elevated))] md:sticky md:left-14 md:z-10 md:w-56 md:min-w-56 md:max-w-56 md:px-2.5"
                 >
                   <div className="flex items-center gap-1.5">
                     <FeedClassIcon code={feedClass} language={language} />

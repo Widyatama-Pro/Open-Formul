@@ -32,19 +32,19 @@ export function TrakteerSupportButton({
     return (
       <div
         className={cn(
-          "trakteer-glass-card relative overflow-hidden rounded-2xl p-4 sm:p-5",
+          "trakteer-glass-card relative overflow-hidden rounded-2xl p-3.5 sm:p-5",
           className,
         )}
       >
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="flex min-w-0 flex-1 items-start gap-3">
             <span
               aria-hidden="true"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-300/45 bg-gradient-to-br from-amber-400/25 to-rose-500/25 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.28)]"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-300/45 bg-gradient-to-br from-amber-400/25 to-rose-500/25 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.28)] sm:h-11 sm:w-11"
             >
               <Coffee className="h-5 w-5" />
             </span>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-sm font-bold text-[var(--text-primary)]">
                   {pickLang(language, "Dukung Kreator OpenFormul", "Support OpenFormul Creator")}
@@ -69,7 +69,7 @@ export function TrakteerSupportButton({
             target="_blank"
             rel="noopener noreferrer"
             aria-label={label}
-            className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-amber-300/55 bg-gradient-to-r from-amber-500 to-rose-500 px-4 py-2 text-xs font-bold text-white shadow-[0_6px_22px_-4px_rgba(245,158,11,0.45)] transition-[transform,box-shadow,filter] duration-150 hover:-translate-y-0.5 hover:brightness-105 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none"
+            className="inline-flex min-h-10 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-300/55 bg-gradient-to-r from-amber-500 to-rose-500 px-4 py-2 text-xs font-bold text-white shadow-[0_6px_22px_-4px_rgba(245,158,11,0.45)] transition-[transform,box-shadow,filter] duration-150 hover:-translate-y-0.5 hover:brightness-105 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none sm:w-auto"
           >
             <Coffee className="h-4 w-4 shrink-0" />
             <span>{label}</span>

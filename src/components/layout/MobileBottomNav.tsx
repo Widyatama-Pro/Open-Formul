@@ -39,7 +39,7 @@ export const MobileBottomNav = memo(function MobileBottomNav({
   return (
     <nav
       aria-label="Navigasi bawah mobile"
-      className="safe-area-bottom-nav fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 pt-1 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] md:hidden"
+      className="safe-area-bottom-nav fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] pt-1 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] md:hidden"
     >
       {PRIMARY_MOBILE_ROUTES.map((id) => {
         const item = NAV_ITEMS.find((n) => n.id === id)!;
@@ -51,7 +51,7 @@ export const MobileBottomNav = memo(function MobileBottomNav({
             onClick={() => onNavigate(id)}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex min-h-12 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-semibold transition-[transform,background-color,color] duration-150 active:scale-95 motion-reduce:transform-none",
+              "landscape-bottom-nav-btn flex min-h-12 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-semibold transition-[transform,background-color,color] duration-150 active:scale-95 motion-reduce:transform-none",
               active
                 ? "bg-[var(--color-primary)] text-[var(--text-on-primary)] shadow-[var(--shadow-neu-flat)]"
                 : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
@@ -67,7 +67,7 @@ export const MobileBottomNav = memo(function MobileBottomNav({
         onClick={onOpenDrawer}
         aria-label={language === "id" ? "Buka menu lainnya" : "Open more menu"}
         className={cn(
-          "flex min-h-12 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-semibold transition-[transform,background-color,color] duration-150 active:scale-95 motion-reduce:transform-none",
+          "landscape-bottom-nav-btn flex min-h-12 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-semibold transition-[transform,background-color,color] duration-150 active:scale-95 motion-reduce:transform-none",
           isOverflowRoute
             ? "bg-[var(--color-primary)] text-[var(--text-on-primary)] shadow-[var(--shadow-neu-flat)]"
             : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",

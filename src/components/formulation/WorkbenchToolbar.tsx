@@ -446,7 +446,7 @@ export const WorkbenchToolbar = memo(function WorkbenchToolbar({
     <section
       aria-label={pickLang(language, "Kontrol utama formulasi", "Main formulation controls")}
       className={cn(
-        "relative flex shrink-0 flex-col justify-center gap-2 overflow-hidden px-3 py-2.5 lg:gap-2.5 lg:px-5 lg:py-3",
+        "landscape-compact-toolbar relative flex shrink-0 flex-col justify-center gap-2 overflow-hidden px-3 py-2.5 lg:gap-2.5 lg:px-5 lg:py-3",
         uiEnhancer
           ? "border-b border-[var(--glass-border-tint,var(--border-subtle))] bg-[var(--glass-table-bg,var(--bg-surface))] backdrop-blur-md"
           : "border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]",

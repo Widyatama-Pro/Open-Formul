@@ -75,7 +75,7 @@ export function SegmentedTabs<T extends string>({
       className={cn(
         "acrylic-control-capsule rounded-xl p-1",
         fitMobile
-          ? "grid w-full grid-flow-col auto-cols-fr gap-0.5 sm:inline-flex sm:w-auto sm:gap-1"
+          ? "flex w-full items-center justify-between gap-0.5 sm:inline-flex sm:w-auto sm:gap-1"
           : "custom-scrollbar inline-flex w-full overflow-x-auto",
         className,
       )}
@@ -107,7 +107,7 @@ export function SegmentedTabs<T extends string>({
             className={cn(
               "elastic-size-box relative inline-flex cursor-pointer items-center justify-center rounded-lg font-semibold transition-[transform,color] duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none",
               fitMobile
-                ? "min-h-10 min-w-0 flex-wrap gap-1 px-1.5 py-1 text-center text-[11px] leading-tight sm:min-h-7 sm:flex-nowrap sm:gap-1.5 sm:px-2.5 sm:text-xs sm:whitespace-nowrap"
+                ? "min-h-10 min-w-0 flex-auto gap-1 px-1.5 py-1 text-center text-[11px] leading-none whitespace-nowrap sm:min-h-7 sm:flex-initial sm:gap-1.5 sm:px-2.5 sm:text-xs"
                 : "min-h-9 flex-1 shrink-0 gap-1.5 px-2.5 py-1 text-xs whitespace-nowrap md:min-h-7",
               active
                 ? "text-[var(--text-primary)]"
@@ -129,10 +129,10 @@ export function SegmentedTabs<T extends string>({
                 />
               ))}
 
-            <span className="relative z-10 inline-flex items-center gap-1">
+            <span className="relative z-10 inline-flex min-w-0 items-center justify-center gap-1 whitespace-nowrap">
               {opt.mobileLabel ? (
                 <>
-                  <span aria-hidden="true" className="sm:hidden">
+                  <span aria-hidden="true" className="truncate sm:hidden">
                     {opt.mobileLabel}
                   </span>
                   <span className="sr-only truncate sm:not-sr-only">
@@ -140,7 +140,7 @@ export function SegmentedTabs<T extends string>({
                   </span>
                 </>
               ) : (
-                <span className={cn(fitMobile ? "break-words sm:truncate" : "truncate")}>
+                <span className="truncate">
                   <AnimatedTextSwap text={opt.label} />
                 </span>
               )}

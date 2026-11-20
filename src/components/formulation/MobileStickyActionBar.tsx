@@ -32,8 +32,8 @@ export const MobileStickyActionBar = memo(function MobileStickyActionBar({
     );
 
   return (
-    <div className="fixed inset-x-0 bottom-[calc(3.5rem+var(--safe-area-bottom))] z-30 flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-4 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] md:hidden">
-      <div className="min-w-0">
+    <div className="safe-area-sticky-bar fixed inset-x-0 z-30 flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] md:hidden">
+      <div className="landscape-sticky-meta min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
             {pickLang(language, "Estimasi/kg", "Est./kg")}
@@ -47,7 +47,12 @@ export const MobileStickyActionBar = memo(function MobileStickyActionBar({
         </p>
       </div>
 
-      <Button variant="primary" size="md" onClick={onShowResults} className="shrink-0">
+      <Button
+        variant="primary"
+        size="md"
+        onClick={onShowResults}
+        className="landscape-sticky-cta min-h-9 shrink-0"
+      >
         <Calculator className="h-4 w-4" />
         <span>
           {activeStep === "results"

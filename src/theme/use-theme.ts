@@ -255,6 +255,7 @@ export function usePortableTheme(options: UsePortableThemeOptions = {}): Portabl
         paletteId,
         mode: resolvedMode,
         amoledPureBlack,
+        uiEnhancer,
         ...(synced ? { resolvedCanvasHex: synced.canvasHex } : {}),
       });
     }

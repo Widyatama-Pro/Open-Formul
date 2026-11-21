@@ -13,6 +13,7 @@ import type {
 } from "../types";
 import { computeAsFedFractions } from "../utils/basis";
 import { isDerivedNutrient, resolveNutrientValue } from "../utils/equations";
+import { CRUDE_FIBER_MAX_OVER_TOLERANCE } from "./buildModel";
 import type { LpSolveOutput } from "./highsTypes";
 import {
   BASIC_NUTRIENT_IDS,
@@ -271,6 +272,8 @@ export function parseHighsResult(
   const nutrientIds = collectDisplayNutrientIds(requirement, config);
   const nutrientValues = new Map<string, number>();
   let anyConstraintViolated = false;
+  let cfHardCeilingViolated = false;
+  const cfHardCeilingMessages: string[] = [];
   const violatedDetails: ConflictDiagnostic[] = [];
 
   for (const nutId of nutrientIds) {
@@ -320,6 +323,15 @@ export function parseHighsResult(
         deviation = val - max;
         anyConstraintViolated = true;
         rowViolations.push(`${nutId} berlebih (${val.toFixed(2)} > ${max})`);
+        if (nutId === "cf") {
+          const cfAllowedCap = max * (1 + CRUDE_FIBER_MAX_OVER_TOLERANCE);
+          if (val > cfAllowedCap + VERIFY_TOL) {
+            cfHardCeilingViolated = true;
+            cfHardCeilingMessages.push(
+              `Serat Kasar (SK) melampaui batas toleransi maksimal +15% (${val.toFixed(2)}% > plafon ${cfAllowedCap.toFixed(2)}%).`,
+            );
+          }
+        }
         violatedDetails.push({
           code: "NUTRIENT_UNREACHABLE",
           severity: "warning",
@@ -383,6 +395,25 @@ export function parseHighsResult(
       anyConstraintViolated = true;
       rowViolations.push(`Rasio ${ratio.numerator}:${ratio.denominator} melampaui ${ratio.max}`);
     }
+  }
+
+  if (cfHardCeilingViolated) {
+    const msg = cfHardCeilingMessages.join(" ");
+    return buildInfeasibleResult(
+      config,
+      [
+        ...precheckWarnings,
+        {
+          code: "SOLVER_INFEASIBLE",
+          severity: "error",
+          targetId: "cf",
+          message: msg,
+          suggestion:
+            "Kurangi bahan berserat tinggi atau aktifkan bahan energi rendah serat agar SK tidak melebihi batas +15%.",
+        },
+      ],
+      [msg],
+    );
   }
 
   if (anyConstraintViolated && !model.elasticMode) {

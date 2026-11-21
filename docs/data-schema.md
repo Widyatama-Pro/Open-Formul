@@ -128,9 +128,9 @@ Output hasil formulasi yang dihasilkan oleh engine LP HiGHS WASM di Web Worker (
 ## `Recipe` & `UserPreferences`
 
 - `Recipe`: format `.feed.json` berversi (`schemaVersion: 1`, `id`, `name`, `notes?`, `ingredients`, `requirement`, `config?`, `result`, `createdAt`, `updatedAt`)
-- `RenderingEngineMode`: `"ultra" | "balanced" | "crisp"` (profil kualitas kaca akrilik & glow: `ultra` = blur penuh `20px`, `balanced` = `12px`, `crisp` = rendah GPU tanpa blur)
+- `RenderingEngineMode`: `"ultra" | "balanced" | "crisp"` (profil kualitas grafis: `ultra` = `Smooth (120 FPS)` dengan blur akrilik & glow, `crisp` = `Standard (Biasa)` hemat daya tanpa blur)
 - `MotionEngineMode`: `"gpu_flip" | "css_native"` (pilihan engine animasi `120 FPS` berbasis GPU `layoutId`/crossfade vs transisi CSS ringan)
-- `UserPreferences`: preferensi antarmuka (`language`, `theme`, `themePalette?` [`original-default` | `prd-custom` | `template-01`..`template-05`], `themeModeSetting?` [`light` | `dark` | `system`], `amoledPureBlack?`, `uiEnhancer?`, `renderingEngine?`, `motionEngine?`, `glassBlurPx?` [`0..32`], `glowIntensityPct?` [`0..150`], `defaultBasis`, `defaultBatchKg`, `zeroInclusionDefaultPct`, `simpleMode?`, `decimalPlaces?` [`0 | 1 | 2`, default `0` dengan _Smart Micro Floor_ `>= 2` desimal bagi nutrien mikro `< 2%`], `tableViewTier?` [`"basic" | "standard" | "advanced"`])
+- `UserPreferences`: preferensi antarmuka (`language`, `theme`, `themePalette?` [`original-default` | `template-01` | `template-03` | `template-04` | `template-05`], `themeModeSetting?` [`light` | `dark` | `system`], `amoledPureBlack?`, `uiEnhancer?`, `renderingEngine?`, `motionEngine?`, `glassBlurPx?` [`0..32`], `glowIntensityPct?` [`0..150`], `defaultBasis`, `defaultBatchKg`, `zeroInclusionDefaultPct`, `simpleMode?`, `decimalPlaces?` [`0 | 1 | 2`, default `0` dengan _Smart Micro Floor_ `>= 2` desimal bagi nutrien mikro `< 2%`], `tableViewTier?` [`"basic" | "standard" | "advanced"`])
 
 ## Penyimpanan IndexedDB & Validasi Batas Sistem
 

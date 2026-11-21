@@ -296,7 +296,7 @@ function renderStructuredPageStream(
   out.push(`0.85 0.88 0.92 RG 0.5 w ${MARGIN_L} 38 m ${(MARGIN_L + CONTENT_W).toFixed(1)} 38 l S`);
   out.push(
     `0.42 0.48 0.56 rg BT /F1 7.5 Tf ${MARGIN_L} 26 Td (${escapePdfString(
-      "OpenFormul — Formulasi Pakan Ternak Presisi",
+      "OpenFormu — Formulasi Pakan Ternak Presisi",
     )}) Tj ET`,
   );
   const pageTag = `Halaman ${pageNum} / ${totalPages}`;
@@ -397,8 +397,8 @@ export function generateFormulationPdf(input: PdfExportInput): Uint8Array {
     kind: "banner",
     title:
       mode === "batch_only"
-        ? "OPENFORMUL - LEMBAR TIMBANG BATCH PRODUKSI"
-        : "OPENFORMUL - LAPORAN FORMULASI PAKAN LENGKAP",
+        ? "OPENFORMU - LEMBAR TIMBANG BATCH PRODUKSI"
+        : "OPENFORMU - LAPORAN FORMULASI PAKAN LENGKAP",
     subtitle:
       mode === "batch_only"
         ? `Instruksi Penimbangan Operator Gudang (Tanpa Harga & Target Nutrisi) | Dicetak: ${dateStr}`
@@ -755,7 +755,7 @@ export function generateIngredientDatabasePdf(input: IngredientDatabasePdfInput)
   const ops: PdfRowOp[] = [
     {
       kind: "banner",
-      title: `OPENFORMUL - ${title}`,
+      title: `OPENFORMU - ${title}`,
       subtitle: `Total ${ingredients.length} bahan pakan dikelompokkan berdasarkan 8 kelas standar internasional | Dicetak: ${dateStr}`,
       height: 46,
     },
@@ -915,7 +915,7 @@ export function generateRecipePdf(input: RecipePdfInput): Uint8Array {
   const ops: PdfRowOp[] = [
     {
       kind: "banner",
-      title: "OPENFORMUL - RINGKASAN PROJECT RESEP",
+      title: "OPENFORMU - RINGKASAN PROJECT RESEP",
       subtitle: `Dokumen Spesifikasi Bahan & Target Nutrien | Dicetak: ${dateStr}`,
       height: 46,
     },

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { Languages, Menu, Moon, Palette, RefreshCw, Sun } from "lucide-react";
 import { MotionConfig, motion } from "motion/react";
-import appLogo from "../../assets/logo.jpg";
+import appLogo from "../../assets/logo-squircle.png";
 import type { AppRoute } from "../../hooks/use-prototype-store";
 import { pickLang } from "../../i18n";
 import { useOptionalThemeContext } from "../../theme";
@@ -65,7 +65,7 @@ function resolveDefaultSidebarExpanded(): boolean {
 }
 
 /**
- * Kerangka aplikasi OpenFormul:
+ * Kerangka aplikasi OpenFormu:
  * - Intro reveal dari titik logo pojok kiri atas dalam 380ms
  * - Sidebar desktop berlapis dengan glowing pill aktif, Trakteer, dan kartu pengguna Online
  * - Kanvas ambient mesh 3-layer acrylic glass dengan kontrol utilitas header atas
@@ -150,8 +150,8 @@ export function AppShell({
                 >
                   <img
                     src={appLogo}
-                    alt="Logo OpenFormul"
-                    className="h-8 w-8 shrink-0 rounded-lg object-cover ring-1 ring-white/25 lg:hidden"
+                    alt="Logo OpenFormu"
+                    className="h-8 w-8 shrink-0 rounded-[10px] object-cover lg:hidden"
                   />
                   <p className="inline-flex items-baseline gap-0 truncate text-[18px] font-extrabold tracking-tight lg:text-[20px]">
                     <span
@@ -168,7 +168,7 @@ export function AppShell({
                           : "text-[var(--shell-chrome-accent)]"
                       }
                     >
-                      Formul
+                      Formu
                     </span>
                   </p>
                 </button>

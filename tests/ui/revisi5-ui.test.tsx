@@ -145,8 +145,7 @@ describe("Revisi 5 — Android Mobile/Landscape UX, Table Scroll, Mobile Nutrien
     expect(document.documentElement.style.getPropertyValue("--android-inset-right")).toBe("44px");
   });
 
-  it("R5-04: IngredientMobileCards menampilkan seluruh nutrien dasar adaptif spesies & menyediakan toggle Min/Max", async () => {
-    const user = userEvent.setup();
+  it("R5-04: IngredientMobileCards menampilkan seluruh nutrien dasar adaptif spesies & input Min % / Max % permanen", () => {
     const corn = MOCK_INGREDIENTS.find((i) => i.id === "corn-ground")!;
     const invalidFeed = {
       ...MOCK_INGREDIENTS.find((i) => i.id === "sbm-44")!,
@@ -176,24 +175,19 @@ describe("Revisi 5 — Android Mobile/Landscape UX, Table Scroll, Mobile Nutrien
     expect(within(nutrientGrid).getByText("BK")).toBeInTheDocument();
     expect(within(nutrientGrid).getByText("Pasar")).toBeInTheDocument();
 
-    // Default: input Min % & Max % tersembunyi, ringkasan batas 0-70% tampil sebagai tombol toggle
-    expect(screen.queryByLabelText("Min % Jagung Giling Kuning")).not.toBeInTheDocument();
-    const boundsToggle = screen.getByRole("button", {
-      name: /Atur Min\/Max Jagung Giling Kuning/i,
-    });
-    expect(boundsToggle).toHaveTextContent("0–70%");
-
-    // Klik toggle membuka input Min % & Max %
-    await user.click(boundsToggle);
+    // Revisi 6: Input Harga/kg, Min %, dan Max % tampil permanen dalam grid simetris tanpa toggle tersembunyi
+    expect(screen.getByLabelText("Harga Jagung Giling Kuning")).toBeInTheDocument();
     expect(screen.getByLabelText("Min % Jagung Giling Kuning")).toBeInTheDocument();
     expect(screen.getByLabelText("Max % Jagung Giling Kuning")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Atur Min\/Max Jagung Giling Kuning/i }),
+    ).not.toBeInTheDocument();
 
-    // Spesies unggas (broiler) menampilkan EM alih-alih TDN; bahan invalidBounds (min > max) otomatis terbuka
+    // Spesies unggas (broiler) menampilkan EM alih-alih TDN; bahan invalidBounds menampilkan pesan validasi
     rerender(
       <IngredientMobileCards
         ingredients={[corn, invalidFeed]}
         activeSpecies="broiler"
-        showBounds={false}
         language="id"
         onUpdateIngredient={vi.fn()}
         onResetPriceOverride={vi.fn()}
@@ -204,6 +198,9 @@ describe("Revisi 5 — Android Mobile/Landscape UX, Table Scroll, Mobile Nutrien
     expect(within(poultryGrid).getByText("EM")).toBeInTheDocument();
     expect(within(poultryGrid).queryByText("TDN")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Min % Bungkil Kedelai (SBM 44%)")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Nilai Min \(50%\) tidak boleh melebihi Max \(20%\)/i),
+    ).toBeInTheDocument();
   });
 
   it("R5-05 & R5-06: ResultsPanel menyediakan mobileLabel ringkas tanpa merusak aksesibilitas & ShadowPriceTab punya layout kartu mobile", async () => {

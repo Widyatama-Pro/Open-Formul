@@ -1,5 +1,5 @@
 /**
- * Tipe domain kanonik OpenFormul.
+ * Tipe domain kanonik OpenFormu.
  * Sinkronkan setiap perubahan dengan docs/data-schema.md.
  */
 
@@ -105,6 +105,25 @@ export interface IngredientGroupConstraint extends Bounds {
   readonly tier?: ConstraintTier;
 }
 
+export interface DynamicCalculationStep {
+  readonly nutrientId: string;
+  readonly labelId: string;
+  readonly labelEn: string;
+  readonly dailyAmountLabel: string;
+  readonly formulaText: string;
+  readonly resultLabel: string;
+}
+
+export interface DynamicCalculationBreakdown {
+  readonly standardName: string;
+  readonly method: "interpolated" | "extrapolated";
+  readonly inputsSummaryId: string;
+  readonly inputsSummaryEn: string;
+  readonly dmiKg: number;
+  readonly fcm4PctKg?: number;
+  readonly steps: readonly DynamicCalculationStep[];
+}
+
 export interface Requirement {
   readonly id: string;
   readonly name: string;
@@ -116,6 +135,7 @@ export interface Requirement {
   readonly ratios?: readonly RatioConstraint[];
   readonly ingredientGroups?: readonly IngredientGroupConstraint[];
   readonly source?: string;
+  readonly dynamicCalculation?: DynamicCalculationBreakdown;
 }
 
 /** 1=Hemat, 2=Agak Hemat, 3=Seimbang, 4=Presisi, 5=Presisi Tinggi */
@@ -306,13 +326,7 @@ export type AppLanguage = "id" | "en";
 export type ThemeMode = "light" | "dark";
 
 export type ThemePaletteId =
-  | "original-default"
-  | "prd-custom"
-  | "template-01"
-  | "template-02"
-  | "template-03"
-  | "template-04"
-  | "template-05";
+  "original-default" | "template-01" | "template-03" | "template-04" | "template-05";
 
 export type ThemeModeSetting = "light" | "dark" | "system";
 export type ResolvedThemeMode = "light" | "dark";
@@ -326,9 +340,9 @@ export interface UserPreferences {
   readonly themePalette?: ThemePaletteId;
   readonly themeModeSetting?: ThemeModeSetting;
   readonly amoledPureBlack?: boolean;
-  /** Mode UI Enhancer (Glassmorphism & Volumetric Glow) aktif di semua 7 palet warna. */
+  /** Mode UI Enhancer (Acrylic Glass & Volumetric Glow) aktif di semua 5 palet warna. */
   readonly uiEnhancer?: boolean;
-  /** Profil engine grafis: ultra (20px blur + glow), balanced (12px), atau crisp (low-GPU). */
+  /** Profil engine grafis: ultra (Smooth 120 FPS), balanced, atau crisp (Standard hemat daya). */
   readonly renderingEngine?: RenderingEngineMode;
   /** Engine animasi & tata letak anti-hardcut 120 FPS: gpu_flip atau css_native. */
   readonly motionEngine?: MotionEngineMode;

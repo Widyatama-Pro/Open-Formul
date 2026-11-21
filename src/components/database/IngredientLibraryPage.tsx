@@ -324,9 +324,7 @@ export const IngredientLibraryPage = memo(function IngredientLibraryPage({
       decimalPlaces,
     });
     const filename =
-      classFilter === "all"
-        ? "openformul-database-pakan.pdf"
-        : `openformul-kelas-${classFilter}.pdf`;
+      classFilter === "all" ? "openformu-database-pakan.pdf" : `openformu-kelas-${classFilter}.pdf`;
     downloadBinaryFile(bytes, filename, "application/pdf");
     setExportNotice(
       pickLang(

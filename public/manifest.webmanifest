@@ -1,6 +1,6 @@
 {
-  "name": "OpenFormul",
-  "short_name": "OpenFormul",
+  "name": "OpenFormu",
+  "short_name": "OpenFormu",
   "description": "Aplikasi PWA offline-first lintas platform (Desktop & Mobile) untuk formulasi pakan ternak presisi berbasis Linear Programming (HiGHS WASM).",
   "id": "./",
   "start_url": "./?source=pwa",

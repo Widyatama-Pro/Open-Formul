@@ -10,7 +10,7 @@ import {
   Wheat,
 } from "lucide-react";
 import { motion } from "motion/react";
-import appLogo from "../../assets/logo.jpg";
+import appLogo from "../../assets/logo-squircle.png";
 import type { AppRoute } from "../../hooks/use-prototype-store";
 import { useOptionalThemeContext } from "../../theme";
 import type { AppLanguage } from "../../types";
@@ -85,21 +85,21 @@ export const DesktopSidebar = memo(function DesktopSidebar({
           <button
             type="button"
             onClick={() => onNavigate("formulation")}
-            aria-label="OpenFormul — Beranda Formulasi"
-            title="OpenFormul"
+            aria-label="OpenFormu — Beranda Formulasi"
+            title="OpenFormu"
             className="inline-flex cursor-pointer items-center gap-2.5 rounded-xl transition-transform duration-150 hover:opacity-95 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none"
           >
-            <span className="relative inline-flex shrink-0 rounded-xl p-0.5 ring-1 ring-white/25 shadow-[0_0_18px_var(--sidebar-orb-glow,rgba(16,185,129,0.35))]">
+            <span className="relative inline-flex shrink-0 rounded-[11px] shadow-[0_0_16px_var(--sidebar-orb-glow,rgba(16,185,129,0.28))]">
               <img
                 src={appLogo}
-                alt="Logo OpenFormul"
-                className="h-9 w-9 shrink-0 rounded-[10px] object-cover"
+                alt="Logo OpenFormu"
+                className="h-9 w-9 shrink-0 rounded-[11px] object-cover"
               />
             </span>
             {expanded && (
               <span className="inline-flex items-baseline gap-0 text-[19px] font-extrabold tracking-tight leading-none">
                 <span className="text-white">Open</span>
-                <span className="text-[var(--shell-chrome-accent)]">Formul</span>
+                <span className="text-[var(--shell-chrome-accent)]">Formu</span>
               </span>
             )}
           </button>

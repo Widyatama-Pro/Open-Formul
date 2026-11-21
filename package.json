@@ -1,5 +1,5 @@
 {
-  "name": "openformul",
+  "name": "openformu",
   "private": true,
   "version": "0.6.0",
   "description": "Aplikasi web open-source offline-first (PWA) untuk formulasi pakan ternak presisi.",
@@ -26,6 +26,7 @@
     "@tauri-apps/api": "^2.12.4",
     "@tauri-apps/plugin-dialog": "^2.8.4",
     "@tauri-apps/plugin-fs": "^2.7.1",
+    "@tauri-apps/plugin-opener": "^2.7.3",
     "highs": "^1.15.4",
     "idb": "^8.0.4",
     "lucide-react": "^1.0.0",

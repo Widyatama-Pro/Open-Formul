@@ -51,7 +51,6 @@ const HIGH_AVAILABILITY_IDS: ReadonlySet<string> = new Set([
   "cpo-oil",
   "limestone",
   "dcp-mineral",
-  "dl-methionine",
   "premix-vitmin",
   "napier-grass",
   "hartadi-rumput-gajah",
@@ -93,7 +92,10 @@ const REAGENT_OR_RARE_RE =
   /\b(cp\b|kobalt|selenit|fluorida|yodida|yodat|tripolifosfat|etilen|kurasao|bekicot|keong|sukun|nanas|tanah-liat|monobasik|belerang|seng asetat|seng klorida|kalium bikarbonat|kalium karbonat)/i;
 
 const HIGH_AVAILABILITY_NAME_RE =
-  /\b(jagung kuning|bungkil kedelai|sbm|dedak padi|bekatul|pollard|wheat bran|tepung ikan|bungkil inti sawit|bungkil kelapa|minyak sawit|cpo|onggok|molases|tetes tebu|ampas tahu|rumput gajah|jerami padi|lamtoro|gamal|kaliandra|tepung kapur|batu kapur|kalsium karbonat|dikalsium fosfat|\bdcp\b|tepung tulang|kulit kerang|garam|nacl|premix|metionin|lisin)\b/i;
+  /\b(jagung kuning|bungkil kedelai|sbm|dedak padi|bekatul|pollard|wheat bran|tepung ikan|bungkil inti sawit|bungkil kelapa|minyak sawit|cpo|onggok|molases|tetes tebu|ampas tahu|rumput gajah|jerami padi|lamtoro|gamal|kaliandra|tepung kapur|batu kapur|kalsium karbonat|dikalsium fosfat|\bdcp\b|tepung tulang|kulit kerang|garam|nacl|premix|lisin)\b/i;
+
+const EXCLUDED_ADVISOR_IDS: ReadonlySet<string> = new Set(["dl-methionine"]);
+const EXCLUDED_ADVISOR_NAME_RE = /\b(dl[-\s]?met(?:h)?ionin(?:e)?|metionin)\b/i;
 
 const MEDIUM_AVAILABILITY_NAME_RE =
   /\b(bungkil kacang|tepung daging|mbm|tepung darah|singkong|gaplek|sorgum|ampas bir|ampas kecap|dolomit|kulit kopi|kulit kakao|jagung putih)\b/i;
@@ -466,6 +468,8 @@ export function recommendIngredientsForGaps(
 
   const inactiveCandidates = allIngredients.filter((ing) => {
     if (ing.isActive !== false) return false;
+    if (EXCLUDED_ADVISOR_IDS.has(ing.id)) return false;
+    if (EXCLUDED_ADVISOR_NAME_RE.test(`${ing.name} ${ing.nameEn ?? ""}`)) return false;
     if (dismissedIds.has(ing.id)) return false;
     if ((ing.inclusion?.max ?? 100) <= 0) return false;
     if (activeFamilies.has(resolveFamilyKey(ing))) return false;

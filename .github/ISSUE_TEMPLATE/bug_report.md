@@ -43,4 +43,4 @@ assignees: ""
 - Browser & versi:
 - OS / perangkat:
 - Mode: online / offline / PWA terinstal
-- Versi / commit OpenFormul:
+- Versi / commit OpenFormu:

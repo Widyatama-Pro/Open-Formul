@@ -16,30 +16,18 @@ export interface PaletteDescriptor {
   readonly darkSwatches: readonly [string, string, string, string];
 }
 
-export const OPENFORMUL_PALETTE_CATALOG: readonly PaletteDescriptor[] = [
+export const OPENFORMU_PALETTE_CATALOG: readonly PaletteDescriptor[] = [
   {
     id: "original-default",
     labelId: "Botani Emas (Bawaan)",
     labelEn: "Botanical Gold (Default)",
-    subtitleId: "Tema bawaan OpenFormul untuk racikan harian",
-    subtitleEn: "Default OpenFormul palette for daily ration balancing",
+    subtitleId: "Tema bawaan OpenFormu untuk racikan harian",
+    subtitleEn: "Default OpenFormu palette for daily ration balancing",
     enhancerAccentHex: "#10B981",
     enhancerGlowLabelId: "Kaca Zamrud & Pendar Emas Hangat",
     enhancerGlowLabelEn: "Emerald Glass & Warm Gold Aura",
     swatches: ["#F5F4EF", "#142B27", "#24483D", "#D5A45C"],
     darkSwatches: ["#0F1A18", "#3A6E5E", "#24483D", "#D5A45C"],
-  },
-  {
-    id: "prd-custom",
-    labelId: "Presisi Ergonomis",
-    labelEn: "Ergonomic Precision",
-    subtitleId: "Optimalisasi kerja tabel nutrisi rapat & sesi panjang",
-    subtitleEn: "Low eye-strain forest slate tuned for dense nutrient matrices",
-    enhancerAccentHex: "#2C7A68",
-    enhancerGlowLabelId: "Kaca Giok & Pendar Tembaga",
-    enhancerGlowLabelEn: "Jade Frost & Copper Rim Glow",
-    swatches: ["#F2F4F1", "#1B3A32", "#2C5E50", "#C87D32"],
-    darkSwatches: ["#101615", "#3B7A68", "#2C5E50", "#E09448"],
   },
   {
     id: "template-01",
@@ -52,18 +40,6 @@ export const OPENFORMUL_PALETTE_CATALOG: readonly PaletteDescriptor[] = [
     enhancerGlowLabelEn: "Coral Acrylic & Citrus Refraction",
     swatches: ["#F7F7F5", "#111111", "#EC704B", "#F5F378"],
     darkSwatches: ["#111111", "#F5F378", "#DCC1FF", "#EC704B"],
-  },
-  {
-    id: "template-02",
-    labelId: "Grafit Volt",
-    labelEn: "Graphite Volt",
-    subtitleId: "Monokrom grafit bersih dengan sorotan volt untuk pindai cepat",
-    subtitleEn: "Crisp monochrome graphite & volt highlights for fast grid scanning",
-    enhancerAccentHex: "#3B82F6",
-    enhancerGlowLabelId: "Kaca Grafit & Pendar Volt",
-    enhancerGlowLabelEn: "Graphite Mist & Electric Volt Glow",
-    swatches: ["#FBFBFB", "#242424", "#484C5E", "#EAFB5D"],
-    darkSwatches: ["#18191D", "#EAFB5D", "#484C5E", "#EAFB5D"],
   },
   {
     id: "template-03",
@@ -103,7 +79,10 @@ export const OPENFORMUL_PALETTE_CATALOG: readonly PaletteDescriptor[] = [
   },
 ];
 
-const PALETTE_ID_SET = new Set<string>(OPENFORMUL_PALETTE_CATALOG.map((p) => p.id));
+/** Alias kompatibilitas; gunakan `OPENFORMU_PALETTE_CATALOG`. */
+export const OPENFORMUL_PALETTE_CATALOG = OPENFORMU_PALETTE_CATALOG;
+
+const PALETTE_ID_SET = new Set<string>(OPENFORMU_PALETTE_CATALOG.map((p) => p.id));
 
 export function isThemePaletteId(value: unknown): value is ThemePaletteId {
   return typeof value === "string" && PALETTE_ID_SET.has(value);

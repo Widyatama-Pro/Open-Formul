@@ -1,5 +1,5 @@
-import { memo, useState } from "react";
-import { ChevronRight, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { memo } from "react";
+import { ChevronRight, RotateCcw } from "lucide-react";
 import { resolveFeedClass } from "../../data/feed-classes";
 import { getCategoryLabel, pickLang } from "../../i18n";
 import type { AppLanguage, Ingredient } from "../../types";
@@ -19,8 +19,6 @@ import { NumericCellInput } from "./NumericCellInput";
 export interface IngredientMobileCardsProps {
   readonly ingredients: readonly Ingredient[];
   readonly activeSpecies?: string | undefined;
-  readonly showBounds?: boolean | undefined;
-  readonly onToggleBounds?: (() => void) | undefined;
   readonly decimalPlaces?: 0 | 1 | 2;
   readonly simpleMode?: boolean;
   readonly language: AppLanguage;
@@ -32,14 +30,12 @@ export interface IngredientMobileCardsProps {
 /**
  * Transformasi tabel matriks bahan untuk layar sempit (<768px):
  * - Nama bahan pakan tampil penuh hingga 2 baris (line-clamp-2) tanpa terjepit tombol Nutrien >
- * - Input Harga/kg selalu siap edit; batas inklusi Min % & Max % dapat di-toggle agar ringkas
+ * - Input Harga/kg, Min %, dan Max % selalu aktif permanen dalam grid 3 kolom yang simetris
  * - Menampilkan seluruh nutrien dasar (PK, EM/TDN adaptif spesies, LK, SK, Ca, P, BK & Pasar) dalam kisi 4×2 yang lapang
  */
 export const IngredientMobileCards = memo(function IngredientMobileCards({
   ingredients,
   activeSpecies,
-  showBounds,
-  onToggleBounds,
   decimalPlaces = 0,
   simpleMode = true,
   language,
@@ -47,10 +43,6 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
   onResetPriceOverride,
   onOpenDetail,
 }: IngredientMobileCardsProps) {
-  const [localShowBounds, setLocalShowBounds] = useState(false);
-  const effectiveShowBounds = showBounds ?? localShowBounds;
-  const handleToggleBounds = onToggleBounds ?? (() => setLocalShowBounds((prev) => !prev));
-
   const isRuminant = isRuminantSpecies(activeSpecies);
   const isPoultry = isPoultrySpecies(activeSpecies);
 
@@ -77,7 +69,6 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
         const min = ing.inclusion?.min ?? 0;
         const max = ing.inclusion?.max ?? 100;
         const invalidBounds = min > max;
-        const boundsExpanded = effectiveShowBounds || invalidBounds;
         const hasOverride = ing.priceOverride !== undefined;
         const feedClass = resolveFeedClass(ing);
         const ingName = language === "id" ? ing.name : (ing.nameEn ?? ing.name);
@@ -101,11 +92,6 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
           energyTitle = "TDN";
           energyText = formatPctOrNa(ing.nutrients.tdn, "tdn");
         }
-
-        const boundsSummaryText = `${formatNumberLocale(
-          min,
-          resolveDisplayDigits("%", "inclusion", decimalPlaces, min),
-        )}–${formatNumberLocale(max, resolveDisplayDigits("%", "inclusion", decimalPlaces, max))}%`;
 
         const nutrientCells = [
           { id: "cp", label: cpLabel, value: formatPctOrNa(ing.nutrients.cp, "cp") },
@@ -175,13 +161,8 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
               </Button>
             </div>
 
-            {/* Baris 2: Input Harga/kg + Toggle atau Input Min % / Max % */}
-            <div
-              className={cn(
-                "mt-3 grid gap-2",
-                boundsExpanded ? "grid-cols-3" : "grid-cols-[minmax(0,1fr)_auto] items-end",
-              )}
-            >
+            {/* Baris 2: Input Harga/kg, Min %, dan Max % selalu aktif & simetris */}
+            <div className="mt-3 grid grid-cols-3 gap-2">
               <div>
                 <div className="mb-1 flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
@@ -214,54 +195,39 @@ export const IngredientMobileCards = memo(function IngredientMobileCards({
                 />
               </div>
 
-              {boundsExpanded ? (
-                <>
-                  <div>
-                    <span className="mb-1 block text-[11px] font-semibold text-[var(--text-secondary)]">
-                      Min %
-                    </span>
-                    <NumericCellInput
-                      value={min}
-                      fractionDigits={resolveDisplayDigits("%", "inclusion", decimalPlaces, min)}
-                      invalid={invalidBounds}
-                      ariaLabel={`Min % ${ing.name}`}
-                      onCommit={(next) =>
-                        onUpdateIngredient(ing.id, {
-                          inclusion: { ...ing.inclusion, min: next ?? 0 },
-                        })
-                      }
-                    />
-                  </div>
+              <div>
+                <span className="mb-1 block text-[11px] font-semibold text-[var(--text-secondary)]">
+                  Min %
+                </span>
+                <NumericCellInput
+                  value={min}
+                  fractionDigits={resolveDisplayDigits("%", "inclusion", decimalPlaces, min)}
+                  invalid={invalidBounds}
+                  ariaLabel={`Min % ${ing.name}`}
+                  onCommit={(next) =>
+                    onUpdateIngredient(ing.id, {
+                      inclusion: { ...ing.inclusion, min: next ?? 0 },
+                    })
+                  }
+                />
+              </div>
 
-                  <div>
-                    <span className="mb-1 block text-[11px] font-semibold text-[var(--text-secondary)]">
-                      Max %
-                    </span>
-                    <NumericCellInput
-                      value={max}
-                      fractionDigits={resolveDisplayDigits("%", "inclusion", decimalPlaces, max)}
-                      invalid={invalidBounds}
-                      ariaLabel={`Max % ${ing.name}`}
-                      onCommit={(next) =>
-                        onUpdateIngredient(ing.id, {
-                          inclusion: { ...ing.inclusion, max: next ?? 100 },
-                        })
-                      }
-                    />
-                  </div>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleToggleBounds}
-                  aria-expanded={false}
-                  aria-label={`${pickLang(language, "Atur Min/Max", "Edit Min/Max")} ${ing.name}`}
-                  className="neu-pill-btn inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold whitespace-nowrap text-[var(--text-secondary)] transition-[transform,color] duration-150 hover:text-[var(--text-primary)] active:scale-[0.97] motion-reduce:transform-none"
-                >
-                  <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]" />
-                  <span>{boundsSummaryText}</span>
-                </button>
-              )}
+              <div>
+                <span className="mb-1 block text-[11px] font-semibold text-[var(--text-secondary)]">
+                  Max %
+                </span>
+                <NumericCellInput
+                  value={max}
+                  fractionDigits={resolveDisplayDigits("%", "inclusion", decimalPlaces, max)}
+                  invalid={invalidBounds}
+                  ariaLabel={`Max % ${ing.name}`}
+                  onCommit={(next) =>
+                    onUpdateIngredient(ing.id, {
+                      inclusion: { ...ing.inclusion, max: next ?? 100 },
+                    })
+                  }
+                />
+              </div>
             </div>
 
             {invalidBounds && (

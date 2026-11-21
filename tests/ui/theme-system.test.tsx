@@ -15,7 +15,7 @@ import {
 } from "../../src/data/mock-state";
 import { generateFormulationPdf } from "../../src/storage";
 import {
-  OPENFORMUL_PALETTE_CATALOG,
+  OPENFORMU_PALETTE_CATALOG,
   PALETTE_FALLBACK_HEX,
   THEME_STORAGE_KEYS,
   ThemeProvider,
@@ -83,8 +83,8 @@ function ThemeChartProbe() {
   const result = makeOptimalFormulationResult();
   return (
     <div>
-      <button type="button" onClick={() => setPaletteId("prd-custom")}>
-        Switch PRD
+      <button type="button" onClick={() => setPaletteId("template-03")}>
+        Switch Slate
       </button>
       <button type="button" onClick={() => setModeSetting("dark")}>
         Switch Dark
@@ -100,7 +100,7 @@ function ThemeChartProbe() {
   );
 }
 
-describe("OpenFormul Multi-Theme Design System (14 Variants, PWA, Android & PDF)", () => {
+describe("OpenFormu Multi-Theme Design System (10 Variants, PWA, Android & PDF)", () => {
   const originalMatchMediaDesc = Object.getOwnPropertyDescriptor(window, "matchMedia");
 
   beforeEach(() => {
@@ -127,7 +127,7 @@ describe("OpenFormul Multi-Theme Design System (14 Variants, PWA, Android & PDF)
     vi.restoreAllMocks();
   });
 
-  it("berpindah instan ke seluruh 14 kombinasi (7 palet × Terang/Gelap), sinkron class .dark & localStorage", async () => {
+  it("berpindah instan ke seluruh 10 kombinasi (5 palet × Terang/Gelap), sinkron class .dark & localStorage", async () => {
     const user = userEvent.setup();
     const onThemeChange = vi.fn();
 
@@ -145,7 +145,7 @@ describe("OpenFormul Multi-Theme Design System (14 Variants, PWA, Android & PDF)
       expect(modeBtn).not.toBeNull();
       await user.click(modeBtn!);
 
-      for (const palette of OPENFORMUL_PALETTE_CATALOG) {
+      for (const palette of OPENFORMU_PALETTE_CATALOG) {
         const paletteBtn = document.querySelector<HTMLButtonElement>(
           `[data-theme-control="palette"][data-palette-id="${palette.id}"]`,
         );
@@ -165,7 +165,7 @@ describe("OpenFormul Multi-Theme Design System (14 Variants, PWA, Android & PDF)
       }
     }
 
-    expect(onThemeChange).toHaveBeenCalledTimes(16);
+    expect(onThemeChange).toHaveBeenCalledTimes(12);
   });
 
   it("memulihkan palet, mode, dan AMOLED dari localStorage saat ThemeProvider dipasang ulang", () => {
@@ -184,10 +184,10 @@ describe("OpenFormul Multi-Theme Design System (14 Variants, PWA, Android & PDF)
     expect(document.documentElement.getAttribute("data-amoled")).toBe("true");
     expect(document.documentElement.classList.contains("dark")).toBe(true);
 
-    const activePaletteRadio = document.querySelector<HTMLButtonElement>(
+    const activePaletteDot = document.querySelector<HTMLButtonElement>(
       '[data-theme-control="palette"][data-palette-id="template-04"]',
     );
-    expect(activePaletteRadio?.getAttribute("aria-checked")).toBe("true");
+    expect(activePaletteDot?.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("mendukung mode Sistem via matchMedia dan merespons perubahan preferensi OS", async () => {
@@ -329,7 +329,7 @@ describe("OpenFormul Multi-Theme Design System (14 Variants, PWA, Android & PDF)
     });
   });
 
-  it("menempatkan 7 pilihan palet di SettingsPage (bukan di header AppShell)", () => {
+  it("menempatkan pemilih 5 palet di SettingsPage (bukan di header AppShell)", () => {
     const onUpdate = vi.fn();
     render(
       <ThemeProvider>
@@ -350,12 +350,15 @@ describe("OpenFormul Multi-Theme Design System (14 Variants, PWA, Android & PDF)
     expect(headerEl?.querySelectorAll('[data-theme-control="palette"]').length ?? 0).toBe(0);
 
     const settingsPalettes = document.querySelectorAll('[data-theme-control="palette"]');
-    expect(settingsPalettes.length).toBe(7);
+    expect(settingsPalettes.length).toBe(5);
+    expect(document.querySelector('[data-theme-control="palette-prev"]')).not.toBeNull();
+    expect(document.querySelector('[data-theme-control="palette-next"]')).not.toBeNull();
     expect(document.querySelectorAll('[data-theme-control="mode"]').length).toBe(3);
   });
 
-  it("mereaktifkan penanda tema pada FormulationCharts saat palet atau mode berubah", async () => {
+  it("mereaktifkan penanda tema pada FormulationCharts saat palet atau mode berubah & fallback aman palet lama", async () => {
     const user = userEvent.setup();
+    window.localStorage.setItem("openformul-theme-id", "prd-custom");
     render(
       <ThemeProvider>
         <ThemeChartProbe />
@@ -365,11 +368,12 @@ describe("OpenFormul Multi-Theme Design System (14 Variants, PWA, Android & PDF)
     const getSignature = () =>
       document.querySelector("[data-theme-chart]")?.getAttribute("data-theme-chart");
 
+    // Palet lama yg sudah dihapus ("prd-custom") jatuh aman ke "original-default"
     expect(getSignature()).toBe("original-default-light-std");
-    await user.click(screen.getByRole("button", { name: "Switch PRD" }));
-    expect(getSignature()).toBe("prd-custom-light-std");
+    await user.click(screen.getByRole("button", { name: "Switch Slate" }));
+    expect(getSignature()).toBe("template-03-light-std");
     await user.click(screen.getByRole("button", { name: "Switch Dark" }));
-    expect(getSignature()).toBe("prd-custom-dark-std");
+    expect(getSignature()).toBe("template-03-dark-std");
   });
 
   it("memvalidasi field tema UserPreferences di validateUserPreferences tanpa menerima input berbahaya", () => {

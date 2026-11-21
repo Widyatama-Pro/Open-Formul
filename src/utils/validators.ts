@@ -763,9 +763,7 @@ export function validateFormulationConfig(raw: unknown): ValidationResult<Formul
 
 const VALID_THEME_PALETTES = new Set<ThemePaletteId>([
   "original-default",
-  "prd-custom",
   "template-01",
-  "template-02",
   "template-03",
   "template-04",
   "template-05",

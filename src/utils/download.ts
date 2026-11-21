@@ -69,7 +69,7 @@ async function saveViaCapacitor(bytes: Uint8Array, filename: string): Promise<vo
   });
   await Share.share({
     title: filename,
-    text: `OpenFormul: ${filename}`,
+    text: `OpenFormu: ${filename}`,
     url: uriResult.uri,
     dialogTitle: filename,
   });

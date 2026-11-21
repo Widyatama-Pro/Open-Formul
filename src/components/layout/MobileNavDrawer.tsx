@@ -130,7 +130,12 @@ export const MobileNavDrawer = memo(function MobileNavDrawer({
           </button>
         </div>
 
-        <TrakteerSupportButton variant="sidebar" compact={false} language={language} />
+        <TrakteerSupportButton
+          variant="sidebar"
+          surface="adaptive"
+          compact={false}
+          language={language}
+        />
       </div>
     </SheetDialog>
   );

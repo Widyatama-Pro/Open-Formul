@@ -10,14 +10,14 @@ import {
   evaluateMockFormulation,
 } from "../../src/data/mock-state";
 
-describe("OpenFormul Desktop UI Flow", () => {
-  it("merender header OpenFormul tanpa keterangan tambahan, dua tabel terpisah, dan KPI biaya", () => {
+describe("OpenFormu Desktop UI Flow", () => {
+  it("merender header OpenFormu tanpa keterangan tambahan, dua tabel terpisah, dan KPI biaya", () => {
     render(<App />);
 
     const header = screen.getByRole("banner");
-    expect(screen.getAllByAltText("Logo OpenFormul").length).toBeGreaterThan(0);
+    expect(screen.getAllByAltText("Logo OpenFormu").length).toBeGreaterThan(0);
     expect(within(header).getByText("Open")).toBeInTheDocument();
-    expect(within(header).getByText("Formul")).toBeInTheDocument();
+    expect(within(header).getByText("Formu")).toBeInTheDocument();
     expect(screen.queryByText(/Formulasi Pakan Presisi/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Workspace$/i)).not.toBeInTheDocument();
 

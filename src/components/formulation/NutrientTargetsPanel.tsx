@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  Calculator,
   Check,
   ChevronDown,
   ChevronUp,
@@ -156,6 +157,8 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
   const themeCtx = useOptionalThemeContext();
   const useGpuFlip = (themeCtx?.motionEngine ?? "gpu_flip") === "gpu_flip";
   const [showCustomForm, setShowCustomForm] = useState(false);
+  const [showDecimalDetail, setShowDecimalDetail] = useState(false);
+  const [showCalcBreakdown, setShowCalcBreakdown] = useState(false);
   const [customName, setCustomName] = useState("");
   const [customUnit, setCustomUnit] = useState<NutrientUnit>("%");
   const [customBasis, setCustomBasis] = useState<Basis>(activeBasis);
@@ -167,10 +170,12 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
     () => new Set(),
   );
 
-  // Reset daftar saran yang ditolak saat standar ternak atau mode target berubah
+  // Reset daftar saran & rincian saat standar ternak atau mode target berubah
   useEffect(() => {
     setDismissedSuggestions(new Set());
   }, [requirement.id, targetInputMode]);
+
+  const effectiveDecimalPlaces: 0 | 1 | 2 = showDecimalDetail ? 2 : decimalPlaces;
 
   const singleMode = targetInputMode === "single";
 
@@ -271,7 +276,49 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
               {pickLang(language, "Target Nutrien", "Nutrient Targets")}
             </h2>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+            <Button
+              variant={showDecimalDetail ? "primary" : "secondary"}
+              size="sm"
+              aria-pressed={showDecimalDetail}
+              onClick={() => setShowDecimalDetail((prev) => !prev)}
+              aria-label={pickLang(
+                language,
+                "Tampilkan detail 2 angka di belakang koma pada target nutrien",
+                "Toggle 2-decimal precision on nutrient targets",
+              )}
+              title={pickLang(
+                language,
+                "Detail 2 desimal (0,00) untuk target & aktual nutrien",
+                "2-decimal detail (0.00) for nutrient targets and actuals",
+              )}
+              className={cn(
+                "!min-h-7 rounded-xl px-2 text-[10px] font-bold tabular-nums md:!min-h-7",
+                !showDecimalDetail && "acrylic-control-capsule",
+              )}
+            >
+              0,00
+            </Button>
+            {requirement.dynamicCalculation && (
+              <Button
+                variant={showCalcBreakdown ? "primary" : "secondary"}
+                size="sm"
+                aria-pressed={showCalcBreakdown}
+                onClick={() => setShowCalcBreakdown((prev) => !prev)}
+                aria-label={pickLang(
+                  language,
+                  "Tampilkan atau sembunyikan rincian hitung kebutuhan nutrien dinamis",
+                  "Toggle dynamic nutrient calculation breakdown",
+                )}
+                className={cn(
+                  "!min-h-7 rounded-xl px-2 text-[10px] md:!min-h-7",
+                  !showCalcBreakdown && "acrylic-control-capsule",
+                )}
+              >
+                <Calculator className="h-3 w-3" />
+                <span>{pickLang(language, "Rincian Hitung", "Calc Details")}</span>
+              </Button>
+            )}
             {onAddCustomNutrient && (
               <Button
                 variant="secondary"
@@ -411,6 +458,59 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
 
       {/* Pada mobile (< lg), menyatu ke scroll view utama halaman agar tidak terjepit */}
       <div className="custom-scrollbar p-2.5 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
+        {showCalcBreakdown && requirement.dynamicCalculation && (
+          <section
+            aria-label={pickLang(
+              language,
+              "Rincian Perhitungan Kebutuhan Dinamis",
+              "Dynamic Requirement Calculation Breakdown",
+            )}
+            className="acrylic-subcard mb-3 space-y-2 rounded-xl border border-[var(--status-info-border,var(--border-subtle))] p-2.5 text-xs"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-1.5">
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-[var(--text-primary)]">
+                  {requirement.dynamicCalculation.standardName}
+                </p>
+                <p className="text-[10px] text-[var(--text-secondary)]">
+                  {language === "id"
+                    ? requirement.dynamicCalculation.inputsSummaryId
+                    : requirement.dynamicCalculation.inputsSummaryEn}
+                </p>
+              </div>
+              <Badge
+                tone={
+                  requirement.dynamicCalculation.method === "extrapolated" ? "amber" : "emerald"
+                }
+              >
+                {requirement.dynamicCalculation.method === "extrapolated"
+                  ? pickLang(language, "Ekstrapolasi", "Extrapolated")
+                  : pickLang(language, "Interpolasi", "Interpolated")}
+              </Badge>
+            </div>
+            <div className="space-y-1.5 border-t border-[var(--border-subtle)] pt-2">
+              {requirement.dynamicCalculation.steps.map((step) => (
+                <div
+                  key={step.nutrientId}
+                  className="rounded-lg bg-[var(--bg-sunken)]/60 px-2 py-1.5 text-[10px]"
+                >
+                  <div className="flex items-center justify-between gap-2 font-bold text-[var(--text-primary)]">
+                    <span>{language === "id" ? step.labelId : step.labelEn}</span>
+                    <span className="tabular-nums text-[var(--status-success)]">
+                      {step.resultLabel}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap items-center justify-between gap-x-2 text-[var(--text-secondary)]">
+                    <span>{step.dailyAmountLabel}</span>
+                    <span className="font-mono text-[9.5px] text-[var(--text-muted)]">
+                      {step.formulaText}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
         {showCustomForm && onAddCustomNutrient && (
           <div className="neu-pressed mb-3 space-y-2 rounded-xl p-2.5 text-xs">
             <p className="font-bold text-[var(--text-primary)]">
@@ -551,7 +651,7 @@ export const NutrientTargetsPanel = memo(function NutrientTargetsPanel({
             const digits = resolveDisplayDigits(
               nut.unit,
               nut.id,
-              decimalPlaces,
+              effectiveDecimalPlaces,
               res?.value ?? singleTarget ?? c?.min ?? c?.max,
             );
             const isAlert = res?.status === "below_min" || res?.status === "above_max";

@@ -51,7 +51,7 @@ function groupOptions(options: readonly ThemedSelectOption[]): readonly GroupedE
 }
 
 /**
- * Pemilih dropdown & modal modern yang 100% mengikuti token tema aktif OpenFormul:
+ * Pemilih dropdown & modal modern yang 100% mengikuti token tema aktif OpenFormu:
  * - Trigger selalu mendukung `w-full min-w-0 truncate` + ikon chevron di kanan
  * - Desktop (>= 768px): popover elegan terikat ke trigger
  * - Mobile (< 768px): modal bottom-sheet nyaman sentuh dengan bilah pencarian & section divider non-interaktif

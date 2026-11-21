@@ -86,7 +86,6 @@ export function FormulationWorkbench({
   const [catalogClassFilter, setCatalogClassFilter] = useState<"all" | FeedClassCode>("all");
   const [catalogExpanded, setCatalogExpanded] = useState(true);
   const [mobileTableMode, setMobileTableMode] = useState(false);
-  const [mobileShowBounds, setMobileShowBounds] = useState(false);
   const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [mobileControlsCollapsed, setMobileControlsCollapsed] = useState(false);
@@ -589,23 +588,6 @@ export function FormulationWorkbench({
                 <Badge tone="emerald">{usedIngredients.length}</Badge>
               </div>
               <div className="flex items-center gap-1.5">
-                {!mobileTableMode && (
-                  <Button
-                    variant={mobileShowBounds ? "primary" : "ghost"}
-                    size="sm"
-                    onClick={() => setMobileShowBounds((v) => !v)}
-                    aria-pressed={mobileShowBounds}
-                    className={cn("rounded-lg text-[11px]", !mobileShowBounds && "neu-pill-btn")}
-                    aria-label={pickLang(
-                      language,
-                      "Tampilkan atau sembunyikan input Min dan Max",
-                      "Toggle Min and Max bounds inputs",
-                    )}
-                  >
-                    <SlidersHorizontal className="h-3.5 w-3.5" />
-                    <span>Min/Max</span>
-                  </Button>
-                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -652,8 +634,6 @@ export function FormulationWorkbench({
               <IngredientMobileCards
                 ingredients={usedIngredients}
                 activeSpecies={activeSpecies}
-                showBounds={mobileShowBounds}
-                onToggleBounds={() => setMobileShowBounds((v) => !v)}
                 decimalPlaces={decimalPlaces}
                 simpleMode={simpleMode}
                 language={language}

@@ -1,14 +1,14 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../../src/App";
 import { SettingsPage } from "../../src/components/settings/SettingsPage";
 import { TRAKTEER_SUPPORT_URL } from "../../src/components/ui/TrakteerSupportButton";
 import { DEFAULT_PREFERENCES } from "../../src/data/mock-state";
-import { OPENFORMUL_PALETTE_CATALOG, THEME_STORAGE_KEYS, ThemeProvider } from "../../src/theme";
+import { OPENFORMU_PALETTE_CATALOG, THEME_STORAGE_KEYS, ThemeProvider } from "../../src/theme";
 import { validateUserPreferences } from "../../src/utils/validators";
 
-describe("UI Enhancer (7 Palettes), 120 FPS Rendering/Motion Engine & Trakteer Integration", () => {
+describe("UI Enhancer (5 Palettes Stepper), Simplified Engine & Trakteer Integration", () => {
   beforeEach(() => {
     window.localStorage.clear();
     document.documentElement.removeAttribute("data-theme");
@@ -23,7 +23,7 @@ describe("UI Enhancer (7 Palettes), 120 FPS Rendering/Motion Engine & Trakteer I
     vi.restoreAllMocks();
   });
 
-  it("mengaktifkan UI Enhancer secara default pada seluruh 7 palet warna dan dapat dialihkan ke mode Standard", async () => {
+  it("mengaktifkan UI Enhancer secara default pada seluruh 5 palet warna via stepper & sakelar UI Enhancer", async () => {
     const user = userEvent.setup();
     const onUpdate = vi.fn();
 
@@ -33,32 +33,30 @@ describe("UI Enhancer (7 Palettes), 120 FPS Rendering/Motion Engine & Trakteer I
       </ThemeProvider>,
     );
 
+    expect(OPENFORMU_PALETTE_CATALOG).toHaveLength(5);
     expect(document.documentElement.getAttribute("data-ui-enhancer")).toBe("true");
     expect(document.documentElement.getAttribute("data-engine-mode")).toBe("ultra");
     expect(document.documentElement.getAttribute("data-motion-engine")).toBe("gpu_flip");
 
-    // Uji semua 7 palet tetap menerapkan UI Enhancer aktif dan memperbarui label profil glow-nya
-    for (const palette of OPENFORMUL_PALETTE_CATALOG) {
-      const btn = document.querySelector<HTMLButtonElement>(
-        `[data-theme-control="palette"][data-palette-id="${palette.id}"]`,
-      );
-      expect(btn).not.toBeNull();
-      await user.click(btn!);
-      expect(document.documentElement.getAttribute("data-theme")).toBe(palette.id);
+    const nextBtn = screen.getByRole("button", { name: /Tema berikutnya/i });
+    const seenPalettes = new Set<string>();
+    for (let i = 0; i < OPENFORMU_PALETTE_CATALOG.length; i++) {
+      const current = document.documentElement.getAttribute("data-theme")!;
+      seenPalettes.add(current);
       expect(document.documentElement.getAttribute("data-ui-enhancer")).toBe("true");
-      expect(screen.getByText(new RegExp(palette.enhancerGlowLabelId, "i"))).toBeInTheDocument();
+      if (i < OPENFORMU_PALETTE_CATALOG.length - 1) {
+        await user.click(nextBtn);
+      }
     }
+    expect(seenPalettes.size).toBe(5);
 
-    // Matikan sakelar UI Enhancer -> attribute DOM & localStorage berubah ke false
-    const enhancerSwitch = screen.getByRole("switch", {
-      name: /Aktifkan Mode UI Enhancer Glassmorphism/i,
-    });
+    const enhancerSwitch = screen.getByRole("switch", { name: "UI Enhancer" });
     await user.click(enhancerSwitch);
     expect(document.documentElement.getAttribute("data-ui-enhancer")).toBe("false");
     expect(window.localStorage.getItem(THEME_STORAGE_KEYS.uiEnhancer)).toBe("false");
   });
 
-  it("mendukung 3 profil Rendering Engine, Animation Engine, dan slider Blur/Glow di Pengaturan", async () => {
+  it("menyederhanakan Rendering & Motion Engine menjadi Smooth (120 FPS) dan Standard (Biasa)", async () => {
     const user = userEvent.setup();
     const onUpdate = vi.fn();
 
@@ -68,27 +66,21 @@ describe("UI Enhancer (7 Palettes), 120 FPS Rendering/Motion Engine & Trakteer I
       </ThemeProvider>,
     );
 
-    await user.click(screen.getByRole("radio", { name: /Mode 2 · Balanced Acrylic/i }));
-    expect(document.documentElement.getAttribute("data-engine-mode")).toBe("balanced");
-    expect(document.documentElement.style.getPropertyValue("--ui-blur-px")).toBe("12px");
+    expect(screen.queryByLabelText("Intensitas Blur Kaca")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Intensitas Glow")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("radio", { name: /Mode 3 · Crisp Native/i }));
+    const standardRadio = screen.getByRole("radio", { name: /Standard \(Biasa\)/i });
+    const smoothRadio = screen.getByRole("radio", { name: /Smooth \(120 FPS\)/i });
+    expect(smoothRadio).toHaveAttribute("aria-checked", "true");
+
+    await user.click(standardRadio);
     expect(document.documentElement.getAttribute("data-engine-mode")).toBe("crisp");
+    expect(document.documentElement.getAttribute("data-motion-engine")).toBe("css_native");
     expect(document.documentElement.style.getPropertyValue("--ui-blur-px")).toBe("0px");
 
-    await user.click(screen.getByRole("radio", { name: /Mode 1 · Ultra Glass/i }));
+    await user.click(smoothRadio);
     expect(document.documentElement.getAttribute("data-engine-mode")).toBe("ultra");
-
-    const blurSlider = screen.getByLabelText("Intensitas Blur Kaca");
-    fireEvent.change(blurSlider, { target: { value: "24" } });
-    expect(document.documentElement.style.getPropertyValue("--ui-blur-px")).toBe("24px");
-
-    const glowSlider = screen.getByLabelText("Intensitas Glow");
-    fireEvent.change(glowSlider, { target: { value: "125" } });
-    expect(document.documentElement.style.getPropertyValue("--ui-glow-scale")).toBe("1.25");
-
-    await user.click(screen.getByRole("radio", { name: /CSS Native \/ Reduced/i }));
-    expect(document.documentElement.getAttribute("data-motion-engine")).toBe("css_native");
+    expect(document.documentElement.getAttribute("data-motion-engine")).toBe("gpu_flip");
   });
 
   it("menampilkan tombol dukungan Trakteer dengan tautan aman di Sidebar maupun SettingsPage", async () => {

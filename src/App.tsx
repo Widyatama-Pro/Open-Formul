@@ -48,7 +48,7 @@ function AppContent() {
   const handleExportAllBackup = () => {
     const json = store.exportAllBackupJson();
     const dateStamp = new Date().toISOString().slice(0, 10);
-    downloadTextFile(json, `openformul-backup-${dateStamp}.json`, FEED_JSON_MIME);
+    downloadTextFile(json, `openformu-backup-${dateStamp}.json`, FEED_JSON_MIME);
   };
 
   const handleAdvancedShortcut = (target: AdvancedShortcutTarget) => {

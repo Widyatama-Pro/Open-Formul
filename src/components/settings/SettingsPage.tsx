@@ -10,7 +10,6 @@ import {
   RotateCcw,
   SlidersHorizontal,
   Smartphone,
-  Sparkles,
   Trash2,
   Zap,
 } from "lucide-react";
@@ -27,6 +26,7 @@ import type {
   UserPreferences,
 } from "../../types";
 import { cn } from "../../utils/cn";
+import { handleExternalLinkClick } from "../../utils/external-link";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -38,8 +38,8 @@ import { ThemedSelect } from "../ui/ThemedSelect";
 import { TrakteerSupportButton } from "../ui/TrakteerSupportButton";
 import { ThemeSwitcherMenu, type ThemeChangePayload } from "./ThemeSwitcherMenu";
 
-export const GITHUB_REPO_URL = "https://github.com/Widyatama-Pro/OpenFormul";
-export const GITHUB_RELEASES_URL = "https://github.com/Widyatama-Pro/OpenFormul/releases";
+export const GITHUB_REPO_URL = "https://github.com/Widyatama-Pro/OpenFormu";
+export const GITHUB_RELEASES_URL = "https://github.com/Widyatama-Pro/OpenFormu/releases";
 
 export interface SettingsPageProps {
   readonly preferences: UserPreferences;
@@ -149,30 +149,32 @@ export const SettingsPage = memo(function SettingsPage({
     themeCtx?.renderingEngine ?? preferences.renderingEngine ?? "ultra";
   const activeMotionEngine: MotionEngineMode =
     themeCtx?.motionEngine ?? preferences.motionEngine ?? "gpu_flip";
-  const glassBlurPx = themeCtx?.glassBlurPx ?? preferences.glassBlurPx ?? 20;
-  const glowIntensityPct = themeCtx?.glowIntensityPct ?? preferences.glowIntensityPct ?? 100;
+  const isSmoothEnginePreset = activeEngineMode !== "crisp" && activeMotionEngine === "gpu_flip";
 
-  const handleSelectEngineMode = (mode: RenderingEngineMode) => {
-    themeCtx?.setRenderingEngine(mode);
+  const handleSelectEnginePreset = (preset: "smooth" | "standard") => {
+    if (preset === "smooth") {
+      themeCtx?.setRenderingEngine("ultra");
+      themeCtx?.setMotionEngine("gpu_flip");
+      themeCtx?.setGlassBlurPx(20);
+      themeCtx?.setGlowIntensityPct(100);
+      onUpdate({
+        renderingEngine: "ultra",
+        motionEngine: "gpu_flip",
+        glassBlurPx: 20,
+        glowIntensityPct: 100,
+      });
+      return;
+    }
+    themeCtx?.setRenderingEngine("crisp");
+    themeCtx?.setMotionEngine("css_native");
+    themeCtx?.setGlassBlurPx(0);
+    themeCtx?.setGlowIntensityPct(0);
     onUpdate({
-      renderingEngine: mode,
-      ...(mode === "ultra" ? { glassBlurPx: 20 } : mode === "balanced" ? { glassBlurPx: 12 } : {}),
+      renderingEngine: "crisp",
+      motionEngine: "css_native",
+      glassBlurPx: 0,
+      glowIntensityPct: 0,
     });
-  };
-
-  const handleSelectMotionEngine = (mode: MotionEngineMode) => {
-    themeCtx?.setMotionEngine(mode);
-    onUpdate({ motionEngine: mode });
-  };
-
-  const handleChangeBlurPx = (px: number) => {
-    themeCtx?.setGlassBlurPx(px);
-    onUpdate({ glassBlurPx: px });
-  };
-
-  const handleChangeGlowPct = (pct: number) => {
-    themeCtx?.setGlowIntensityPct(pct);
-    onUpdate({ glowIntensityPct: pct });
   };
 
   const handleResetSamples = async () => {
@@ -434,7 +436,7 @@ export const SettingsPage = memo(function SettingsPage({
             />
           </Card>
 
-          {/* Kartu 3: Rendering & Motion Engine (120 FPS Zero-Hardcut) */}
+          {/* Kartu 3: Rendering & Motion Engine (2 Opsi Ringkas) */}
           <Card interactive={false} className="space-y-4 p-4 sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-start gap-3">
@@ -446,64 +448,61 @@ export const SettingsPage = memo(function SettingsPage({
                   <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                     {pickLang(
                       lang,
-                      "Pilih profil grafis kaca akrilik, mesin animasi 120 FPS anti-hardcut, serta intensitas blur dan pendaran cahaya.",
-                      "Select acrylic glass graphics profile, 120 FPS anti-hardcut motion engine, and blur/glow intensity.",
+                      "Pilih antara animasi kaca mulus 120 FPS atau tampilan standar hemat daya.",
+                      "Choose between smooth 120 FPS acrylic glass motion or battery-friendly standard rendering.",
                     )}
                   </p>
                 </div>
               </div>
               <Badge tone="emerald">
                 <Zap className="h-3 w-3" />
-                <span>{activeMotionEngine === "gpu_flip" ? "120 FPS GPU FLIP" : "CSS Native"}</span>
+                <span>
+                  {isSmoothEnginePreset
+                    ? "Smooth (120 FPS)"
+                    : pickLang(lang, "Standard (Biasa)", "Standard")}
+                </span>
               </Badge>
             </div>
 
-            {/* 3 Profil Rendering Engine */}
             <div
               role="radiogroup"
               aria-label={pickLang(lang, "Profil Rendering Engine", "Rendering Engine Profile")}
-              className="grid grid-cols-1 gap-2.5 sm:grid-cols-3"
+              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2"
             >
               {(
                 [
                   {
-                    id: "ultra",
-                    titleId: "Mode 1 · Ultra Glass",
-                    titleEn: "Mode 1 · Ultra Glass",
+                    id: "smooth",
+                    titleId: "Smooth (120 FPS)",
+                    titleEn: "Smooth (120 FPS)",
                     descId:
-                      "Blur 20px, saturasi 165%, volumetric glow penuh & 120 FPS FLIP Physics (Default).",
+                      "Efek kaca akrilik mulus, transisi 120 FPS FLIP Physics anti-hardcut, dan glow penuh (Default).",
                     descEn:
-                      "20px blur, 165% saturation, full volumetric glow & 120 FPS FLIP Physics (Default).",
+                      "Smooth acrylic glass depth, 120 FPS anti-hardcut FLIP motion, and full volumetric glow (Default).",
                   },
                   {
-                    id: "balanced",
-                    titleId: "Mode 2 · Balanced Acrylic",
-                    titleEn: "Mode 2 · Balanced Acrylic",
-                    descId: "Blur menengah 12px dengan specular rim light & transisi hemat daya.",
-                    descEn: "Medium 12px blur with specular rim light & battery-friendly motion.",
-                  },
-                  {
-                    id: "crisp",
-                    titleId: "Mode 3 · Crisp Native",
-                    titleEn: "Mode 3 · Crisp Native",
+                    id: "standard",
+                    titleId: "Standard (Biasa)",
+                    titleEn: "Standard",
                     descId:
-                      "Transparansi ringan tanpa shader blur berat untuk perangkat spesifikasi rendah.",
+                      "Rendering ringan tanpa shader blur & transisi standar untuk menghemat baterai atau GPU rendah.",
                     descEn:
-                      "Lightweight crisp translucency without heavy shader blur for low-GPU devices.",
+                      "Lightweight rendering without glass blur and standard transitions for battery saving or low-end GPUs.",
                   },
                 ] as const
               ).map((profile) => {
-                const selected = activeEngineMode === profile.id;
+                const selected =
+                  profile.id === "smooth" ? isSmoothEnginePreset : !isSmoothEnginePreset;
                 return (
                   <button
                     key={profile.id}
                     type="button"
                     role="radio"
                     aria-checked={selected}
-                    data-engine-control={profile.id}
-                    onClick={() => handleSelectEngineMode(profile.id)}
+                    data-engine-preset={profile.id}
+                    onClick={() => handleSelectEnginePreset(profile.id)}
                     className={cn(
-                      "flex cursor-pointer flex-col rounded-xl border p-3 text-left transition-[transform,border-color,background-color,box-shadow] duration-150 hover:-translate-y-0.5 active:scale-[0.98] motion-reduce:transform-none",
+                      "flex cursor-pointer flex-col rounded-xl border p-3.5 text-left transition-[transform,border-color,background-color,box-shadow] duration-150 hover:-translate-y-0.5 active:scale-[0.98] motion-reduce:transform-none",
                       selected
                         ? "border-[var(--status-success)] bg-[var(--status-success-soft)] shadow-[0_6px_18px_-6px_var(--glow-success-pill,rgba(16,185,129,0.28))]"
                         : "acrylic-subcard",
@@ -518,102 +517,6 @@ export const SettingsPage = memo(function SettingsPage({
                   </button>
                 );
               })}
-            </div>
-
-            {/* Animation & Layout Engine */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-subtle)] pt-3">
-              <div>
-                <p className="text-xs font-bold text-[var(--text-primary)]">
-                  {pickLang(lang, "Animation & Layout Engine", "Animation & Layout Engine")}
-                </p>
-                <p className="text-[11px] text-[var(--text-muted)]">
-                  {pickLang(
-                    lang,
-                    "Mencegah kedipan & lompatan tata letak saat berganti bahasa, tab, atau panel target.",
-                    "Eliminates flicker and layout jumps when switching languages, tabs, or panels.",
-                  )}
-                </p>
-              </div>
-              <div
-                role="radiogroup"
-                aria-label={pickLang(lang, "Pilih Animation Engine", "Select Animation Engine")}
-                className="neu-pressed inline-flex rounded-xl p-1"
-              >
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={activeMotionEngine === "gpu_flip"}
-                  onClick={() => handleSelectMotionEngine("gpu_flip")}
-                  className={cn(
-                    "cursor-pointer rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                    activeMotionEngine === "gpu_flip"
-                      ? "bg-[var(--color-primary)] text-[var(--text-on-primary)] shadow-xs"
-                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-                  )}
-                >
-                  {pickLang(lang, "GPU FLIP 120 FPS", "GPU FLIP 120 FPS")}
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={activeMotionEngine === "css_native"}
-                  onClick={() => handleSelectMotionEngine("css_native")}
-                  className={cn(
-                    "cursor-pointer rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                    activeMotionEngine === "css_native"
-                      ? "bg-[var(--bg-surface-elevated)] text-[var(--text-primary)] shadow-xs"
-                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-                  )}
-                >
-                  {pickLang(lang, "CSS Native / Reduced", "CSS Native / Reduced")}
-                </button>
-              </div>
-            </div>
-
-            {/* Sliders Blur & Glow */}
-            <div className="grid grid-cols-1 gap-4 border-t border-[var(--border-subtle)] pt-3 sm:grid-cols-2">
-              <label className="block space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-[var(--text-primary)]">
-                    {pickLang(lang, "Intensitas Blur Kaca", "Glass Blur Intensity")}
-                  </span>
-                  <span className="font-bold tabular-nums text-[var(--status-success)]">
-                    {glassBlurPx}px
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={32}
-                  step={1}
-                  value={glassBlurPx}
-                  aria-label={pickLang(lang, "Intensitas Blur Kaca", "Glass Blur Intensity")}
-                  onChange={(e) => handleChangeBlurPx(Number(e.target.value))}
-                  className="w-full cursor-pointer accent-[var(--color-primary)]"
-                />
-              </label>
-
-              <label className="block space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1 font-semibold text-[var(--text-primary)]">
-                    <Sparkles className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-                    <span>{pickLang(lang, "Intensitas Glow", "Volumetric Glow")}</span>
-                  </span>
-                  <span className="font-bold tabular-nums text-[var(--status-success)]">
-                    {glowIntensityPct}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={150}
-                  step={5}
-                  value={glowIntensityPct}
-                  aria-label={pickLang(lang, "Intensitas Glow", "Volumetric Glow")}
-                  onChange={(e) => handleChangeGlowPct(Number(e.target.value))}
-                  className="w-full cursor-pointer accent-[var(--color-primary)]"
-                />
-              </label>
             </div>
           </Card>
 
@@ -636,8 +539,8 @@ export const SettingsPage = memo(function SettingsPage({
                   <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                     {pickLang(
                       lang,
-                      "Periksa apakah tersedia versi pembaruan (update) terbaru, catatan rilis, dan kode sumber resmi OpenFormul di repositori GitHub.",
-                      "Check for the latest application updates, release notes, and official OpenFormul source code on GitHub.",
+                      "Periksa apakah tersedia versi pembaruan (update) terbaru, catatan rilis, dan kode sumber resmi OpenFormu di repositori GitHub.",
+                      "Check for the latest application updates, release notes, and official OpenFormu source code on GitHub.",
                     )}
                   </p>
                 </div>
@@ -654,6 +557,7 @@ export const SettingsPage = memo(function SettingsPage({
                   href={GITHUB_RELEASES_URL}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => void handleExternalLinkClick(e, GITHUB_RELEASES_URL)}
                   aria-label={pickLang(
                     lang,
                     "Cek update aplikasi terbaru di repositori GitHub",
@@ -671,6 +575,7 @@ export const SettingsPage = memo(function SettingsPage({
                   href={GITHUB_REPO_URL}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => void handleExternalLinkClick(e, GITHUB_REPO_URL)}
                   className="neu-pill-btn inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-transform duration-150 active:scale-[0.97] motion-reduce:transform-none"
                 >
                   <span>{pickLang(lang, "Buka Repo", "Open Repo")}</span>

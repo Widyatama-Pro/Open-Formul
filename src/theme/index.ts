@@ -8,6 +8,7 @@ export {
   type UsePortableThemeOptions,
 } from "./use-theme";
 export {
+  OPENFORMU_PALETTE_CATALOG,
   OPENFORMUL_PALETTE_CATALOG,
   getPaletteLabel,
   getPaletteSubtitle,

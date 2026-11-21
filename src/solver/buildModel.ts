@@ -26,6 +26,14 @@ import type { BuildModelOptions, LpModel, LpRow, LpTerm, LpVariable } from "./ty
 const EPS = 1e-9;
 /** Lantai penyebut Charnes–Cooper (F-09+): Σ e_j x_j >= ε agar 0/0 tertutup. */
 const DENOMINATOR_FLOOR = 1e-4;
+/** Batas toleransi kelebihan maksimal Serat Kasar (SK / cf): tidak boleh lebih dari +15% di atas max. */
+export const CRUDE_FIBER_MAX_OVER_TOLERANCE = 0.15;
+
+interface ElasticRowOverrides {
+  readonly negPenaltyScale?: number;
+  readonly posPenaltyScale?: number;
+  readonly posUpperBound?: number;
+}
 
 /** Nilai nutrien bahan (0 bila N/A), termasuk turunan dEB/DCAD dari Na/K/Cl/S. */
 function ingValue(ing: Ingredient, nutrientId: string): number {
@@ -180,6 +188,7 @@ export function buildLpModel(
     scaleForElastic: number,
     tier: ConstraintTier | undefined,
     forceHard = false,
+    elasticOverrides?: ElasticRowOverrides,
   ) => {
     const cleaned = [...filterNonZeroTerms(baseTerms)];
     const relaxable = elasticMode && !forceHard && tier !== "tier0" && meta.kind !== "sum_to_one";
@@ -205,7 +214,7 @@ export function buildLpModel(
       variables.push({
         varName: slackNegVar,
         role: "elastic_neg",
-        objectiveCoeff: penalty,
+        objectiveCoeff: penalty * (elasticOverrides?.negPenaltyScale ?? 1),
         lower: 0,
         upper: null,
       });
@@ -216,9 +225,9 @@ export function buildLpModel(
       variables.push({
         varName: slackPosVar,
         role: "elastic_pos",
-        objectiveCoeff: penalty,
+        objectiveCoeff: penalty * (elasticOverrides?.posPenaltyScale ?? 1),
         lower: 0,
-        upper: null,
+        upper: elasticOverrides?.posUpperBound ?? null,
       });
       cleaned.push({ varName: slackPosVar, coeff: -1 });
     }
@@ -278,8 +287,9 @@ export function buildLpModel(
     };
 
     const eff = resolveEffectiveConstraintBounds(c, singleTargetMode);
+    const isCf = c.nutrientId === "cf";
     const isUpperOnly = singleTargetMode && isUpperBoundOnlyNutrient(c.nutrientId, c);
-    const effectiveTier = isUpperOnly ? (c.tier === "tier0" ? "tier0" : "tier1") : c.tier;
+    const effectiveTier = isUpperOnly || isCf ? (c.tier === "tier0" ? "tier0" : "tier1") : c.tier;
 
     if (eff.min !== undefined && eff.max !== undefined && Math.abs(eff.min - eff.max) <= EPS) {
       pushConstraintRow(
@@ -290,6 +300,13 @@ export function buildLpModel(
         { kind: "nutrient_eq", nutrientId: c.nutrientId, boundValue: eff.min },
         eff.min,
         effectiveTier,
+        false,
+        isCf
+          ? {
+              negPenaltyScale: 0.35,
+              posUpperBound: Math.max(0, eff.max * CRUDE_FIBER_MAX_OVER_TOLERANCE),
+            }
+          : undefined,
       );
       continue;
     }
@@ -303,7 +320,9 @@ export function buildLpModel(
         eff.min + rhsDelta,
         { kind: "nutrient_min", nutrientId: c.nutrientId, boundValue: eff.min },
         eff.min,
-        effectiveTier,
+        isCf && c.tier !== "tier0" ? "tier3" : effectiveTier,
+        false,
+        isCf ? { negPenaltyScale: 0.35 } : undefined,
       );
     }
 
@@ -317,6 +336,12 @@ export function buildLpModel(
         { kind: "nutrient_max", nutrientId: c.nutrientId, boundValue: eff.max },
         eff.max,
         effectiveTier,
+        false,
+        isCf
+          ? {
+              posUpperBound: Math.max(0, eff.max * CRUDE_FIBER_MAX_OVER_TOLERANCE),
+            }
+          : undefined,
       );
     }
   }
@@ -465,12 +490,21 @@ export function buildLpModel(
       const dpVar = `dp${gIdx}`;
       const dnVar = `dn${gIdx}`;
       const goalScale = computeScaleFactor(target);
+      const isCf = constraint.nutrientId === "cf";
       const isUpperOnly =
         singleTargetMode && isUpperBoundOnlyNutrient(constraint.nutrientId, constraint);
-      // Untuk batas maksimal (SK/cf) pada Mode 1 Angka: usahakan tetap mendekati dari bawah
-      // tanpa mendistorsi pemenuhan nutrien utama, sambil melarang keras kelebihan (<= target).
-      const posCoeff = isUpperOnly ? (perGoalWeight * 2) / goalScale : perGoalWeight / goalScale;
-      const negCoeff = isUpperOnly ? (perGoalWeight * 0.55) / goalScale : perGoalWeight / goalScale;
+      // Untuk batas maksimal (SK/cf): kekurangan di bawah min boleh ditoleransi lebih longgar,
+      // namun kelebihan di atas max ditolak keras dan diberi penalti sangat besar.
+      const posCoeff = isCf
+        ? (perGoalWeight * 3.0) / goalScale
+        : isUpperOnly
+          ? (perGoalWeight * 2) / goalScale
+          : perGoalWeight / goalScale;
+      const negCoeff = isCf
+        ? (perGoalWeight * 0.35) / goalScale
+        : isUpperOnly
+          ? (perGoalWeight * 0.55) / goalScale
+          : perGoalWeight / goalScale;
 
       variables.push(
         {

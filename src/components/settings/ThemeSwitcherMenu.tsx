@@ -1,8 +1,17 @@
-import { memo, useCallback } from "react";
-import { Check, Monitor, Moon, Palette, Smartphone, Sparkles, Sun } from "lucide-react";
+import { memo, useCallback, useRef, type KeyboardEvent, type TouchEvent } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Monitor,
+  Moon,
+  Palette,
+  Smartphone,
+  Sparkles,
+  Sun,
+} from "lucide-react";
 import { pickLang } from "../../i18n";
 import {
-  OPENFORMUL_PALETTE_CATALOG,
+  OPENFORMU_PALETTE_CATALOG,
   getPaletteLabel,
   getPaletteSubtitle,
   useOptionalThemeContext,
@@ -23,13 +32,6 @@ export interface ThemeChangePayload {
   readonly uiEnhancer?: boolean;
 }
 
-export interface ThemeChangePayload {
-  readonly paletteId: ThemePaletteId;
-  readonly modeSetting: ThemeModeSetting;
-  readonly resolvedMode: ResolvedThemeMode;
-  readonly amoledPureBlack: boolean;
-}
-
 export interface ThemeSwitcherMenuProps {
   readonly language?: AppLanguage;
   readonly palettes?: readonly PaletteDescriptor[];
@@ -46,7 +48,7 @@ interface ThemeSwitcherMenuViewProps extends ThemeSwitcherMenuProps {
 
 function ThemeSwitcherMenuView({
   language = "id",
-  palettes = OPENFORMUL_PALETTE_CATALOG,
+  palettes = OPENFORMU_PALETTE_CATALOG,
   showAmoledToggle = true,
   compact = false,
   className = "",
@@ -64,6 +66,8 @@ function ThemeSwitcherMenuView({
     setAmoledPureBlack,
     setUiEnhancer,
   } = theme;
+
+  const touchStartXRef = useRef<number | null>(null);
 
   const resolveModeForSetting = useCallback(
     (setting: ThemeModeSetting): ResolvedThemeMode => {
@@ -90,15 +94,18 @@ function ThemeSwitcherMenuView({
     });
   };
 
-  const handleSelectPalette = (nextId: ThemePaletteId) => {
-    setPaletteId(nextId);
-    onThemeChange?.({
-      paletteId: nextId,
-      modeSetting,
-      resolvedMode,
-      amoledPureBlack,
-    });
-  };
+  const handleSelectPalette = useCallback(
+    (nextId: ThemePaletteId) => {
+      setPaletteId(nextId);
+      onThemeChange?.({
+        paletteId: nextId,
+        modeSetting,
+        resolvedMode,
+        amoledPureBlack,
+      });
+    },
+    [amoledPureBlack, modeSetting, onThemeChange, resolvedMode, setPaletteId],
+  );
 
   const handleToggleAmoled = () => {
     const nextAmoled = !amoledPureBlack;
@@ -122,8 +129,48 @@ function ThemeSwitcherMenuView({
     });
   };
 
-  const activePaletteMeta =
-    palettes.find((p) => p.id === paletteId) ?? palettes[0] ?? OPENFORMUL_PALETTE_CATALOG[0]!;
+  const activeIdxRaw = palettes.findIndex((p) => p.id === paletteId);
+  const activeIdx = activeIdxRaw >= 0 ? activeIdxRaw : 0;
+  const activePaletteMeta = palettes[activeIdx] ?? palettes[0] ?? OPENFORMU_PALETTE_CATALOG[0]!;
+  const activeSwatches =
+    resolvedMode === "dark" ? activePaletteMeta.darkSwatches : activePaletteMeta.swatches;
+
+  const stepPalette = useCallback(
+    (delta: -1 | 1) => {
+      if (palettes.length <= 1) return;
+      const nextIdx = (activeIdx + delta + palettes.length) % palettes.length;
+      const nextPalette = palettes[nextIdx];
+      if (nextPalette) {
+        handleSelectPalette(nextPalette.id);
+      }
+    },
+    [activeIdx, handleSelectPalette, palettes],
+  );
+
+  const handleStepperKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      stepPalette(-1);
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      stepPalette(1);
+    }
+  };
+
+  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    touchStartXRef.current = event.changedTouches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
+    const startX = touchStartXRef.current;
+    const endX = event.changedTouches[0]?.clientX;
+    touchStartXRef.current = null;
+    if (startX === null || endX === undefined) return;
+    const dx = endX - startX;
+    if (Math.abs(dx) >= 36) {
+      stepPalette(dx > 0 ? -1 : 1);
+    }
+  };
 
   const modeOptions: ReadonlyArray<{
     readonly value: ThemeModeSetting;
@@ -156,8 +203,8 @@ function ThemeSwitcherMenuView({
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
               {pickLang(
                 language,
-                `7 Palet × Terang / Gelap · Aktif: ${getPaletteLabel(activePaletteMeta, language)} (${resolvedMode === "dark" ? "Gelap" : "Terang"})`,
-                `7 Palettes × Light / Dark · Active: ${getPaletteLabel(activePaletteMeta, language)} (${resolvedMode === "dark" ? "Dark" : "Light"})`,
+                `${palettes.length} Palet × Terang / Gelap · ${getPaletteLabel(activePaletteMeta, language)} (${resolvedMode === "dark" ? "Gelap" : "Terang"})`,
+                `${palettes.length} Palettes × Light / Dark · ${getPaletteLabel(activePaletteMeta, language)} (${resolvedMode === "dark" ? "Dark" : "Light"})`,
               )}
             </p>
           </div>
@@ -195,77 +242,109 @@ function ThemeSwitcherMenuView({
         </div>
       </div>
 
-      {/* Compact 7-Palette Swatch Pills */}
+      {/* Pemilih Tema Tunggal dengan Tombol Geser Kiri / Kanan */}
       <div className="space-y-2.5">
         <div
-          role="radiogroup"
+          role="group"
           aria-label={pickLang(language, "Pilihan palet warna", "Color Palette")}
-          className="flex flex-wrap gap-2"
+          tabIndex={0}
+          onKeyDown={handleStepperKeyDown}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          className="acrylic-subcard flex items-center gap-2 rounded-2xl p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
         >
-          {palettes.map((palette) => {
-            const isSelected = palette.id === paletteId;
-            const activeSwatches =
-              resolvedMode === "dark" ? palette.darkSwatches : palette.swatches;
+          <button
+            type="button"
+            data-theme-control="palette-prev"
+            aria-label={pickLang(language, "Tema sebelumnya", "Previous theme")}
+            onClick={() => stepPalette(-1)}
+            className="neu-pill-btn inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-[var(--text-primary)] active:scale-95 motion-reduce:transform-none"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
 
-            return (
-              <button
-                key={palette.id}
-                type="button"
-                role="radio"
-                aria-checked={isSelected}
-                data-theme-control="palette"
-                data-palette-id={palette.id}
-                onClick={() => handleSelectPalette(palette.id)}
-                className={cn(
-                  "inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 text-left transition-[transform,background-color,border-color,box-shadow] duration-150 hover:-translate-y-0.5 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none",
-                  isSelected
-                    ? "border-[1.5px] border-[var(--color-accent)] bg-[var(--bg-surface-elevated)] shadow-[var(--shadow-neu-pressed)]"
-                    : "neu-button border border-transparent",
-                )}
-              >
-                <span className="flex -space-x-1.5" aria-hidden="true">
-                  {activeSwatches.slice(0, 4).map((hex, idx) => (
-                    <span
-                      key={`${palette.id}-sw-${idx}`}
-                      title={hex}
-                      className="inline-block h-4 w-4 rounded-full ring-2 ring-[var(--bg-surface-elevated)]"
-                      style={{ backgroundColor: hex }}
-                    />
-                  ))}
-                </span>
-                <span className="text-xs font-semibold whitespace-nowrap text-[var(--text-primary)]">
-                  {getPaletteLabel(palette, language)}
-                </span>
-                {isSelected && (
-                  <Check
-                    className="h-3 w-3 shrink-0 text-[var(--color-accent)]"
-                    aria-hidden="true"
+          <div
+            data-theme-control="palette-current"
+            data-palette-id={activePaletteMeta.id}
+            className="flex min-w-0 flex-1 items-center justify-between gap-3 px-1.5 py-1"
+          >
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="flex shrink-0 -space-x-1.5" aria-hidden="true">
+                {activeSwatches.slice(0, 4).map((hex, idx) => (
+                  <span
+                    key={`${activePaletteMeta.id}-sw-${idx}`}
+                    title={hex}
+                    className="inline-block h-5 w-5 rounded-full ring-2 ring-[var(--bg-surface-elevated)]"
+                    style={{ backgroundColor: hex }}
                   />
-                )}
-              </button>
-            );
-          })}
+                ))}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-bold text-[var(--text-primary)]">
+                  {getPaletteLabel(activePaletteMeta, language)}
+                </p>
+                <p className="truncate text-[11px] text-[var(--text-muted)]">
+                  {getPaletteSubtitle(activePaletteMeta, language)}
+                </p>
+              </div>
+            </div>
+
+            <span className="shrink-0 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-elevated)] px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-secondary)]">
+              {activeIdx + 1} / {palettes.length}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            data-theme-control="palette-next"
+            aria-label={pickLang(language, "Tema berikutnya", "Next theme")}
+            onClick={() => stepPalette(1)}
+            className="neu-pill-btn inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-[var(--text-primary)] active:scale-95 motion-reduce:transform-none"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
 
-        <div className="acrylic-subcard flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-[11px]">
-          <span className="font-semibold text-[var(--text-primary)]">
-            {getPaletteLabel(activePaletteMeta, language)}
-          </span>
-          <span className="text-[var(--text-muted)]">
-            {getPaletteSubtitle(activePaletteMeta, language)}
-          </span>
+        {/* Titik indikator posisi palet */}
+        <div
+          role="group"
+          aria-label={pickLang(
+            language,
+            "Indikator posisi palet warna",
+            "Palette position indicators",
+          )}
+          className="flex items-center justify-center gap-1.5"
+        >
+          {palettes.map((palette, idx) => (
+            <button
+              key={palette.id}
+              type="button"
+              tabIndex={-1}
+              data-theme-control="palette"
+              data-palette-id={palette.id}
+              aria-label={getPaletteLabel(palette, language)}
+              aria-pressed={idx === activeIdx}
+              onClick={() => handleSelectPalette(palette.id)}
+              className={cn(
+                "h-1.5 cursor-pointer rounded-full transition-[width,background-color] duration-200",
+                idx === activeIdx
+                  ? "w-5 bg-[var(--color-primary)]"
+                  : "w-1.5 bg-[var(--border-strong)] hover:bg-[var(--text-muted)]",
+              )}
+            />
+          ))}
         </div>
 
-        {/* Mode UI Enhancer (Glassmorphism & Volumetric Glow Mode) untuk semua 7 Color Palette */}
+        {/* Sakelar ringkas UI Enhancer */}
         <div
           className={cn(
-            "flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-3 transition-[border-color,box-shadow,background-color] duration-200",
+            "flex items-center justify-between gap-3 rounded-2xl border px-3.5 py-2.5 transition-[border-color,box-shadow,background-color] duration-200",
             uiEnhancer
               ? "border-[var(--status-success-border)] bg-[var(--status-success-soft)] shadow-[0_6px_22px_-6px_var(--glow-primary-soft,rgba(16,185,129,0.22))]"
               : "border-[var(--border-subtle)] bg-[var(--bg-sunken)]",
           )}
         >
-          <div className="flex min-w-0 flex-1 items-start gap-2.5">
+          <div className="flex min-w-0 items-center gap-2.5">
             <span
               aria-hidden="true"
               className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/40 shadow-sm"
@@ -273,51 +352,18 @@ function ThemeSwitcherMenuView({
                 backgroundColor: activePaletteMeta.enhancerAccentHex,
                 color: "#ffffff",
                 boxShadow: uiEnhancer
-                  ? `0 0 16px ${activePaletteMeta.enhancerAccentHex}80`
+                  ? `0 0 14px ${activePaletteMeta.enhancerAccentHex}75`
                   : undefined,
               }}
             >
               <Sparkles className="h-4 w-4" />
             </span>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs font-bold text-[var(--text-primary)]">
-                  {pickLang(
-                    language,
-                    "UI Enhancer (Glassmorphism & Volumetric Glow)",
-                    "UI Enhancer (Glassmorphism & Volumetric Glow)",
-                  )}
-                </span>
-                <span className="rounded-full border border-[var(--status-success-border)] bg-[var(--bg-surface-elevated)] px-2 py-0.5 text-[10px] font-bold text-[var(--status-success)]">
-                  {uiEnhancer
-                    ? pickLang(language, "Aktif · 7 Palet", "Active · 7 Palettes")
-                    : pickLang(language, "Standard", "Standard")}
-                </span>
-              </div>
-              <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
-                {uiEnhancer
-                  ? language === "id"
-                    ? `${activePaletteMeta.enhancerGlowLabelId} · Ambient Mesh, Kaca Akrilik 3-Lapis & Specular Rim Light aktif.`
-                    : `${activePaletteMeta.enhancerGlowLabelEn} · Ambient Mesh, 3-Layer Acrylic Glass & Specular Rim Light active.`
-                  : pickLang(
-                      language,
-                      "Mode standar solid tanpa bias warna kaca & pendaran cahaya volumetrik.",
-                      "Standard solid surface mode without tinted acrylic blur or volumetric glow.",
-                    )}
-              </p>
-            </div>
+            <span className="truncate text-xs font-bold text-[var(--text-primary)]">
+              UI Enhancer
+            </span>
           </div>
 
-          <Switch
-            checked={uiEnhancer}
-            onCheckedChange={handleToggleEnhancer}
-            data-theme-control="ui-enhancer"
-            label={pickLang(
-              language,
-              "Aktifkan Mode UI Enhancer Glassmorphism & Volumetric Glow",
-              "Enable UI Enhancer Glassmorphism & Volumetric Glow Mode",
-            )}
-          />
+          <Switch checked={uiEnhancer} onCheckedChange={handleToggleEnhancer} label="UI Enhancer" />
         </div>
       </div>
 

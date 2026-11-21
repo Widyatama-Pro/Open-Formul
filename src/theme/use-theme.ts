@@ -11,21 +11,26 @@ import { isThemePaletteId } from "./palettes";
 import { syncPwaThemeMeta } from "./pwa-theme-sync";
 
 export const THEME_STORAGE_KEYS = {
-  id: "openformul-theme-id",
-  mode: "openformul-theme-mode",
-  amoled: "openformul-theme-amoled",
-  uiEnhancer: "openformul-theme-enhancer",
-  renderingEngine: "openformul-engine-mode",
-  motionEngine: "openformul-motion-engine",
-  glassBlurPx: "openformul-glass-blur-px",
-  glowIntensityPct: "openformul-glow-intensity-pct",
+  id: "openformu-theme-id",
+  mode: "openformu-theme-mode",
+  amoled: "openformu-theme-amoled",
+  uiEnhancer: "openformu-theme-enhancer",
+  renderingEngine: "openformu-engine-mode",
+  motionEngine: "openformu-motion-engine",
+  glassBlurPx: "openformu-glass-blur-px",
+  glowIntensityPct: "openformu-glow-intensity-pct",
 } as const;
 
-const LEGACY_STORAGE_KEYS = {
-  id: "app-theme-id",
-  mode: "app-theme-mode",
-  amoled: "app-theme-amoled",
-} as const;
+const LEGACY_STORAGE_KEYS: Readonly<Record<keyof typeof THEME_STORAGE_KEYS, readonly string[]>> = {
+  id: ["openformul-theme-id", "app-theme-id"],
+  mode: ["openformul-theme-mode", "app-theme-mode"],
+  amoled: ["openformul-theme-amoled", "app-theme-amoled"],
+  uiEnhancer: ["openformul-theme-enhancer"],
+  renderingEngine: ["openformul-engine-mode"],
+  motionEngine: ["openformul-motion-engine"],
+  glassBlurPx: ["openformul-glass-blur-px"],
+  glowIntensityPct: ["openformul-glow-intensity-pct"],
+};
 
 export interface UsePortableThemeOptions {
   readonly storageKeyId?: string;
@@ -64,12 +69,17 @@ export interface PortableThemeState {
   readonly toggleLightDark: () => void;
 }
 
-function readStoredValue(primaryKey: string, legacyKey?: string): string | null {
+function readStoredValue(primaryKey: string, legacyKeys?: readonly string[]): string | null {
   if (typeof window === "undefined") return null;
   try {
     const val = window.localStorage.getItem(primaryKey);
     if (val !== null) return val;
-    if (legacyKey) return window.localStorage.getItem(legacyKey);
+    if (legacyKeys) {
+      for (const lk of legacyKeys) {
+        const legacyVal = window.localStorage.getItem(lk);
+        if (legacyVal !== null) return legacyVal;
+      }
+    }
     return null;
   } catch {
     return null;
@@ -174,26 +184,32 @@ export function usePortableTheme(options: UsePortableThemeOptions = {}): Portabl
   });
 
   const [uiEnhancer, setUiEnhancerState] = useState<boolean>(() => {
-    const saved = readStoredValue(THEME_STORAGE_KEYS.uiEnhancer);
+    const saved = readStoredValue(THEME_STORAGE_KEYS.uiEnhancer, LEGACY_STORAGE_KEYS.uiEnhancer);
     if (saved === "true") return true;
     if (saved === "false") return false;
     return defaultUiEnhancer;
   });
 
   const [renderingEngine, setRenderingEngineState] = useState<RenderingEngineMode>(() => {
-    const saved = readStoredValue(THEME_STORAGE_KEYS.renderingEngine);
+    const saved = readStoredValue(
+      THEME_STORAGE_KEYS.renderingEngine,
+      LEGACY_STORAGE_KEYS.renderingEngine,
+    );
     if (saved === "ultra" || saved === "balanced" || saved === "crisp") return saved;
     return defaultRenderingEngine;
   });
 
   const [motionEngine, setMotionEngineState] = useState<MotionEngineMode>(() => {
-    const saved = readStoredValue(THEME_STORAGE_KEYS.motionEngine);
+    const saved = readStoredValue(
+      THEME_STORAGE_KEYS.motionEngine,
+      LEGACY_STORAGE_KEYS.motionEngine,
+    );
     if (saved === "gpu_flip" || saved === "css_native") return saved;
     return defaultMotionEngine;
   });
 
   const [glassBlurPx, setGlassBlurPxState] = useState<number>(() => {
-    const saved = readStoredValue(THEME_STORAGE_KEYS.glassBlurPx);
+    const saved = readStoredValue(THEME_STORAGE_KEYS.glassBlurPx, LEGACY_STORAGE_KEYS.glassBlurPx);
     const parsed = saved !== null ? Number(saved) : Number.NaN;
     return Number.isFinite(parsed) && parsed >= 0 && parsed <= 32
       ? Math.round(parsed)
@@ -201,7 +217,10 @@ export function usePortableTheme(options: UsePortableThemeOptions = {}): Portabl
   });
 
   const [glowIntensityPct, setGlowIntensityPctState] = useState<number>(() => {
-    const saved = readStoredValue(THEME_STORAGE_KEYS.glowIntensityPct);
+    const saved = readStoredValue(
+      THEME_STORAGE_KEYS.glowIntensityPct,
+      LEGACY_STORAGE_KEYS.glowIntensityPct,
+    );
     const parsed = saved !== null ? Number(saved) : Number.NaN;
     return Number.isFinite(parsed) && parsed >= 0 && parsed <= 150
       ? Math.round(parsed)

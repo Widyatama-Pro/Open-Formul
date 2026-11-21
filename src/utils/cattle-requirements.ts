@@ -394,7 +394,7 @@ export function computeDynamicBeefRequirement(
 
   const dmiKg = roundTo(row.dmi, 2);
   const cpPct = roundTo(clamp((row.cp / (row.dmi * 1000)) * 100, 6.0, 22.0), 2);
-  const tdnPct = roundTo(clamp((row.tdn / row.dmi) * 100, 44.0, 82.0), 1);
+  const tdnPct = roundTo(clamp((row.tdn / row.dmi) * 100, 44.0, 82.0), 2);
   const caPct = roundTo(clamp((row.ca / (row.dmi * 1000)) * 100, 0.14, 1.2), 2);
   const pPct = roundTo(clamp((row.p / (row.dmi * 1000)) * 100, 0.14, 0.8), 2);
 
@@ -404,10 +404,10 @@ export function computeDynamicBeefRequirement(
   const energyDensityRatio = clamp((tdnPct - 48) / (72 - 48), 0, 1);
   const eeMinPct = 1.5;
   const eeMaxPct = 6.5;
-  const eeIdealPct = roundTo(2.5 + 1.0 * energyDensityRatio, 1);
-  const cfMinPct = roundTo(17.0 - 4.0 * energyDensityRatio, 1);
-  const cfMaxPct = roundTo(31.0 - 7.0 * energyDensityRatio, 1);
-  const cfIdealPct = roundTo(24.0 - 6.0 * energyDensityRatio, 1);
+  const eeIdealPct = roundTo(2.5 + 1.0 * energyDensityRatio, 2);
+  const cfMinPct = roundTo(17.0 - 4.0 * energyDensityRatio, 2);
+  const cfMaxPct = roundTo(31.0 - 7.0 * energyDensityRatio, 2);
+  const cfIdealPct = roundTo(24.0 - 6.0 * energyDensityRatio, 2);
 
   const modeTag = isExtrapolated ? "Ekstrapolasi Kearl 1982" : "Interpolasi Kearl 1982";
 
@@ -424,7 +424,7 @@ export function computeDynamicBeefRequirement(
       basis: "dry_matter",
       constraints: [
         { nutrientId: "cp", min: cpPct, idealTarget: roundTo(cpPct + 0.5, 2), enabled: true },
-        { nutrientId: "tdn", min: tdnPct, idealTarget: roundTo(tdnPct + 2.0, 1), enabled: true },
+        { nutrientId: "tdn", min: tdnPct, idealTarget: roundTo(tdnPct + 2.0, 2), enabled: true },
         {
           nutrientId: "ee",
           min: eeMinPct,
@@ -465,6 +465,74 @@ export function computeDynamicBeefRequirement(
         },
       ],
       source: `${modeTag} Table 14 (${phaseLabelEn}) — DMI ${dmiKg} kg BK; ME ${roundTo(row.me, 2)} Mcal; TDN ${roundTo(row.tdn, 2)} kg (${tdnPct}% BK); PK ${roundTo(row.cp, 0)} g (${cpPct}% BK); Ca ${roundTo(row.ca, 0)} g (${caPct}% BK); P ${roundTo(row.p, 0)} g (${pPct}% BK); LK ${eeMinPct}–${eeMaxPct}% BK (SNI 3148-2:2017 / NRC 2016); SK ${cfMinPct}–${cfMaxPct}% BK (Hartadi 1980 T7 / SNI 3148-2:2017)`,
+      dynamicCalculation: {
+        standardName: "Kearl (1982) Table 14",
+        method: isExtrapolated ? "extrapolated" : "interpolated",
+        inputsSummaryId: phaseLabel,
+        inputsSummaryEn: phaseLabelEn,
+        dmiKg,
+        steps: [
+          {
+            nutrientId: "dmi",
+            labelId: "Konsumsi Bahan Kering (DMI)",
+            labelEn: "Dry Matter Intake (DMI)",
+            dailyAmountLabel: `${roundTo(row.dmi, 2)} kg BK/hr`,
+            formulaText:
+              state === "growth"
+                ? `Tabel Kearl (BB ${roundTo(bwKg, 0)} kg, PBBH ${roundTo(adgKg, 2)} kg/hr)`
+                : `Tabel Kearl (${phaseLabel})`,
+            resultLabel: `${dmiKg} kg/hr`,
+          },
+          {
+            nutrientId: "cp",
+            labelId: "Protein Kasar (PK)",
+            labelEn: "Crude Protein (CP)",
+            dailyAmountLabel: `${roundTo(row.cp, 1)} g/hr`,
+            formulaText: `(${roundTo(row.cp, 1)} g ÷ (${dmiKg} kg × 1000)) × 100%`,
+            resultLabel: `Min ${cpPct}% BK`,
+          },
+          {
+            nutrientId: "tdn",
+            labelId: "Energi TDN",
+            labelEn: "TDN Energy",
+            dailyAmountLabel: `${roundTo(row.tdn, 2)} kg/hr`,
+            formulaText: `(${roundTo(row.tdn, 2)} kg ÷ ${dmiKg} kg) × 100%`,
+            resultLabel: `Min ${tdnPct}% BK`,
+          },
+          {
+            nutrientId: "cf",
+            labelId: "Serat Kasar (SK)",
+            labelEn: "Crude Fiber (CF)",
+            dailyAmountLabel: `TDN ${tdnPct}%`,
+            formulaText: `r = (${tdnPct}-48)/24; Min = 17 - 4r; Max = 31 - 7r`,
+            resultLabel: `${cfMinPct}–${cfMaxPct}% BK`,
+          },
+          {
+            nutrientId: "ee",
+            labelId: "Lemak Kasar (LK)",
+            labelEn: "Ether Extract (EE)",
+            dailyAmountLabel: "Batas Rumen",
+            formulaText: "Ambang aman fermentasi rumen SNI 3148-2 / NRC",
+            resultLabel: `${eeMinPct}–${eeMaxPct}% BK`,
+          },
+          {
+            nutrientId: "ca",
+            labelId: "Kalsium (Ca)",
+            labelEn: "Calcium (Ca)",
+            dailyAmountLabel: `${roundTo(row.ca, 1)} g/hr`,
+            formulaText: `(${roundTo(row.ca, 1)} g ÷ (${dmiKg} kg × 1000)) × 100%`,
+            resultLabel: `Min ${caPct}% BK`,
+          },
+          {
+            nutrientId: "p",
+            labelId: "Fosfor (P)",
+            labelEn: "Phosphorus (P)",
+            dailyAmountLabel: `${roundTo(row.p, 1)} g/hr`,
+            formulaText: `(${roundTo(row.p, 1)} g ÷ (${dmiKg} kg × 1000)) × 100%`,
+            resultLabel: `Min ${pPct}% BK`,
+          },
+        ],
+      },
     },
   };
 }
@@ -599,7 +667,7 @@ export function computeDynamicDairyRequirement(
   }
 
   const cpPct = roundTo(clamp((totalCp / (dmiKg * 1000)) * 100, 8.0, 21.0), 2);
-  const tdnPct = roundTo(clamp((totalTdn / dmiKg) * 100, 52.0, 80.0), 1);
+  const tdnPct = roundTo(clamp((totalTdn / dmiKg) * 100, 52.0, 80.0), 2);
   const caPct = roundTo(clamp((totalCa / (dmiKg * 1000)) * 100, 0.25, 1.3), 2);
   const pPct = roundTo(clamp((totalP / (dmiKg * 1000)) * 100, 0.2, 0.8), 2);
 
@@ -607,16 +675,19 @@ export function computeDynamicDairyRequirement(
   const dairyEnergyRatio = clamp((tdnPct - 54) / (74 - 54), 0, 1);
   const eeMinPct = isDryPregnant ? 1.5 : 2.0;
   const eeMaxPct = 6.5;
-  const eeIdealPct = isDryPregnant ? 2.5 : roundTo(2.8 + 1.0 * dairyEnergyRatio, 1);
-  const cfMinPct = isDryPregnant ? 18.0 : roundTo(17.0 - 3.5 * dairyEnergyRatio, 1);
-  const cfMaxPct = isDryPregnant ? 31.0 : roundTo(29.0 - 5.0 * dairyEnergyRatio, 1);
-  const cfIdealPct = isDryPregnant ? 24.0 : roundTo(22.5 - 4.5 * dairyEnergyRatio, 1);
+  const eeIdealPct = isDryPregnant ? 2.5 : roundTo(2.8 + 1.0 * dairyEnergyRatio, 2);
+  const cfMinPct = isDryPregnant ? 18.0 : roundTo(17.0 - 3.5 * dairyEnergyRatio, 2);
+  const cfMaxPct = isDryPregnant ? 31.0 : roundTo(29.0 - 5.0 * dairyEnergyRatio, 2);
+  const cfIdealPct = isDryPregnant ? 24.0 : roundTo(22.5 - 4.5 * dairyEnergyRatio, 2);
 
   const stdLabel = standard === "kearl_1982" ? "Kearl 1982" : "NRC 1988";
   const calcTag = isExtrapolated ? `Ekstrapolasi ${stdLabel}` : `Interpolasi ${stdLabel}`;
   const phaseStr = isDryPregnant
     ? `Kering Bunting · BB ${roundTo(bwKg, 0)} kg`
     : `Laktasi ${roundTo(milkKg, 1)} L · Lemak ${roundTo(fatPct, 1)}% (FCM 4%: ${fcm4PctKg} kg) · BB ${roundTo(bwKg, 0)} kg`;
+  const phaseStrEn = isDryPregnant
+    ? `Dry Pregnant · BW ${roundTo(bwKg, 0)} kg`
+    : `Lactation ${roundTo(milkKg, 1)} L · Fat ${roundTo(fatPct, 1)}% (4% FCM: ${fcm4PctKg} kg) · BW ${roundTo(bwKg, 0)} kg`;
 
   return {
     dmiKg,
@@ -638,7 +709,7 @@ export function computeDynamicDairyRequirement(
       basis: "dry_matter",
       constraints: [
         { nutrientId: "cp", min: cpPct, idealTarget: roundTo(cpPct + 0.6, 2), enabled: true },
-        { nutrientId: "tdn", min: tdnPct, idealTarget: roundTo(tdnPct + 2.0, 1), enabled: true },
+        { nutrientId: "tdn", min: tdnPct, idealTarget: roundTo(tdnPct + 2.0, 2), enabled: true },
         {
           nutrientId: "ee",
           min: eeMinPct,
@@ -679,6 +750,88 @@ export function computeDynamicDairyRequirement(
         },
       ],
       source: `${calcTag} — ${phaseStr}; DMI ${dmiKg} kg BK; ME ${roundTo(totalMe, 2)} Mcal; TDN ${roundTo(totalTdn, 2)} kg (${tdnPct}% BK); PK ${roundTo(totalCp, 0)} g (${cpPct}% BK); Ca ${roundTo(totalCa, 0)} g (${caPct}% BK); P ${roundTo(totalP, 0)} g (${pPct}% BK); LK ${eeMinPct}–${eeMaxPct}% BK (SNI 3148-1:2017 / NRC 1988); SK ${cfMinPct}–${cfMaxPct}% BK (NRC 1988 / Hartadi 1980 T7)`,
+      dynamicCalculation: {
+        standardName: isDryPregnant ? "NRC (1988) Dry Pregnant" : `${stdLabel} Table`,
+        method: isExtrapolated ? "extrapolated" : "interpolated",
+        inputsSummaryId: phaseStr,
+        inputsSummaryEn: phaseStrEn,
+        dmiKg,
+        ...(isDryPregnant ? {} : { fcm4PctKg }),
+        steps: [
+          ...(!isDryPregnant
+            ? [
+                {
+                  nutrientId: "fcm",
+                  labelId: "Koreksi Susu FCM 4%",
+                  labelEn: "4% Fat-Corrected Milk (FCM)",
+                  dailyAmountLabel: `${roundTo(milkKg, 1)} L (${roundTo(fatPct, 1)}% lemak)`,
+                  formulaText: `0.4×${roundTo(milkKg, 1)} + 15×${roundTo(milkKg, 1)}×(${roundTo(fatPct, 1)}÷100)`,
+                  resultLabel: `${fcm4PctKg} kg/hr`,
+                },
+              ]
+            : []),
+          {
+            nutrientId: "dmi",
+            labelId: "Estimasi Konsumsi BK (DMI)",
+            labelEn: "Estimated Dry Matter Intake (DMI)",
+            dailyAmountLabel: `${roundTo(bwKg, 0)} kg BB`,
+            formulaText: isDryPregnant
+              ? `2.0% × ${roundTo(bwKg, 0)} kg BB`
+              : `${stdLabel} (%BB terhadap BB ${roundTo(bwKg, 0)} kg & FCM ${fcm4PctKg} kg)`,
+            resultLabel: `${dmiKg} kg BK/hr`,
+          },
+          {
+            nutrientId: "cp",
+            labelId: "Protein Kasar (PK)",
+            labelEn: "Crude Protein (CP)",
+            dailyAmountLabel: `${roundTo(totalCp, 1)} g/hr`,
+            formulaText: `(${roundTo(totalCp, 1)} g ÷ (${dmiKg} kg × 1000)) × 100%`,
+            resultLabel: `Min ${cpPct}% BK`,
+          },
+          {
+            nutrientId: "tdn",
+            labelId: "Energi TDN",
+            labelEn: "TDN Energy",
+            dailyAmountLabel: `${roundTo(totalTdn, 2)} kg/hr`,
+            formulaText: `(${roundTo(totalTdn, 2)} kg ÷ ${dmiKg} kg) × 100%`,
+            resultLabel: `Min ${tdnPct}% BK`,
+          },
+          {
+            nutrientId: "cf",
+            labelId: "Serat Kasar (SK)",
+            labelEn: "Crude Fiber (CF)",
+            dailyAmountLabel: `TDN ${tdnPct}%`,
+            formulaText: isDryPregnant
+              ? "Rentang serat rumen fase kering bunting"
+              : `r = (${tdnPct}-54)/20; Min = 17 - 3.5r; Max = 29 - 5r`,
+            resultLabel: `${cfMinPct}–${cfMaxPct}% BK`,
+          },
+          {
+            nutrientId: "ee",
+            labelId: "Lemak Kasar (LK)",
+            labelEn: "Ether Extract (EE)",
+            dailyAmountLabel: "Batas Rumen",
+            formulaText: "Ambang aman fermentasi rumen SNI 3148-1 / NRC 1988",
+            resultLabel: `${eeMinPct}–${eeMaxPct}% BK`,
+          },
+          {
+            nutrientId: "ca",
+            labelId: "Kalsium (Ca)",
+            labelEn: "Calcium (Ca)",
+            dailyAmountLabel: `${roundTo(totalCa, 1)} g/hr`,
+            formulaText: `(${roundTo(totalCa, 1)} g ÷ (${dmiKg} kg × 1000)) × 100%`,
+            resultLabel: `Min ${caPct}% BK`,
+          },
+          {
+            nutrientId: "p",
+            labelId: "Fosfor (P)",
+            labelEn: "Phosphorus (P)",
+            dailyAmountLabel: `${roundTo(totalP, 1)} g/hr`,
+            formulaText: `(${roundTo(totalP, 1)} g ÷ (${dmiKg} kg × 1000)) × 100%`,
+            resultLabel: `Min ${pPct}% BK`,
+          },
+        ],
+      },
     },
   };
 }

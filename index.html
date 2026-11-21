@@ -6,24 +6,23 @@
     <meta name="theme-color" content="#F5F4EF" />
     <meta
       name="description"
-      content="OpenFormul: aplikasi formulasi pakan ternak presisi offline-first berbasis optimasi Linear Programming."
+      content="OpenFormu: aplikasi formulasi pakan ternak presisi offline-first berbasis optimasi Linear Programming."
     />
-    <link rel="apple-touch-icon" href="./logo.jpg" />
-    <link rel="icon" type="image/jpeg" href="./logo.jpg" />
-    <title>OpenFormul</title>
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="./logo.png" />
+    <title>OpenFormu</title>
     <script>
       (function () {
         try {
           var validPalettes = [
             "original-default",
-            "prd-custom",
             "template-01",
-            "template-02",
             "template-03",
             "template-04",
             "template-05",
           ];
           var palette =
+            localStorage.getItem("openformu-theme-id") ||
             localStorage.getItem("openformul-theme-id") ||
             localStorage.getItem("app-theme-id") ||
             "original-default";
@@ -31,6 +30,7 @@
             palette = "original-default";
           }
           var modeSetting =
+            localStorage.getItem("openformu-theme-mode") ||
             localStorage.getItem("openformul-theme-mode") ||
             localStorage.getItem("app-theme-mode") ||
             "light";
@@ -40,7 +40,8 @@
           var resolvedMode =
             modeSetting === "dark" || (modeSetting === "system" && prefersDark) ? "dark" : "light";
           var amoled =
-            (localStorage.getItem("openformul-theme-amoled") ||
+            (localStorage.getItem("openformu-theme-amoled") ||
+              localStorage.getItem("openformul-theme-amoled") ||
               localStorage.getItem("app-theme-amoled")) === "true";
 
           var root = document.documentElement;
@@ -59,6 +60,7 @@
       })();
     </script>
   </head>
+
   <body class="antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

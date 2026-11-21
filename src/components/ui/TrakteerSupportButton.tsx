@@ -2,12 +2,15 @@ import { Coffee, ExternalLink, Heart } from "lucide-react";
 import { pickLang } from "../../i18n";
 import type { AppLanguage } from "../../types";
 import { cn } from "../../utils/cn";
+import { handleExternalLinkClick } from "../../utils/external-link";
 
 export const TRAKTEER_SUPPORT_URL = "https://trakteer.id/reza_widya_utama/tip?open=true";
 
 export interface TrakteerSupportButtonProps {
   readonly variant?: "sidebar" | "settings";
   readonly compact?: boolean;
+  /** Permukaan tempat tombol dirender: "dark" (sidebar gelap) atau "adaptive" (mengikuti Light/Dark mode). */
+  readonly surface?: "dark" | "adaptive";
   readonly language?: AppLanguage;
   readonly className?: string;
 }
@@ -18,14 +21,15 @@ export interface TrakteerSupportButtonProps {
 export function TrakteerSupportButton({
   variant = "sidebar",
   compact = false,
+  surface = "dark",
   language = "id",
   className,
 }: TrakteerSupportButtonProps) {
   const label = pickLang(language, "Dukung via Trakteer", "Support via Trakteer");
   const subtitle = pickLang(
     language,
-    "Traktir kopi & dukung riset OpenFormul",
-    "Buy a coffee & support OpenFormul",
+    "Traktir kopi & dukung riset OpenFormu",
+    "Buy a coffee & support OpenFormu",
   );
 
   if (variant === "settings") {
@@ -40,16 +44,16 @@ export function TrakteerSupportButton({
           <div className="flex min-w-0 flex-1 items-start gap-3">
             <span
               aria-hidden="true"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-300/45 bg-gradient-to-br from-amber-400/25 to-rose-500/25 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.28)] sm:h-11 sm:w-11"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/40 bg-gradient-to-br from-amber-400/30 to-rose-500/25 text-amber-700 shadow-[0_0_20px_rgba(245,158,11,0.28)] dark:border-amber-300/45 dark:text-amber-400 sm:h-11 sm:w-11"
             >
               <Coffee className="h-5 w-5" />
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-sm font-bold text-[var(--text-primary)]">
-                  {pickLang(language, "Dukung Kreator OpenFormul", "Support OpenFormul Creator")}
+                  {pickLang(language, "Dukung Kreator OpenFormu", "Support OpenFormu Creator")}
                 </h2>
-                <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/35 bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-500">
+                <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/35 bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-700 dark:text-rose-400">
                   <Heart className="h-2.5 w-2.5 fill-current" />
                   <span>Open-Source</span>
                 </span>
@@ -57,8 +61,8 @@ export function TrakteerSupportButton({
               <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
                 {pickLang(
                   language,
-                  "OpenFormul dikembangkan gratis & offline-first untuk peternak serta formulator. Dukungan Anda membantu pembaruan standar SNI/NRC dan pengembangan fitur baru.",
-                  "OpenFormul is built free & offline-first for farmers and nutritionists. Your support helps maintain SNI/NRC data and new solver tools.",
+                  "OpenFormu dikembangkan gratis & offline-first untuk peternak serta formulator. Dukungan Anda membantu pembaruan standar SNI/NRC dan pengembangan fitur baru.",
+                  "OpenFormu is built free & offline-first for farmers and nutritionists. Your support helps maintain SNI/NRC data and new solver tools.",
                 )}
               </p>
             </div>
@@ -68,6 +72,7 @@ export function TrakteerSupportButton({
             href={TRAKTEER_SUPPORT_URL}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => handleExternalLinkClick(e, TRAKTEER_SUPPORT_URL)}
             aria-label={label}
             className="inline-flex min-h-10 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-300/55 bg-gradient-to-r from-amber-500 to-rose-500 px-4 py-2 text-xs font-bold text-white shadow-[0_6px_22px_-4px_rgba(245,158,11,0.45)] transition-[transform,box-shadow,filter] duration-150 hover:-translate-y-0.5 hover:brightness-105 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none sm:w-auto"
           >
@@ -86,6 +91,7 @@ export function TrakteerSupportButton({
         href={TRAKTEER_SUPPORT_URL}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={(e) => handleExternalLinkClick(e, TRAKTEER_SUPPORT_URL)}
         aria-label={label}
         title={label}
         className={cn(
@@ -104,33 +110,58 @@ export function TrakteerSupportButton({
     );
   }
 
+  const isAdaptive = surface === "adaptive";
+
   return (
     <a
       href={TRAKTEER_SUPPORT_URL}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={(e) => handleExternalLinkClick(e, TRAKTEER_SUPPORT_URL)}
       aria-label={label}
       title={subtitle}
       className={cn(
         "trakteer-glass-card group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-[transform,box-shadow,border-color] duration-150 hover:-translate-y-0.5 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] motion-reduce:transform-none",
+        isAdaptive &&
+          "!border-amber-600/35 !bg-gradient-to-r !from-amber-100/95 !to-orange-100/90 dark:!border-amber-300/35 dark:!from-amber-400/20 dark:!to-rose-500/20",
         className,
       )}
     >
       <span
         aria-hidden="true"
-        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-200/35 bg-gradient-to-br from-amber-400/35 to-rose-500/35 text-amber-100 shadow-[0_0_12px_rgba(251,191,36,0.3)]"
+        className={cn(
+          "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border shadow-[0_0_12px_rgba(251,191,36,0.3)]",
+          isAdaptive
+            ? "border-amber-600/35 bg-amber-500/20 text-amber-900 dark:border-amber-200/35 dark:bg-gradient-to-br dark:from-amber-400/35 dark:to-rose-500/35 dark:text-amber-100"
+            : "border-amber-200/35 bg-gradient-to-br from-amber-400/35 to-rose-500/35 text-amber-100",
+        )}
       >
         <Coffee className="h-4 w-4 transition-transform duration-150 group-hover:scale-110" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[11px] font-bold text-amber-100">{label}</span>
-        <span className="block truncate text-[9.5px] font-medium text-amber-200/80">
+        <span
+          className={cn(
+            "block truncate text-[11px] font-bold",
+            isAdaptive ? "text-amber-950 dark:text-amber-100" : "text-amber-100",
+          )}
+        >
+          {label}
+        </span>
+        <span
+          className={cn(
+            "block truncate text-[9.5px] font-medium",
+            isAdaptive ? "text-amber-900/85 dark:text-amber-200/85" : "text-amber-200/80",
+          )}
+        >
           {pickLang(language, "Traktir kopi kreator", "Buy creator a coffee")}
         </span>
       </span>
       <ExternalLink
         aria-hidden="true"
-        className="h-3.5 w-3.5 shrink-0 text-amber-200/75 transition-transform duration-150 group-hover:translate-x-0.5"
+        className={cn(
+          "h-3.5 w-3.5 shrink-0 transition-transform duration-150 group-hover:translate-x-0.5",
+          isAdaptive ? "text-amber-800 dark:text-amber-200/80" : "text-amber-200/75",
+        )}
       />
     </a>
   );

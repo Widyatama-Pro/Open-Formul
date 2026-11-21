@@ -89,7 +89,7 @@ describe("Mode Pendekatan 1 Angka (Single-Target Precision) & Saran Bahan Indone
     expect(caSingle.value).toBeGreaterThanOrEqual(0.95 - 1e-6);
   });
 
-  it("HiGHS Live: menolak SK melampaui batas maksimal (infeasible bila toleransi nonaktif, near_feasible bila aktif)", async () => {
+  it("HiGHS Live: menolak SK melampaui batas maksimal +15% sekalipun Toleransi Target aktif", async () => {
     const highFiberOnly: readonly Ingredient[] = MOCK_INGREDIENTS.map((ing) => {
       const active = ing.id === "rice-bran" || ing.id === "palm-kernel-meal";
       return {
@@ -103,7 +103,7 @@ describe("Mode Pendekatan 1 Angka (Single-Target Precision) & Saran Bahan Indone
       ...MOCK_REQUIREMENTS[0]!,
       constraints: [
         { nutrientId: "cp", min: 14, enabled: true },
-        { nutrientId: "cf", max: 5, enabled: true }, // Kedua bahan aktif punya SK >= 11%
+        { nutrientId: "cf", max: 5, enabled: true }, // Kedua bahan aktif punya SK >= 11% (> 5 * 1.15 = 5.75%)
       ],
       ratios: [],
     };
@@ -122,9 +122,27 @@ describe("Mode Pendekatan 1 Angka (Single-Target Precision) & Saran Bahan Indone
       { ...DEFAULT_CONFIG, targetInputMode: "single", enableElasticFallback: true },
       solveLpInNode,
     );
-    expect(flexRes.status).toBe("near_feasible");
-    const cfRes = flexRes.nutrients.find((n) => n.nutrientId === "cf")!;
+    expect(flexRes.status).toBe("infeasible");
+
+    // Batas SK 10.5% memiliki plafon +15% = 12.075%, sehingga rice-bran (~11.5%) diterima sebagai near_feasible
+    const cappedWithin15Req: Requirement = {
+      ...MOCK_REQUIREMENTS[0]!,
+      constraints: [
+        { nutrientId: "cp", min: 12, enabled: true },
+        { nutrientId: "cf", max: 10.5, enabled: true },
+      ],
+      ratios: [],
+    };
+    const within15Res = await solveFormulationWithRunner(
+      highFiberOnly,
+      cappedWithin15Req,
+      { ...DEFAULT_CONFIG, targetInputMode: "single", enableElasticFallback: true },
+      solveLpInNode,
+    );
+    expect(within15Res.status).toBe("near_feasible");
+    const cfRes = within15Res.nutrients.find((n) => n.nutrientId === "cf")!;
     expect(cfRes.status).toBe("above_max");
+    expect(cfRes.value).toBeLessThanOrEqual(10.5 * 1.15 + 1e-6);
   });
 
   it("Algoritma Saran Bahan memprioritaskan bahan mudah didapat di Indonesia, sesuai spesies, & patuh penolakan", async () => {
@@ -157,8 +175,14 @@ describe("Mode Pendekatan 1 Angka (Single-Target Precision) & Saran Bahan Indone
     // Prioritas teratas wajib bahan mudah didapat di Indonesia (bukan bekicot / reagen)
     expect(suggestions[0]!.availabilityTier).toBe("high");
     expect(suggestions.some((s) => s.ingredient.id === "hartadi-t12-0001")).toBe(false);
-    // Tidak menyarankan hijauan segar (rumput gajah/jerami) untuk ayam broiler
+    // Tidak boleh menyarankan hijauan segar untuk ayam broiler maupun DL-Metionin
     expect(suggestions.every((s) => s.ingredient.category !== "forage")).toBe(true);
+    expect(
+      suggestions.some(
+        (s) =>
+          s.ingredient.id === "dl-methionine" || /metionin|methionine/i.test(s.ingredient.name),
+      ),
+    ).toBe(false);
 
     // Saat pengguna memilih "Tidak" (dismiss), bahan tsb tidak disarankan lagi
     const dismissedId = suggestions[0]!.ingredient.id;

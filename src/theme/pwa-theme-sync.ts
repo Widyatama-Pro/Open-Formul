@@ -26,17 +26,9 @@ export const PALETTE_FALLBACK_HEX: Readonly<Record<ThemePaletteId, PaletteCanvas
     light: { canvas: "#F5F4EF", surface: "#E7EBE6", primary: "#142B27" },
     dark: { canvas: "#0F1A18", surface: "#172623", primary: "#3A6E5E" },
   },
-  "prd-custom": {
-    light: { canvas: "#F2F4F1", surface: "#E5E9E4", primary: "#1B3A32" },
-    dark: { canvas: "#101615", surface: "#17201E", primary: "#3B7A68" },
-  },
   "template-01": {
     light: { canvas: "#F7F7F5", surface: "#ECECE8", primary: "#111111" },
     dark: { canvas: "#111111", surface: "#1D1D1D", primary: "#F5F378" },
-  },
-  "template-02": {
-    light: { canvas: "#FBFBFB", surface: "#EDEFF3", primary: "#242424" },
-    dark: { canvas: "#18191D", surface: "#242424", primary: "#EAFB5D" },
   },
   "template-03": {
     light: { canvas: "#F8F7F4", surface: "#ECEAE4", primary: "#0E0F0B" },
@@ -157,8 +149,8 @@ export function updateDynamicManifestLink(options: PwaThemeSyncOptions = {}): vo
   };
 
   const dynamicManifest = {
-    name: options.appName ?? "OpenFormul",
-    short_name: options.shortName ?? "OpenFormul",
+    name: options.appName ?? "OpenFormu",
+    short_name: options.shortName ?? "OpenFormu",
     start_url: resolveAsset("./?source=pwa"),
     scope: resolveAsset("./"),
     display: "standalone",

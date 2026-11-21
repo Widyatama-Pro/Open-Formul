@@ -1,12 +1,13 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capability for OpenFormul desktop window and file exports",
+  "description": "Default capability for OpenFormu desktop window, file exports, and external links",
   "windows": ["main"],
   "permissions": [
     "core:default",
     "dialog:default",
     "fs:default",
+    "opener:default",
     {
       "identifier": "fs:allow-write-file",
       "allow": [

@@ -28,15 +28,15 @@ export default defineConfig(({ mode }) => {
               registerType: "autoUpdate",
               injectRegister: "auto",
               includeAssets: [
-                "logo.jpg",
+                "logo.png",
                 "apple-touch-icon.png",
                 "pwa-192x192.png",
                 "pwa-512x512.png",
               ],
               manifest: {
                 id: "./",
-                name: "OpenFormul",
-                short_name: "OpenFormul",
+                name: "OpenFormu",
+                short_name: "OpenFormu",
                 description:
                   "Aplikasi PWA offline-first lintas platform (Desktop & Mobile) untuk formulasi pakan ternak presisi berbasis Linear Programming (HiGHS WASM).",
                 theme_color: "#F5F4EF",
